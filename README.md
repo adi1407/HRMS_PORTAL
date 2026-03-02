@@ -1,0 +1,332 @@
+# 🏢 Enterprise HRMS v2.0
+
+> Geo-Fencing · Face Recognition · Smart Attendance · Auto Salary Deduction
+
+---
+
+## ⚡ Quick Start (3 Steps)
+
+```bash
+# Step 1 — Install all dependencies
+cd hrms && npm run install:all
+
+# Step 2 — Seed database (run ONCE)
+npm run seed
+
+# Step 3 — Start project
+npm run dev
+```
+
+Open **http://localhost:3000**
+Login: `admin@hrms.com` / `Admin@123`
+
+---
+
+## 📋 Prerequisites
+
+| Tool | Version | Check |
+|------|---------|-------|
+| Node.js | v18 or higher | `node --version` |
+| npm | v9 or higher | `npm --version` |
+| Chrome/Edge | Latest | For webcam face scan |
+
+---
+
+## 📂 Project Structure
+
+```
+hrms/
+├── package.json              ← Root: runs both together
+├── server/
+│   ├── .env                  ← ✅ MongoDB Atlas URI is already set here
+│   ├── package.json
+│   ├── index.js              ← Entry point
+│   ├── app.js                ← Express setup
+│   ├── config/db.js          ← MongoDB connection
+│   ├── models/               ← All Mongoose models
+│   ├── routes/               ← All API routes
+│   ├── services/             ← Business logic
+│   │   └── attendance.service.js  ← ⚠️ 10:45 AM threshold here ONLY
+│   ├── middleware/           ← Auth + error handling
+│   ├── cron/                 ← Scheduled jobs
+│   └── scripts/seed.js       ← First-run seed
+│
+└── client/
+    ├── package.json
+    ├── public/
+    │   ├── index.html
+    │   └── models/           ← ⚠️ face-api.js models go here
+    └── src/
+        ├── App.jsx
+        ├── pages/            ← Login, Dashboard, CheckIn, Salary, etc.
+        ├── components/       ← Layout, ProtectedRoute
+        ├── store/            ← Zustand (token in memory only)
+        ├── utils/api.js      ← Axios + auto-refresh
+        └── styles/index.css  ← Full CSS design system (no Tailwind)
+```
+
+---
+
+## 🔧 Detailed Setup
+
+### Step 1 — Install Dependencies
+
+Open terminal, go to the `hrms` folder:
+
+```bash
+cd hrms
+npm run install:all
+```
+
+This runs `npm install` in root, server, and client automatically.
+
+**If it fails**, install manually:
+```bash
+npm install
+cd server && npm install
+cd ../client && npm install --legacy-peer-deps
+```
+
+---
+
+### Step 2 — Check Your .env File
+
+The file `server/.env` is already configured with your MongoDB Atlas connection:
+
+```
+MONGODB_URI=mongodb+srv://aditya:adityachoudhary@cluster0.t5o4pb5.mongodb.net/hrms_db?retryWrites=true&w=majority&appName=Cluster0
+```
+
+**Make sure MongoDB Atlas Network Access allows your IP:**
+1. Go to https://cloud.mongodb.com
+2. Login → your project → Security → **Network Access**
+3. Click **+ ADD IP ADDRESS**
+4. Click **ALLOW ACCESS FROM ANYWHERE** (adds 0.0.0.0/0)
+5. Click **Confirm** → wait 1 minute
+
+---
+
+### Step 3 — Seed the Database (One Time Only)
+
+```bash
+cd hrms
+npm run seed
+```
+
+**Expected output:**
+```
+✅ Connected to MongoDB
+✅ Branch created: Head Office
+✅ Department created: Human Resources (HR)
+✅ Super Admin created:
+   📧 Email:    admin@hrms.com
+   🔑 Password: Admin@123
+✅ Holidays: 4 created
+🎉 SEED COMPLETE!
+```
+
+---
+
+### Step 4 — Start the Project
+
+**Option A — Both together (recommended):**
+```bash
+cd hrms
+npm run dev
+```
+
+**Option B — Separately (if Option A fails):**
+
+Terminal 1:
+```bash
+cd hrms/server
+npm run dev
+```
+
+Terminal 2:
+```bash
+cd hrms/client
+npm start
+```
+
+---
+
+### Step 5 — Open Browser
+
+- Frontend: **http://localhost:3000**
+- Backend health check: **http://localhost:5000/api/health**
+
+---
+
+## 🔐 Default Login
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | admin@hrms.com | Admin@123 |
+
+> ⚠️ Change this password after first login!
+
+---
+
+## 👤 Face Recognition Setup (Required for Check-In)
+
+Download model files (~6.5MB total) and place in `client/public/models/`:
+
+**Download from:**
+https://github.com/justadudewhohacks/face-api.js/tree/master/weights
+
+**Files needed:**
+```
+client/public/models/
+├── ssd_mobilenetv1_model-weights_manifest.json
+├── ssd_mobilenetv1_model-shard1
+├── ssd_mobilenetv1_model-shard2
+├── face_landmark_68_model-weights_manifest.json
+├── face_landmark_68_model-shard1
+├── face_recognition_model-weights_manifest.json
+├── face_recognition_model-shard1
+└── face_recognition_model-shard2
+```
+
+**Quick download (run from project root):**
+```bash
+cd client/public && mkdir -p models && cd models
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/ssd_mobilenetv1_model-weights_manifest.json
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/ssd_mobilenetv1_model-shard1
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/ssd_mobilenetv1_model-shard2
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_landmark_68_model-weights_manifest.json
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_landmark_68_model-shard1
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_recognition_model-weights_manifest.json
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_recognition_model-shard1
+curl -O https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_recognition_model-shard2
+```
+
+---
+
+## 🏢 First Things After Login
+
+**1. Update branch GPS coordinates**
+
+The seed creates a branch with Mumbai coordinates. Update to your actual office:
+- Dashboard → (as Super Admin) use the API or DB to update branch lat/lon
+- Get coordinates: Google Maps → right-click office location → copy coordinates
+- Default GPS: 19.0760, 72.8777 (Mumbai)
+
+**2. Create employee accounts**
+- Go to **Employees** → **Add Employee**
+- Set their gross salary (needed for salary slips)
+- Default password: `Welcome@123`
+
+**3. Enroll employee faces**
+- Employee must be logged in on a machine with camera
+- Admin calls: `POST /api/face/enroll/:employeeId` with 5 face descriptors
+- After enrollment, employee can use face check-in
+
+---
+
+## 📅 Attendance Logic
+
+### Time Thresholds
+
+| Check-in Time | Employee Sees | Salary Deduction |
+|--------------|---------------|-----------------|
+| Before 9:45 AM | ✅ FULL DAY | None |
+| 9:45 – 10:45 AM | ⚠️ HALF DAY | None (grace period) |
+| After 10:45 AM | ⚠️ HALF DAY | 0.5 day deducted |
+| No check-in | ❌ ABSENT | 1 day deducted |
+
+> The 10:45 AM threshold is **never stored in .env or sent to the client**. It lives only in `server/services/attendance.service.js`.
+
+### Salary Formula
+```
+Per Day = Gross Salary ÷ Days in Month
+Deduction = (Real Half Days × 0.5 + Absent Days + Unpaid Leaves) × Per Day
+Net Salary = Gross Salary − Deduction
+```
+
+### Automatic Cron Jobs
+
+| Time | Job |
+|------|-----|
+| 00:05 AM daily | Mark Sundays as Weekly Off, holidays as Holiday |
+| 11:59 PM daily | Auto-mark unchecked employees as Absent |
+| 6:00 PM Mon–Sat | Auto-checkout employees still checked in |
+| 1st of month 6 AM | Generate salary slips for previous month |
+
+---
+
+## 🔌 API Endpoints
+
+| Method | Route | Access | Description |
+|--------|-------|--------|-------------|
+| POST | `/api/auth/login` | Public | Login |
+| POST | `/api/auth/refresh` | Cookie | Refresh token |
+| POST | `/api/auth/logout` | Any | Logout |
+| GET | `/api/auth/me` | Any | Own profile |
+| GET | `/api/users` | Admin | All employees |
+| POST | `/api/users` | Admin | Create employee |
+| POST | `/api/attendance/checkin` | Employee | Check in |
+| POST | `/api/attendance/checkout` | Employee | Check out |
+| GET | `/api/attendance/today` | Employee | Today's record |
+| GET | `/api/attendance/my` | Employee | Own history |
+| GET | `/api/attendance` | Admin | All records |
+| POST | `/api/face/enroll/:id` | Admin | Enroll face |
+| POST | `/api/salary/generate` | Super Admin | Generate salary |
+| GET | `/api/salary/my` | Employee | Own salary slip |
+| POST | `/api/leaves` | Employee | Apply for leave |
+| GET | `/api/analytics/dashboard` | Admin | Dashboard stats |
+
+---
+
+## 🔒 Security
+
+- **Access token** — 15 min JWT, stored in Zustand memory (never localStorage)
+- **Refresh token** — 7 day JWT, stored in httpOnly cookie (JS-inaccessible)
+- **Face images** — never stored; only 128-dimension numerical descriptors saved
+- **Liveness check** — blink detection (Eye Aspect Ratio) prevents photo replay
+- **Geo-fence** — Haversine formula runs server-side only; client sends raw GPS
+- **10:45 threshold** — hardcoded only in attendance.service.js, never in env or API
+
+---
+
+## ❗ Troubleshooting
+
+### `querySrv ECONNREFUSED`
+→ MongoDB Atlas is blocking your IP.
+→ Go to Atlas → Network Access → Add `0.0.0.0/0` → Confirm → wait 2 min
+
+### `react-scripts is not recognized`
+→ Run `cd client && npm install --legacy-peer-deps`
+
+### `authentication failed`
+→ Wrong username/password in `server/.env` MONGODB_URI
+
+### Face models not loading
+→ Download model files to `client/public/models/` (see above)
+
+### Camera permission denied
+→ Allow camera in browser settings
+→ Must be on `localhost` or `https` for camera to work
+
+### Port 5000 in use
+→ Change `PORT=5001` in `server/.env`
+
+---
+
+## 🗂️ .env Reference
+
+```
+NODE_ENV=development
+PORT=5000
+CLIENT_URL=http://localhost:3000
+MONGODB_URI=mongodb+srv://aditya:adityachoudhary@cluster0.t5o4pb5.mongodb.net/hrms_db?...
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+BCRYPT_ROUNDS=12
+```
+
+---
+
+*Enterprise HRMS v2.0 — Built with Node.js, Express, MongoDB, React*

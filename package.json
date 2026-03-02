@@ -1,0 +1,16 @@
+{
+  "name": "enterprise-hrms",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Enterprise HRMS — Geo-Fencing + Face Recognition + Auto Salary Deduction",
+  "scripts": {
+    "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"bgBlue.bold,bgGreen.bold\" \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install --legacy-peer-deps",
+    "seed": "cd server && node scripts/seed.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
