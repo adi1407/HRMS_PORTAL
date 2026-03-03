@@ -1,15 +1,18 @@
+// src/utils/api.js
+
 import axios from "axios";
 import useAuthStore from "../store/authStore";
 
-const BASE_URL = import.meta.env.VITE_API_URL; // ✅ Vite env
+// ✅ ONE-TIME FIX: append /api here so all your calls like "/auth/login" become "/api/auth/login"
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // sends httpOnly refresh cookie
   headers: { "Content-Type": "application/json" },
 });
 
-// Inject access token
+// Inject access token from memory into every request
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -30,10 +33,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Avoid infinite loop for auth endpoints
     const isAuthEndpoint =
       originalRequest?.url === "/auth/refresh" || originalRequest?.url === "/auth/login";
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      // If refresh already happening, queue requests
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -47,13 +52,18 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await api.post("/auth/refresh", {}); // ✅ use api (baseURL + creds)
+        // ✅ uses same axios instance (baseURL + withCredentials)
+        const { data } = await api.post("/auth/refresh", {});
         const { accessToken } = data;
 
-        useAuthStore.getState().setAuth(useAuthStore.getState().user, accessToken);
+        // update store
+        const state = useAuthStore.getState();
+        state.setAuth(state.user, accessToken);
 
+        // release queued requests
         processQueue(null, accessToken);
 
+        // retry original request
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
