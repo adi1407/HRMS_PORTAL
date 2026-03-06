@@ -101,6 +101,64 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+/** One-time seed endpoint — protected by SEED_SECRET env var */
+app.get("/api/seed", async (req, res) => {
+  const secret = process.env.SEED_SECRET;
+  if (!secret || req.query.secret !== secret) {
+    return res.status(403).json({ success: false, message: "Forbidden" });
+  }
+  try {
+    const bcrypt   = require("bcryptjs");
+    const User       = require("./models/User.model");
+    const Branch     = require("./models/Branch.model");
+    const Department = require("./models/Department.model");
+    const Holiday    = require("./models/Holiday.model");
+
+    const results = [];
+
+    // Branch
+    let branch = await Branch.findOne({ name: "HR Branch" });
+    if (!branch) {
+      branch = await Branch.create({ name: "HR Branch", address: "Floor 1, HR Wing", floor: 1, latitude: 28.587, longitude: 77.315, radiusMeters: 30, isActive: true });
+      results.push("Branch created: HR Branch");
+    } else { results.push("Branch exists: HR Branch"); }
+
+    // Department
+    let dept = await Department.findOne({ code: "HR" });
+    if (!dept) {
+      dept = await Department.create({ name: "Human Resources", code: "HR", isActive: true });
+      results.push("Department created: Human Resources");
+    } else { results.push("Department exists: Human Resources"); }
+
+    // Super Admin
+    let admin = await User.findOne({ email: "admin@hrms.com" });
+    if (!admin) {
+      const hashed = await bcrypt.hash("Admin@123", 12);
+      await User.create({ employeeId: "EMP-0001", name: "Super Admin", email: "admin@hrms.com", password: hashed, role: "SUPER_ADMIN", designation: "System Administrator", department: dept._id, branch: branch._id, joiningDate: new Date(), grossSalary: 0, isActive: true });
+      results.push("Super Admin created — email: admin@hrms.com | password: Admin@123");
+    } else { results.push("Super Admin already exists"); }
+
+    // Holidays
+    const year = new Date().getFullYear();
+    const holidays = [
+      { name: "Republic Day",     date: new Date(year, 0, 26), type: "NATIONAL" },
+      { name: "Independence Day", date: new Date(year, 7, 15), type: "NATIONAL" },
+      { name: "Gandhi Jayanti",   date: new Date(year, 9,  2), type: "NATIONAL" },
+      { name: "Christmas Day",    date: new Date(year, 11, 25), type: "NATIONAL" },
+    ];
+    let holidaysCreated = 0;
+    for (const h of holidays) {
+      const exists = await Holiday.findOne({ name: h.name });
+      if (!exists) { await Holiday.create(h); holidaysCreated++; }
+    }
+    results.push(`Holidays: ${holidaysCreated} created`);
+
+    res.json({ success: true, results });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /** 404 */
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
