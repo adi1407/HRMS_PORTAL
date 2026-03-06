@@ -158,6 +158,25 @@ app.get("/api/seed", async (req, res) => {
   }
 });
 
+/** Reset admin password — protected by SEED_SECRET */
+app.get("/api/reset-admin", async (req, res) => {
+  const secret = process.env.SEED_SECRET;
+  if (!secret || req.query.secret !== secret) {
+    return res.status(403).json({ success: false, message: "Forbidden" });
+  }
+  try {
+    const User = require("./models/User.model");
+    const admin = await User.findOne({ email: "admin@hrms.com" }).select("+password");
+    if (!admin) return res.status(404).json({ success: false, message: "admin@hrms.com not found — run /api/seed first" });
+    admin.password = "Admin@123"; // plain — pre-save hook will hash it
+    admin.markModified("password");
+    await admin.save({ validateBeforeSave: false });
+    res.json({ success: true, message: "Password reset to Admin@123" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /** 404 */
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
