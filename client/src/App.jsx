@@ -22,7 +22,8 @@ export default function App() {
 
   useEffect(() => {
     // Try to restore session from refresh token (httpOnly cookie)
-    api.post('/auth/refresh')
+    // 8s timeout prevents infinite "Loading HRMS..." on cold Render start
+    api.post('/auth/refresh', {}, { timeout: 8000 })
       .then(({ data }) => {
         if (data.accessToken) {
           return api.get('/auth/me').then(({ data: meData }) => {
