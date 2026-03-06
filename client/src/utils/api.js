@@ -3,8 +3,9 @@
 import axios from "axios";
 import useAuthStore from "../store/authStore";
 
-// ✅ ONE-TIME FIX: append /api here so all your calls like "/auth/login" become "/api/auth/login"
-const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
+// Local: REACT_APP_API_URL is unset → baseURL = '/api' → CRA proxy forwards to localhost:5000
+// Production: REACT_APP_API_URL = 'https://your-render-app.onrender.com' → full URL used
+const BASE_URL = `${process.env.REACT_APP_API_URL || ''}/api`;
 
 const api = axios.create({
   baseURL: BASE_URL,

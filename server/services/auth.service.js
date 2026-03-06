@@ -6,10 +6,13 @@ const { ApiError } = require('../utils/api.utils');
 const generateAccessToken  = (userId, role) => jwt.sign({ userId, role }, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRY || '15m' });
 const generateRefreshToken = (userId) => jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' });
 
+const isProd = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  secure: isProd,
+  // 'none' required for cross-domain cookies (Vercel frontend ↔ Render backend)
+  // 'strict' is fine locally (same domain via CRA proxy)
+  sameSite: isProd ? 'none' : 'strict',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
@@ -64,7 +67,7 @@ const logout = async ({ req, res }) => {
       await User.findByIdAndUpdate(decoded.userId, { refreshToken: null });
     } catch {}
   }
-  res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+  res.clearCookie('refreshToken', { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'strict' });
   return { message: 'Logged out successfully.' };
 };
 
