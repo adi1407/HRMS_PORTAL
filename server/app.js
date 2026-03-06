@@ -108,7 +108,6 @@ app.get("/api/seed", async (req, res) => {
     return res.status(403).json({ success: false, message: "Forbidden" });
   }
   try {
-    const bcrypt   = require("bcryptjs");
     const User       = require("./models/User.model");
     const Branch     = require("./models/Branch.model");
     const Department = require("./models/Department.model");
@@ -133,8 +132,8 @@ app.get("/api/seed", async (req, res) => {
     // Super Admin
     let admin = await User.findOne({ email: "admin@hrms.com" });
     if (!admin) {
-      const hashed = await bcrypt.hash("Admin@123", 12);
-      await User.create({ employeeId: "EMP-0001", name: "Super Admin", email: "admin@hrms.com", password: hashed, role: "SUPER_ADMIN", designation: "System Administrator", department: dept._id, branch: branch._id, joiningDate: new Date(), grossSalary: 0, isActive: true });
+      // Pass plain password — User model pre-save hook hashes it automatically
+      await User.create({ employeeId: "EMP-0001", name: "Super Admin", email: "admin@hrms.com", password: "Admin@123", role: "SUPER_ADMIN", designation: "System Administrator", department: dept._id, branch: branch._id, joiningDate: new Date(), grossSalary: 0, isActive: true });
       results.push("Super Admin created — email: admin@hrms.com | password: Admin@123");
     } else { results.push("Super Admin already exists"); }
 
