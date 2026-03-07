@@ -4,17 +4,17 @@ import api from '../utils/api';
 
 export default function ResignationPage() {
   const { user } = useAuthStore();
-  const isHR      = ['HR', 'SUPER_ADMIN', 'DIRECTOR'].includes(user?.role);
-  const isHead    = user?.isManagingHead || ['DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
+  const isHead = user?.isManagingHead || ['DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
+  const isHR   = user?.role === 'HR';
 
   if (isHead) return <HeadView />;
-  if (isHR)   return <HRView />;
+  if (isHR)   return <HRCombinedView />;
   return <EmployeeView />;
 }
 
-/* ─── Employee: submit + track own resignation ─────────────── */
-function EmployeeView() {
-  const [history,    setHistory]    = useState([]);   // all resignations, newest first
+/* ─── Shared: employee resign section (no page wrapper) ──────── */
+function MyResignationSection() {
+  const [history,    setHistory]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [reason,     setReason]     = useState('');
   const [lastDate,   setLastDate]   = useState('');
@@ -32,9 +32,8 @@ function EmployeeView() {
     finally { setLoading(false); }
   };
 
-  const latest  = history[0] || null;
-  const isPending = latest && ['PENDING_HR', 'PENDING_HEAD'].includes(latest.status);
-  const isApproved = latest?.status === 'APPROVED';
+  const latest        = history[0] || null;
+  const isApproved    = latest?.status === 'APPROVED';
   const canApplyAgain = !latest || latest.status === 'REJECTED';
 
   const submit = async () => {
@@ -60,22 +59,16 @@ function EmployeeView() {
     } catch { alert('Failed to download documents.'); }
   };
 
-  if (loading) return <div className="page-loading">Loading...</div>;
+  if (loading) return <div style={{ padding: 16, color: '#6b7280' }}>Loading your resignation history...</div>;
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">Resignation</h1>
-        <p className="page-subtitle">Submit and track your resignation request</p>
-      </div>
+    <div>
+      {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
 
-      {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`}>{msg}</div>}
-
-      {/* Current / latest status card */}
       {latest && (
-        <div className="card" style={{ padding: 24, maxWidth: 600, marginBottom: 20 }}>
+        <div className="card" style={{ padding: 20, maxWidth: 600, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>Latest Resignation</h3>
+            <h4 style={{ margin: 0 }}>Latest Resignation</h4>
             <StatusBadge status={latest.status} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -87,43 +80,36 @@ function EmployeeView() {
             {latest.hrNote && <InfoRow label="HR Note" value={latest.hrNote} />}
             {latest.headNote && <InfoRow label="Head Note" value={latest.headNote} />}
             {latest.rejectionNote && (
-              <div className="alert alert--error" style={{ marginTop: 8 }}>
-                Rejected: {latest.rejectionNote}
-              </div>
+              <div className="alert alert--error" style={{ marginTop: 8 }}>Rejected: {latest.rejectionNote}</div>
             )}
           </div>
           {isApproved && (
-            <button className="btn btn--primary" style={{ marginTop: 16 }} onClick={() => downloadDocs(latest)}>
+            <button className="btn btn--primary" style={{ marginTop: 12 }} onClick={() => downloadDocs(latest)}>
               ⬇ Download Experience Letter + Payslips
             </button>
           )}
           {canApplyAgain && !showForm && (
-            <button className="btn btn--danger" style={{ marginTop: 16 }} onClick={() => setShowForm(true)}>
+            <button className="btn btn--danger" style={{ marginTop: 12 }} onClick={() => setShowForm(true)}>
               Apply for Resignation Again
             </button>
           )}
         </div>
       )}
 
-      {/* Submit form — shown when no history OR rejected and clicked "Apply Again" */}
       {(canApplyAgain && (showForm || !latest)) && (
-        <div className="card" style={{ padding: 24, maxWidth: 600, marginBottom: 20 }}>
-          <h3 style={{ marginBottom: 16 }}>
-            {latest ? 'New Resignation Request' : 'Submit Resignation'}
-          </h3>
+        <div className="card" style={{ padding: 20, maxWidth: 600, marginBottom: 16 }}>
+          <h4 style={{ marginBottom: 14 }}>{latest ? 'New Resignation Request' : 'Submit Resignation'}</h4>
           {latest?.status === 'REJECTED' && (
             <div className="alert alert--error" style={{ marginBottom: 12, fontSize: '0.85rem' }}>
-              Your previous resignation was rejected. You can submit a new request below. All previous details are saved in history.
+              Your previous resignation was rejected. You can submit a new request below.
             </div>
           )}
           <div className="form-group">
             <label className="form-label">Reason for Resignation *</label>
-            <textarea
-              className="form-input" rows={4}
+            <textarea className="form-input" rows={4}
               placeholder="Please state your reason for resignation..."
               value={reason} onChange={e => setReason(e.target.value)}
-              style={{ resize: 'vertical' }}
-            />
+              style={{ resize: 'vertical' }} />
           </div>
           <div className="form-group">
             <label className="form-label">Requested Last Working Date (optional)</label>
@@ -140,24 +126,19 @@ function EmployeeView() {
         </div>
       )}
 
-      {/* History — all past resignations except latest */}
       {history.length > 1 && (
         <div style={{ maxWidth: 600 }}>
-          <h3 style={{ marginBottom: 12, fontSize: '1rem', color: '#374151' }}>Previous Resignations</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h4 style={{ marginBottom: 10, color: '#374151' }}>Previous Resignations</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {history.slice(1).map(r => (
-              <div key={r._id} className="card" style={{ padding: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                    {new Date(r.createdAt).toLocaleDateString('en-IN')}
-                  </span>
+              <div key={r._id} className="card" style={{ padding: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>{new Date(r.createdAt).toLocaleDateString('en-IN')}</span>
                   <StatusBadge status={r.status} />
                 </div>
                 <div style={{ fontSize: '0.9rem', color: '#374151' }}>{r.reason}</div>
                 {r.rejectionNote && (
-                  <div style={{ fontSize: '0.82rem', color: '#dc2626', marginTop: 6 }}>
-                    Rejection reason: {r.rejectionNote}
-                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#dc2626', marginTop: 4 }}>Rejection: {r.rejectionNote}</div>
                 )}
                 {r.status === 'APPROVED' && (
                   <button className="btn btn--secondary" style={{ fontSize: '0.78rem', marginTop: 8 }} onClick={() => downloadDocs(r)}>
@@ -173,13 +154,57 @@ function EmployeeView() {
   );
 }
 
-/* ─── HR View: review pending resignations ─────────────────── */
-function HRView() {
-  const [list,       setList]       = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [reviewing,  setReviewing]  = useState(null); // { id, action }
-  const [note,       setNote]       = useState('');
-  const [msg,        setMsg]        = useState('');
+/* ─── Employee: submit + track own resignation ─────────────── */
+function EmployeeView() {
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h1 className="page-title">Resignation</h1>
+        <p className="page-subtitle">Submit and track your resignation request</p>
+      </div>
+      <MyResignationSection />
+    </div>
+  );
+}
+
+/* ─── HR Combined: review panel + own resignation section ───── */
+function HRCombinedView() {
+  const [myOpen, setMyOpen] = useState(false);
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h1 className="page-title">Resignation</h1>
+        <p className="page-subtitle">Review employee resignations and manage your own</p>
+      </div>
+
+      {/* HR review panel */}
+      <HRPanel />
+
+      {/* Collapsible own resignation section */}
+      <div style={{ marginTop: 32, borderTop: '1px solid #e5e7eb', paddingTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>My Resignation</h2>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>Submit or track your own resignation request</p>
+          </div>
+          <button className="btn btn--secondary" style={{ fontSize: '0.85rem' }} onClick={() => setMyOpen(o => !o)}>
+            {myOpen ? 'Hide' : 'Show My Resignation'}
+          </button>
+        </div>
+        {myOpen && <MyResignationSection />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── HR Panel: review pending resignations (no page wrapper) ── */
+function HRPanel() {
+  const [list,      setList]      = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [reviewing, setReviewing] = useState(null);
+  const [note,      setNote]      = useState('');
+  const [msg,       setMsg]       = useState('');
 
   useEffect(() => { fetchList(); }, []);
 
@@ -202,26 +227,24 @@ function HRView() {
     }
   };
 
-  if (loading) return <div className="page-loading">Loading...</div>;
+  if (loading) return <div style={{ padding: 16, color: '#6b7280' }}>Loading resignations...</div>;
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">Resignation Requests</h1>
-        <p className="page-subtitle">Review and forward to Managing Head</p>
-      </div>
+    <div>
+      <h2 style={{ margin: '0 0 4px', fontSize: '1.1rem', fontWeight: 600 }}>Pending HR Review</h2>
+      <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: '#6b7280' }}>Approve to forward to Managing Head, or reject</p>
 
-      {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`}>{msg}</div>}
+      {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
 
       {list.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state" style={{ paddingTop: 24 }}>
           <div className="empty-state-icon">📋</div>
           <h3>No pending resignations</h3>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {list.map(r => (
-            <div key={r._id} className="card" style={{ padding: 20 }}>
+            <div key={r._id} className="card" style={{ padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
                 <div>
                   <strong>{r.employee?.name}</strong>
