@@ -26,14 +26,15 @@ router.post('/', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// EMPLOYEE: view own resignation status
+// EMPLOYEE: view all own resignations (history preserved, newest first)
 router.get('/my', authenticate, async (req, res, next) => {
   try {
-    const resignation = await Resignation.findOne({ employee: req.user._id })
+    const resignations = await Resignation.find({ employee: req.user._id })
       .populate('hrReviewedBy', 'name')
       .populate('headReviewedBy', 'name')
       .sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: resignation });
+    // Return array — latest is first; frontend uses [0] as current and rest as history
+    res.status(200).json({ success: true, data: resignations });
   } catch (err) { next(err); }
 });
 

@@ -14,38 +14,45 @@ export default function ResignationPage() {
 
 /* ─── Employee: submit + track own resignation ─────────────── */
 function EmployeeView() {
-  const [existing, setExisting]   = useState(null);
-  const [loading,  setLoading]    = useState(true);
-  const [reason,   setReason]     = useState('');
-  const [lastDate, setLastDate]   = useState('');
+  const [history,    setHistory]    = useState([]);   // all resignations, newest first
+  const [loading,    setLoading]    = useState(true);
+  const [reason,     setReason]     = useState('');
+  const [lastDate,   setLastDate]   = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg]             = useState('');
+  const [msg,        setMsg]        = useState('');
+  const [showForm,   setShowForm]   = useState(false);
 
   useEffect(() => { fetchMy(); }, []);
 
   const fetchMy = async () => {
     try {
       const { data } = await api.get('/resignations/my');
-      setExisting(data.data);
-    } catch { setExisting(null); }
+      setHistory(data.data || []);
+    } catch { setHistory([]); }
     finally { setLoading(false); }
   };
+
+  const latest  = history[0] || null;
+  const isPending = latest && ['PENDING_HR', 'PENDING_HEAD'].includes(latest.status);
+  const isApproved = latest?.status === 'APPROVED';
+  const canApplyAgain = !latest || latest.status === 'REJECTED';
 
   const submit = async () => {
     if (!reason.trim()) return setMsg('Please enter a reason.');
     setSubmitting(true); setMsg('');
     try {
       await api.post('/resignations', { reason, lastWorkingDate: lastDate || undefined });
-      setMsg('Resignation submitted successfully. HR will review it shortly.');
+      setMsg('✅ Resignation submitted. HR will review it shortly.');
+      setReason(''); setLastDate(''); setShowForm(false);
       fetchMy();
     } catch (err) {
       setMsg(err.response?.data?.message || 'Failed to submit.');
     } finally { setSubmitting(false); }
   };
 
-  const downloadDocs = async () => {
+  const downloadDocs = async (r) => {
     try {
-      const res = await api.get(`/resignations/${existing._id}/documents`, { responseType: 'blob' });
+      const res = await api.get(`/resignations/${r._id}/documents`, { responseType: 'blob' });
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const a = document.createElement('a'); a.href = url;
       a.download = 'Resignation_Documents.pdf'; a.click();
@@ -62,62 +69,104 @@ function EmployeeView() {
         <p className="page-subtitle">Submit and track your resignation request</p>
       </div>
 
-      {msg && <div className={`alert ${msg.includes('success') ? 'alert--success' : 'alert--error'}`}>{msg}</div>}
+      {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`}>{msg}</div>}
 
-      {existing ? (
-        <div className="card" style={{ padding: 24, maxWidth: 600 }}>
-          <h3 style={{ marginBottom: 16 }}>Your Resignation Status</h3>
-          <StatusBadge status={existing.status} />
-
-          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <InfoRow label="Reason" value={existing.reason} />
-            {existing.lastWorkingDate && (
-              <InfoRow label="Requested Last Day" value={new Date(existing.lastWorkingDate).toLocaleDateString('en-IN')} />
+      {/* Current / latest status card */}
+      {latest && (
+        <div className="card" style={{ padding: 24, maxWidth: 600, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{ margin: 0 }}>Latest Resignation</h3>
+            <StatusBadge status={latest.status} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <InfoRow label="Reason" value={latest.reason} />
+            {latest.lastWorkingDate && (
+              <InfoRow label="Requested Last Day" value={new Date(latest.lastWorkingDate).toLocaleDateString('en-IN')} />
             )}
-            <InfoRow label="Submitted On" value={new Date(existing.createdAt).toLocaleDateString('en-IN')} />
-
-            {existing.hrNote && <InfoRow label="HR Note" value={existing.hrNote} />}
-            {existing.headNote && <InfoRow label="Head Note" value={existing.headNote} />}
-            {existing.rejectionNote && (
+            <InfoRow label="Submitted On" value={new Date(latest.createdAt).toLocaleDateString('en-IN')} />
+            {latest.hrNote && <InfoRow label="HR Note" value={latest.hrNote} />}
+            {latest.headNote && <InfoRow label="Head Note" value={latest.headNote} />}
+            {latest.rejectionNote && (
               <div className="alert alert--error" style={{ marginTop: 8 }}>
-                Rejected: {existing.rejectionNote}
+                Rejected: {latest.rejectionNote}
               </div>
             )}
           </div>
-
-          {existing.status === 'APPROVED' && (
-            <button className="btn btn--primary" style={{ marginTop: 20 }} onClick={downloadDocs}>
+          {isApproved && (
+            <button className="btn btn--primary" style={{ marginTop: 16 }} onClick={() => downloadDocs(latest)}>
               ⬇ Download Experience Letter + Payslips
             </button>
           )}
+          {canApplyAgain && !showForm && (
+            <button className="btn btn--danger" style={{ marginTop: 16 }} onClick={() => setShowForm(true)}>
+              Apply for Resignation Again
+            </button>
+          )}
         </div>
-      ) : (
-        <div className="card" style={{ padding: 24, maxWidth: 600 }}>
-          <h3 style={{ marginBottom: 16 }}>Submit Resignation</h3>
+      )}
+
+      {/* Submit form — shown when no history OR rejected and clicked "Apply Again" */}
+      {(canApplyAgain && (showForm || !latest)) && (
+        <div className="card" style={{ padding: 24, maxWidth: 600, marginBottom: 20 }}>
+          <h3 style={{ marginBottom: 16 }}>
+            {latest ? 'New Resignation Request' : 'Submit Resignation'}
+          </h3>
+          {latest?.status === 'REJECTED' && (
+            <div className="alert alert--error" style={{ marginBottom: 12, fontSize: '0.85rem' }}>
+              Your previous resignation was rejected. You can submit a new request below. All previous details are saved in history.
+            </div>
+          )}
           <div className="form-group">
             <label className="form-label">Reason for Resignation *</label>
             <textarea
-              className="form-input"
-              rows={4}
+              className="form-input" rows={4}
               placeholder="Please state your reason for resignation..."
-              value={reason}
-              onChange={e => setReason(e.target.value)}
+              value={reason} onChange={e => setReason(e.target.value)}
               style={{ resize: 'vertical' }}
             />
           </div>
           <div className="form-group">
             <label className="form-label">Requested Last Working Date (optional)</label>
-            <input
-              type="date"
-              className="form-input"
-              value={lastDate}
+            <input type="date" className="form-input" value={lastDate}
               onChange={e => setLastDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-            />
+              min={new Date().toISOString().split('T')[0]} />
           </div>
-          <button className="btn btn--danger" onClick={submit} disabled={submitting || !reason.trim()}>
-            {submitting ? 'Submitting...' : 'Submit Resignation'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn--danger" onClick={submit} disabled={submitting || !reason.trim()}>
+              {submitting ? 'Submitting...' : 'Submit Resignation'}
+            </button>
+            {latest && <button className="btn btn--secondary" onClick={() => setShowForm(false)}>Cancel</button>}
+          </div>
+        </div>
+      )}
+
+      {/* History — all past resignations except latest */}
+      {history.length > 1 && (
+        <div style={{ maxWidth: 600 }}>
+          <h3 style={{ marginBottom: 12, fontSize: '1rem', color: '#374151' }}>Previous Resignations</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {history.slice(1).map(r => (
+              <div key={r._id} className="card" style={{ padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                    {new Date(r.createdAt).toLocaleDateString('en-IN')}
+                  </span>
+                  <StatusBadge status={r.status} />
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#374151' }}>{r.reason}</div>
+                {r.rejectionNote && (
+                  <div style={{ fontSize: '0.82rem', color: '#dc2626', marginTop: 6 }}>
+                    Rejection reason: {r.rejectionNote}
+                  </div>
+                )}
+                {r.status === 'APPROVED' && (
+                  <button className="btn btn--secondary" style={{ fontSize: '0.78rem', marginTop: 8 }} onClick={() => downloadDocs(r)}>
+                    ⬇ Documents
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
