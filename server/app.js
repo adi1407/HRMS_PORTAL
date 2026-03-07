@@ -21,6 +21,7 @@ const holidayRoutes    = require("./routes/holiday.routes");
 const analyticsRoutes     = require("./routes/analytics.routes");
 const salaryRequestRoutes = require("./routes/salaryRequest.routes");
 const resignationRoutes   = require("./routes/resignation.routes");
+const exportRoutes        = require("./routes/export.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 
@@ -94,6 +95,7 @@ app.use("/api/holidays",    holidayRoutes);
 app.use("/api/analytics",      analyticsRoutes);
 app.use("/api/salary-requests", salaryRequestRoutes);
 app.use("/api/resignations",    resignationRoutes);
+app.use("/api/export",          exportRoutes);
 
 /** Health check */
 app.get("/api/health", (req, res) => {

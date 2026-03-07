@@ -310,9 +310,12 @@ export default function DashboardPage() {
   const isAdminRole = ['SUPER_ADMIN', 'DIRECTOR', 'HR'].includes(user?.role);
   // HR sees both admin stats AND their own personal attendance section
   const showEmployeeSection = ['HR', 'ACCOUNTS', 'EMPLOYEE'].includes(user?.role);
+  // Only Managing Head / DIRECTOR / SUPER_ADMIN can export all data
+  const canExport = user?.isManagingHead || ['DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
 
-  const [stats,   setStats]   = useState(null);
-  const [loading, setLoading] = useState(isAdminRole);
+  const [stats,     setStats]     = useState(null);
+  const [loading,   setLoading]   = useState(isAdminRole);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!isAdminRole) return;
@@ -322,14 +325,47 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [isAdminRole]);
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await api.get('/export/all', { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }));
+      const now = new Date();
+      const tag = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HRMS_Export_${tag}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">
-          Welcome back, <strong>{user?.name}</strong>!
-          &nbsp;—&nbsp;{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-        </p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">
+            Welcome back, <strong>{user?.name}</strong>!
+            &nbsp;—&nbsp;{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        {canExport && (
+          <button
+            className="btn btn--secondary"
+            onClick={handleExport}
+            disabled={exporting}
+            style={{ whiteSpace: 'nowrap', alignSelf: 'center' }}
+          >
+            {exporting ? 'Exporting...' : '⬇ Export All Data'}
+          </button>
+        )}
       </div>
 
       {/* Admin stats section — SUPER_ADMIN, DIRECTOR, HR */}
