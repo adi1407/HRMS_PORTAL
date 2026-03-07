@@ -1,7 +1,8 @@
 const cron = require('node-cron');
-const User       = require('../models/User.model');
-const Attendance = require('../models/Attendance.model');
-const Holiday    = require('../models/Holiday.model');
+const User        = require('../models/User.model');
+const Attendance  = require('../models/Attendance.model');
+const Holiday     = require('../models/Holiday.model');
+const Resignation = require('../models/Resignation.model');
 const { generateAllSalaries } = require('../services/salary.service');
 
 const initCronJobs = () => {
@@ -75,7 +76,26 @@ const initCronJobs = () => {
     } catch (err) { console.error('[CRON] Salary generation failed:', err.message); }
   });
 
-  console.log('✅ Cron jobs scheduled: auto-absent | holiday | auto-checkout | salary-gen');
+  // Auto-remove employees 7 days after resignation approved — 2:00 AM daily
+  cron.schedule('0 2 * * *', async () => {
+    try {
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const due = await Resignation.find({
+        status: 'APPROVED',
+        employeeRemoved: false,
+        headReviewedAt: { $lte: cutoff },
+      });
+      for (const r of due) {
+        await User.findByIdAndDelete(r.employee);
+        r.employeeRemoved   = true;
+        r.employeeRemovedAt = new Date();
+        await r.save();
+      }
+      if (due.length) console.log(`[CRON] Auto-removed ${due.length} resigned employee(s)`);
+    } catch (err) { console.error('[CRON] Auto-remove resigned employees failed:', err.message); }
+  });
+
+  console.log('✅ Cron jobs scheduled: auto-absent | holiday | auto-checkout | salary-gen | auto-remove-resigned');
 };
 
 module.exports = { initCronJobs };

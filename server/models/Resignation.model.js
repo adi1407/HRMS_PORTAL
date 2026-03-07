@@ -25,6 +25,10 @@ const ResignationSchema = new Schema({
   // Rejection info
   rejectedBy:    { type: String, enum: ['HR', 'HEAD', null], default: null },
   rejectionNote: { type: String, default: '' },
+
+  // Auto-removal tracking
+  employeeRemoved:   { type: Boolean, default: false },
+  employeeRemovedAt: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Resignation', ResignationSchema);
