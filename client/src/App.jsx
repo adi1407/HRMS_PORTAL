@@ -14,6 +14,7 @@ import AttendancePage      from './pages/AttendancePage';
 import BranchSettingsPage  from './pages/BranchSettingsPage';
 import HolidayPage         from './pages/HolidayPage';
 import ResignationPage     from './pages/ResignationPage';
+import DocumentVaultPage   from './pages/DocumentVaultPage';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import Layout        from './components/shared/Layout';
 
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="holidays"   element={<HolidayPage />} />
           <Route path="branch-settings" element={<ProtectedRoute roles={['DIRECTOR','SUPER_ADMIN']}><BranchSettingsPage /></ProtectedRoute>} />
           <Route path="resignation"    element={<ResignationPage />} />
+          <Route path="documents"      element={<DocumentVaultPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
