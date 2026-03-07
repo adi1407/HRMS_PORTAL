@@ -1,6 +1,7 @@
-const User       = require('../models/User.model');
-const Attendance = require('../models/Attendance.model');
-const Salary     = require('../models/Salary.model');
+const User         = require('../models/User.model');
+const Attendance   = require('../models/Attendance.model');
+const Salary       = require('../models/Salary.model');
+const ExpenseClaim = require('../models/ExpenseClaim.model');
 const { createAuditLog } = require('../utils/auditLog.utils');
 const { ApiError }       = require('../utils/api.utils');
 
@@ -45,13 +46,31 @@ const generateMonthlySalary = async (employeeId, month, year, generatedBy) => {
     netSalary       = parseFloat((employee.grossSalary - deductionAmount).toFixed(2));
   }
 
+  // Add approved SALARY-type expense reimbursements not yet included
+  const pendingReimbursements = await ExpenseClaim.find({
+    employee: employeeId,
+    status: 'APPROVED',
+    reimbursementType: 'SALARY',
+    addedToSalary: false,
+  });
+  const reimbursementTotal = pendingReimbursements.reduce((sum, c) => sum + c.amount, 0);
+  const adjustedNetSalary  = parseFloat((netSalary + reimbursementTotal).toFixed(2));
+
   const salaryRecord = await Salary.findOneAndUpdate(
     { employee: employeeId, month, year },
-    { grossSalary: employee.grossSalary, daysInMonth, perDaySalary, fullDays, realHalfDays, displayHalfDays, absentDays, paidLeaves, unpaidLeaves, holidays, weeklyOffs, deductionDays, deductionAmount, netSalary, hasDeduction: deductionAmount > 0, generatedBy: generatedBy._id, generatedAt: new Date() },
+    { grossSalary: employee.grossSalary, daysInMonth, perDaySalary, fullDays, realHalfDays, displayHalfDays, absentDays, paidLeaves, unpaidLeaves, holidays, weeklyOffs, deductionDays, deductionAmount, netSalary: adjustedNetSalary, hasDeduction: deductionAmount > 0, reimbursementTotal, generatedBy: generatedBy._id, generatedAt: new Date() },
     { new: true, upsert: true }
   );
 
-  await createAuditLog({ actor: generatedBy, action: 'SALARY_GENERATED', entity: 'Salary', entityId: salaryRecord._id, description: `Salary for ${employee.name} ${month}/${year}. Net: ₹${netSalary}` });
+  // Mark reimbursements as included so they aren't double-counted
+  if (pendingReimbursements.length > 0) {
+    await ExpenseClaim.updateMany(
+      { _id: { $in: pendingReimbursements.map(c => c._id) } },
+      { addedToSalary: true }
+    );
+  }
+
+  await createAuditLog({ actor: generatedBy, action: 'SALARY_GENERATED', entity: 'Salary', entityId: salaryRecord._id, description: `Salary for ${employee.name} ${month}/${year}. Net: ₹${adjustedNetSalary}` });
   return salaryRecord;
 };
 

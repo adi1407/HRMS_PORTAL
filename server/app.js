@@ -23,6 +23,7 @@ const salaryRequestRoutes = require("./routes/salaryRequest.routes");
 const resignationRoutes   = require("./routes/resignation.routes");
 const exportRoutes        = require("./routes/export.routes");
 const documentRoutes      = require("./routes/document.routes");
+const expenseClaimRoutes  = require("./routes/expenseClaim.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 
@@ -98,6 +99,7 @@ app.use("/api/salary-requests", salaryRequestRoutes);
 app.use("/api/resignations",    resignationRoutes);
 app.use("/api/export",          exportRoutes);
 app.use("/api/documents",       documentRoutes);
+app.use("/api/expense-claims",  expenseClaimRoutes);
 
 /** Health check */
 app.get("/api/health", (req, res) => {
