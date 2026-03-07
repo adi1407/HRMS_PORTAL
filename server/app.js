@@ -18,7 +18,9 @@ const leaveRoutes      = require("./routes/leave.routes");
 const branchRoutes     = require("./routes/branch.routes");
 const departmentRoutes = require("./routes/department.routes");
 const holidayRoutes    = require("./routes/holiday.routes");
-const analyticsRoutes  = require("./routes/analytics.routes");
+const analyticsRoutes     = require("./routes/analytics.routes");
+const salaryRequestRoutes = require("./routes/salaryRequest.routes");
+const resignationRoutes   = require("./routes/resignation.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 
@@ -89,7 +91,9 @@ app.use("/api/leaves",      leaveRoutes);
 app.use("/api/branches",    branchRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/holidays",    holidayRoutes);
-app.use("/api/analytics",   analyticsRoutes);
+app.use("/api/analytics",      analyticsRoutes);
+app.use("/api/salary-requests", salaryRequestRoutes);
+app.use("/api/resignations",    resignationRoutes);
 
 /** Health check */
 app.get("/api/health", (req, res) => {

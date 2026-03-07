@@ -292,6 +292,21 @@ function AdminSalaryView() {
 
 /* ─── Shared Salary Slip ────────────────────────────────────── */
 function SalarySlip({ salary }) {
+  const downloadPDF = async () => {
+    try {
+      const res = await api.get(
+        `/salary/${salary.employee?._id}/${salary.month}/${salary.year}/pdf`,
+        { responseType: 'blob' }
+      );
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Salary_${salary.employee?.name}_${MONTHS[salary.month-1]}_${salary.year}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { alert('Failed to download PDF. Ensure salary slip is generated.'); }
+  };
+
   return (
     <div className="salary-slip">
       <div className="salary-slip-header">
@@ -299,8 +314,11 @@ function SalarySlip({ salary }) {
           <h2>Salary Slip</h2>
           <p>{MONTHS[salary.month - 1]} {salary.year}</p>
         </div>
-        <div className={`salary-badge ${salary.status === 'FINAL' ? 'salary-badge--final' : 'salary-badge--draft'}`}>
-          {salary.status}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button className="btn btn--secondary" style={{ fontSize: '0.8rem', padding: '6px 12px' }} onClick={downloadPDF}>⬇ PDF</button>
+          <div className={`salary-badge ${salary.status === 'FINAL' ? 'salary-badge--final' : 'salary-badge--draft'}`}>
+            {salary.status}
+          </div>
         </div>
       </div>
       <div className="salary-slip-body">

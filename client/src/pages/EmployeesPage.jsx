@@ -115,13 +115,31 @@ export default function EmployeesPage() {
     if (!bankModal) return;
     setBankSaving(true);
     try {
-      await api.patch(`/users/${bankModal.emp._id}`, {
-        bankAccountNumber: bankModal.accountNo,
-        ifscCode:          bankModal.ifsc.toUpperCase(),
-        grossSalary:       Number(bankModal.salary) || 0,
-        isManagingHead:    bankModal.isManagingHead,
-      });
-      setMsg(`✅ Details updated for ${bankModal.emp.name}.`);
+      const isFirstTime = !bankModal.emp.grossSalary || bankModal.emp.grossSalary === 0;
+
+      if (isFirstTime || !isAccounts) {
+        // First-time setup → apply directly; or non-accounts admin updating directly
+        await api.patch(`/users/${bankModal.emp._id}`, {
+          bankAccountNumber: bankModal.accountNo,
+          ifscCode:          bankModal.ifsc.toUpperCase(),
+          grossSalary:       Number(bankModal.salary) || 0,
+          isManagingHead:    bankModal.isManagingHead,
+        });
+        setMsg(`✅ Details updated for ${bankModal.emp.name}.`);
+      } else {
+        // Salary already set → submit update request for department head approval
+        const { data } = await api.post('/salary-requests', {
+          employeeId:    bankModal.emp._id,
+          newGrossSalary: bankModal.salary ? Number(bankModal.salary) : undefined,
+          newBankAccount: bankModal.accountNo || undefined,
+          newIfscCode:    bankModal.ifsc ? bankModal.ifsc.toUpperCase() : undefined,
+          reason:         bankModal.reason || 'Salary/bank details update requested by Accounts',
+        });
+        setMsg(data.requiresApproval
+          ? `✅ Update request submitted for ${bankModal.emp.name}. Awaiting department head approval.`
+          : `✅ Details updated for ${bankModal.emp.name}.`
+        );
+      }
       setBankModal(null);
       fetchEmployees();
     } catch (err) {
@@ -361,9 +379,14 @@ export default function EmployeesPage() {
               <h3 className="modal-title" style={{ margin: 0 }}>Salary &amp; Bank — {bankModal.emp.name}</h3>
               <button style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:'var(--gray-500)' }} onClick={() => setBankModal(null)}>✕</button>
             </div>
-            <p style={{ fontSize: '0.82rem', color: '#6b7280', marginBottom: 16 }}>
+            <p style={{ fontSize: '0.82rem', color: '#6b7280', marginBottom: 8 }}>
               Employee ID: <strong>{bankModal.emp.employeeId}</strong> &nbsp;·&nbsp; Role: <strong>{bankModal.emp.role}</strong>
             </p>
+            {bankModal.emp.grossSalary > 0 && isAccounts && (
+              <div className="alert alert--error" style={{ marginBottom: 12, fontSize: '0.82rem' }}>
+                This employee already has salary set (₹{bankModal.emp.grossSalary?.toLocaleString('en-IN')}). Changes will require department head approval.
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">Gross Salary (₹)</label>
               <input
@@ -402,10 +425,21 @@ export default function EmployeesPage() {
                 When enabled, this employee receives 100% gross salary regardless of attendance.
               </small>
             </div>
+            {bankModal.emp.grossSalary > 0 && isAccounts && (
+              <div className="form-group">
+                <label className="form-label">Reason for Update *</label>
+                <input
+                  className="form-input"
+                  placeholder="e.g. Annual increment, correction..."
+                  value={bankModal.reason || ''}
+                  onChange={e => setBankModal({ ...bankModal, reason: e.target.value })}
+                />
+              </div>
+            )}
             <div style={{ display:'flex', gap:8, marginTop:16, justifyContent:'flex-end' }}>
               <button className="btn btn--secondary" onClick={() => setBankModal(null)}>Cancel</button>
               <button className="btn btn--primary" onClick={saveBankDetails} disabled={bankSaving}>
-                {bankSaving ? 'Saving…' : 'Save Details'}
+                {bankSaving ? 'Saving…' : bankModal.emp.grossSalary > 0 && isAccounts ? 'Submit for Approval' : 'Save Details'}
               </button>
             </div>
           </div>

@@ -4,7 +4,8 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { generateMonthlySalary, generateAllSalaries } = require('../services/salary.service');
 const Salary = require('../models/Salary.model');
 const { ApiError } = require('../utils/api.utils');
-const { buildSalaryExcel } = require('../utils/excel.utils');
+const { buildSalaryExcel }      = require('../utils/excel.utils');
+const { generateSalarySlipPDF } = require('../utils/pdf.utils');
 
 router.post('/generate', authenticate, authorize('ACCOUNTS', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
@@ -98,6 +99,26 @@ router.patch('/:id/adjust', authenticate, authorize('ACCOUNTS', 'DIRECTOR', 'SUP
     salary.adjustedAt       = new Date();
     await salary.save();
     res.status(200).json({ success: true, data: salary, message: `Salary adjusted by ₹${adj > 0 ? '+' : ''}${adj}.` });
+  } catch (err) { next(err); }
+});
+
+// Download individual salary slip as PDF
+router.get('/:empId/:month/:year/pdf', authenticate, async (req, res, next) => {
+  try {
+    const { user } = req;
+    const { empId, month, year } = req.params;
+    const isAdmin = ['ACCOUNTS', 'DIRECTOR', 'SUPER_ADMIN', 'HR'].includes(user.role);
+    if (!isAdmin && user._id.toString() !== empId) return next(new ApiError(403, 'Access denied.'));
+
+    const salary = await Salary.findOne({ employee: empId, month: parseInt(month), year: parseInt(year) })
+      .populate('employee', 'name employeeId designation department joiningDate');
+    if (!salary) return next(new ApiError(404, 'Salary slip not found.'));
+
+    const pdfBuffer = await generateSalarySlipPDF(salary);
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Salary_${salary.employee?.name?.replace(/\s+/g,'_')}_${MONTHS[parseInt(month)-1]}_${year}.pdf"`);
+    res.send(pdfBuffer);
   } catch (err) { next(err); }
 });
 
