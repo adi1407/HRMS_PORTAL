@@ -1173,3 +1173,55 @@ input, select, textarea { font-family: var(--font); }
 .pagination-btn--active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .pagination-btn:disabled { opacity: .4; cursor: not-allowed; }
 .pagination-info { font-size: 12.5px; color: var(--gray-500); padding: 0 6px; }
+
+/* ══════════════════════════════════════════════
+   DOCUMENT VAULT
+   ══════════════════════════════════════════════ */
+.dv-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.dv-admin-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.dv-emp-sidebar {
+  padding: 0;
+  overflow: hidden;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+.dv-doc-item {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.dv-doc-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.dv-doc-btn {
+  font-size: 0.78rem;
+  padding: 6px 12px;
+}
+
+@media (max-width: 768px) {
+  .dv-upload-grid { grid-template-columns: 1fr; }
+  .dv-admin-grid  { grid-template-columns: 1fr; }
+  .dv-emp-sidebar { max-height: 240px; }
+  .dv-doc-item    { flex-wrap: wrap; }
+  .dv-doc-actions { flex-wrap: wrap; width: 100%; }
+  .dv-doc-btn     { flex: 1; text-align: center; min-height: 40px; font-size: 0.82rem; }
+}
+
+@media (max-width: 480px) {
+  .dv-doc-item  { padding: 12px; gap: 10px; }
+  .dv-doc-btn   { padding: 8px 10px; font-size: 0.8rem; }
+  .dv-emp-sidebar { max-height: 200px; }
+}

@@ -89,7 +89,7 @@ function UploadForm({ onUploaded, employeeId }) {
           {msg}
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="dv-upload-grid">
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Document Name *</label>
           <input className="form-input" value={name} onChange={e => setName(e.target.value)}
@@ -149,7 +149,7 @@ function DocList({ docs, onDeleted, canDelete }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {docs.map(doc => (
-        <div key={doc._id} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div key={doc._id} className="card dv-doc-item">
           <FileIcon mimeType={doc.mimeType} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -162,17 +162,17 @@ function DocList({ docs, onDeleted, canDelete }) {
               {doc.uploadedBy?.name && ` · Uploaded by ${doc.uploadedBy.name}`}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <div className="dv-doc-actions">
             <a href={doc.fileUrl} target="_blank" rel="noreferrer"
-              className="btn btn--secondary" style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
+              className="btn btn--secondary dv-doc-btn">
               View
             </a>
             <a href={doc.fileUrl} download={doc.name}
-              className="btn btn--secondary" style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
+              className="btn btn--secondary dv-doc-btn">
               ⬇
             </a>
             {canDelete && (
-              <button className="btn btn--danger" style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+              <button className="btn btn--danger dv-doc-btn"
                 onClick={() => handleDelete(doc._id)}
                 disabled={deleting === doc._id}>
                 {deleting === doc._id ? '...' : 'Delete'}
@@ -292,9 +292,9 @@ function AdminVaultView() {
       )}
 
       {tab === 'employees' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20, alignItems: 'start' }}>
+        <div className="dv-admin-grid">
           {/* Employee list sidebar */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+          <div className="card dv-emp-sidebar">
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc' }}>
               <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
                 Select Employee ({employees.length})
