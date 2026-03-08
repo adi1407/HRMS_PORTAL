@@ -50,18 +50,20 @@ const initCronJobs = () => {
     } catch (err) { console.error('[CRON] Holiday job failed:', err.message); }
   });
 
-  // Auto-checkout — 6:00 PM Mon-Sat
+  // End-of-day enforcement — 6:00 PM Mon-Sat
+  // Policy: only check-in without check-out = ABSENT (single entry is not valid attendance)
   cron.schedule('0 18 * * 1-6', async () => {
     try {
       const today = new Date(); today.setHours(0,0,0,0);
-      const now   = new Date();
       const notCheckedOut = await Attendance.find({ date: today, checkIn: { $exists: true }, checkOut: { $exists: false } });
       for (const r of notCheckedOut) {
-        const wh = parseFloat(((now - r.checkIn) / (1000*60*60)).toFixed(2));
-        await Attendance.findByIdAndUpdate(r._id, { checkOut: now, checkOutTime: '18:00', workingHours: wh });
+        await Attendance.findByIdAndUpdate(r._id, {
+          status: 'ABSENT', displayStatus: 'ABSENT', isRealHalfDay: false,
+          notes: 'no_checkout', markedBy: 'CRON',
+        });
       }
-      console.log(`[CRON] Auto-checkout: ${notCheckedOut.length} records processed`);
-    } catch (err) { console.error('[CRON] Auto-checkout failed:', err.message); }
+      console.log(`[CRON] End-of-day: ${notCheckedOut.length} single-entry record(s) marked ABSENT`);
+    } catch (err) { console.error('[CRON] End-of-day enforcement failed:', err.message); }
   });
 
   // Monthly salary generation — 1st of month 6:00 AM
