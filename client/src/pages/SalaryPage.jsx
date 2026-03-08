@@ -211,7 +211,7 @@ function AdminSalaryView() {
             <thead>
               <tr>
                 <th>Employee ID</th><th>Name</th><th>Designation</th>
-                <th>Gross</th><th>Deduction</th><th>Net Salary</th>
+                <th>Gross</th><th>Deduction</th><th>Reimbursement</th><th>Net Salary</th>
                 <th>Status</th><th>Actions</th>
               </tr>
             </thead>
@@ -224,6 +224,9 @@ function AdminSalaryView() {
                   <td data-label="Gross">₹{r.grossSalary?.toLocaleString('en-IN')}</td>
                   <td data-label="Deduction" className={r.hasDeduction ? 'text-danger' : ''}>
                     {r.hasDeduction ? `— ₹${r.deductionAmount?.toLocaleString('en-IN')}` : '—'}
+                  </td>
+                  <td data-label="Reimbursement" style={{ color: r.reimbursementTotal > 0 ? '#15803d' : '#9ca3af' }}>
+                    {r.reimbursementTotal > 0 ? `+ ₹${r.reimbursementTotal?.toLocaleString('en-IN')}` : '—'}
                   </td>
                   <td data-label="Net Salary"><strong>₹{r.netSalary?.toLocaleString('en-IN')}</strong></td>
                   <td data-label="Status">
@@ -353,6 +356,20 @@ function SalarySlip({ salary }) {
                 <span className="text-danger">— ₹{salary.deductionAmount?.toLocaleString('en-IN')}</span>
               </div>
             </>
+          )}
+          {salary.reimbursementTotal > 0 && (
+            <div className="salary-row" style={{ color: '#15803d' }}>
+              <span>Expense Reimbursement</span>
+              <span style={{ fontWeight: 600 }}>+ ₹{salary.reimbursementTotal?.toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          {salary.manualAdjustment !== 0 && salary.manualAdjustment != null && (
+            <div className="salary-row" style={{ color: salary.manualAdjustment > 0 ? '#15803d' : '#b91c1c' }}>
+              <span>Manual Adjustment{salary.adjustmentNote ? ` (${salary.adjustmentNote})` : ''}</span>
+              <span style={{ fontWeight: 600 }}>
+                {salary.manualAdjustment > 0 ? '+' : ''} ₹{salary.manualAdjustment?.toLocaleString('en-IN')}
+              </span>
+            </div>
           )}
           <div className="salary-row salary-row--net">
             <span>Net Salary</span>

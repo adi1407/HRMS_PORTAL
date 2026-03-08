@@ -17,9 +17,10 @@ const SalarySchema = new Schema({
   holidays:        { type: Number, default: 0 },
   weeklyOffs:      { type: Number, default: 0 },
   deductionDays:   { type: Number, default: 0 },
-  deductionAmount: { type: Number, default: 0 },
-  netSalary:       { type: Number, required: true },
-  hasDeduction:    { type: Boolean, default: false },
+  deductionAmount:    { type: Number, default: 0 },
+  reimbursementTotal: { type: Number, default: 0 },  // expense claims added via salary
+  netSalary:          { type: Number, required: true },
+  hasDeduction:       { type: Boolean, default: false },
   manualAdjustment: { type: Number, default: 0 },   // positive = bonus, negative = deduction
   adjustmentNote:   { type: String, default: '' },
   adjustedBy:       { type: Schema.Types.ObjectId, ref: 'User' },
