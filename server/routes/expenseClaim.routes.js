@@ -5,6 +5,8 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 const ExpenseClaim = require('../models/ExpenseClaim.model');
 const { ApiError } = require('../utils/api.utils');
 const { uploadBuffer, deleteFile } = require('../utils/cloudinary.utils');
+const { sendExpenseClaimEmail } = require('../utils/email.utils');
+const User = require('../models/User.model');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -95,6 +97,12 @@ router.patch('/:id/review', authenticate, authorize('ACCOUNTS', 'DIRECTOR', 'SUP
     }
 
     await claim.save();
+
+    // Send email to employee (fire-and-forget)
+    User.findById(claim.employee).select('name email').then(emp => {
+      if (emp?.email) sendExpenseClaimEmail({ employee: emp, claim, reviewerName: req.user.name }).catch(() => {});
+    }).catch(() => {});
+
     const msg = action === 'approve'
       ? `Claim approved. Will be reimbursed via ${reimbursementType === 'CASH' ? 'cash' : 'next salary'}.`
       : 'Claim rejected.';

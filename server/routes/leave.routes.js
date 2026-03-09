@@ -5,6 +5,7 @@ const Leave = require('../models/Leave.model');
 const Attendance = require('../models/Attendance.model');
 const User = require('../models/User.model');
 const { ApiError } = require('../utils/api.utils');
+const { sendLeaveStatusEmail } = require('../utils/email.utils');
 
 router.post('/', authenticate, authorize('EMPLOYEE', 'ACCOUNTS', 'HR'), async (req, res, next) => {
   try {
@@ -130,6 +131,11 @@ router.patch('/:id/review', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADM
         current.setDate(current.getDate() + 1);
       }
     }
+    // Send email notification to employee (fire-and-forget)
+    if (leave.employee?.email) {
+      sendLeaveStatusEmail({ employee: leave.employee, leave, reviewerName: req.user.name }).catch(() => {});
+    }
+
     res.json({ success: true, data: leave, message: `Leave ${status.toLowerCase()}.` });
   } catch (err) { next(err); }
 });

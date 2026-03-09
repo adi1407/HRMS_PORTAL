@@ -6,6 +6,8 @@ const Salary = require('../models/Salary.model');
 const { ApiError } = require('../utils/api.utils');
 const { buildSalaryExcel }      = require('../utils/excel.utils');
 const { generateSalarySlipPDF } = require('../utils/pdf.utils');
+const { sendSalaryFinalizedEmail } = require('../utils/email.utils');
+const User = require('../models/User.model');
 
 router.post('/generate', authenticate, authorize('ACCOUNTS', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
@@ -59,6 +61,12 @@ router.patch('/:id/finalize', authenticate, authorize('ACCOUNTS', 'DIRECTOR', 'S
   try {
     const salary = await Salary.findByIdAndUpdate(req.params.id, { status: 'FINAL', finalizedBy: req.user._id, finalizedAt: new Date() }, { new: true });
     if (!salary) return next(new ApiError(404, 'Salary record not found.'));
+
+    // Send email to employee (fire-and-forget)
+    User.findById(salary.employee).select('name employeeId email').then(emp => {
+      if (emp?.email) sendSalaryFinalizedEmail({ employee: emp, salary }).catch(() => {});
+    }).catch(() => {});
+
     res.status(200).json({ success: true, data: salary, message: 'Salary finalized.' });
   } catch (err) { next(err); }
 });
