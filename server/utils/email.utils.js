@@ -10,8 +10,12 @@ let transporter = null;
 function getTransporter() {
   if (transporter) return transporter;
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return null;
+  // Use explicit host + port instead of service:'gmail' to force IPv4 on Render
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host:   'smtp.gmail.com',
+    port:   465,
+    secure: true,          // SSL on port 465
+    family: 4,             // force IPv4 — fixes ENETUNREACH on Render free tier
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
   });
   return transporter;
