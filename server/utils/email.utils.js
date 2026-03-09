@@ -23,11 +23,19 @@ function getTransporter() {
 
 async function sendMail({ to, subject, html }) {
   const t = getTransporter();
-  if (!t || !to) return; // silently skip if not configured or no email
+  if (!t) {
+    console.warn('[EMAIL] Skipped — EMAIL_USER or EMAIL_PASS not set in environment.');
+    return;
+  }
+  if (!to) {
+    console.warn('[EMAIL] Skipped — recipient email is empty.');
+    return;
+  }
   try {
+    console.log(`[EMAIL] Sending to ${to} | Subject: ${subject}`);
     await t.sendMail({ from: `"Sangi HRMS" <${process.env.EMAIL_USER}>`, to, subject, html });
+    console.log(`[EMAIL] Sent successfully to ${to}`);
   } catch (err) {
-    // Never crash the main request — just log
     console.error('[EMAIL] Failed to send to', to, '—', err.message);
   }
 }

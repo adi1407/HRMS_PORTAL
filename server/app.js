@@ -101,6 +101,25 @@ app.use("/api/export",          exportRoutes);
 app.use("/api/documents",       documentRoutes);
 app.use("/api/expense-claims",  expenseClaimRoutes);
 
+/** Test email — protected by SEED_SECRET, hits your EMAIL_USER inbox */
+app.get("/api/test-email", async (req, res) => {
+  const secret = process.env.SEED_SECRET;
+  if (!secret || req.query.secret !== secret) {
+    return res.status(403).json({ success: false, message: "Forbidden" });
+  }
+  const { sendMail } = require("./utils/email.utils");
+  try {
+    await sendMail({
+      to:      process.env.EMAIL_USER,
+      subject: "Sangi HRMS — Test Email",
+      html:    "<h2>Test email from Sangi HRMS</h2><p>If you see this, email is working correctly.</p>",
+    });
+    res.json({ success: true, message: `Test email sent to ${process.env.EMAIL_USER}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /** Health check */
 app.get("/api/health", (req, res) => {
   res.json({
