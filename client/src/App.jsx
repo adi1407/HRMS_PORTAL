@@ -16,6 +16,7 @@ import HolidayPage         from './pages/HolidayPage';
 import ResignationPage     from './pages/ResignationPage';
 import DocumentVaultPage   from './pages/DocumentVaultPage';
 import ExpenseClaimsPage   from './pages/ExpenseClaimsPage';
+import DailyTaskPage       from './pages/DailyTaskPage';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import Layout        from './components/shared/Layout';
 
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="resignation"    element={<ResignationPage />} />
           <Route path="documents"      element={<DocumentVaultPage />} />
           <Route path="expense-claims" element={<ExpenseClaimsPage />} />
+          <Route path="daily-tasks"   element={<DailyTaskPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

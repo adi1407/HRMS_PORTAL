@@ -157,4 +157,96 @@ const generateSalarySlipPDF = (salary) => {
   });
 };
 
-module.exports = { generateResignationPDF, generateSalarySlipPDF };
+const STATUS_LABELS = { COMPLETED: 'Completed', IN_PROGRESS: 'In Progress', BLOCKED: 'Blocked' };
+const STATUS_COLORS_PDF = { COMPLETED: '#15803d', IN_PROGRESS: '#b45309', BLOCKED: '#b91c1c' };
+
+const generateMonthlyTaskPDF = (employee, entries, month, year) => {
+  return new Promise((resolve, reject) => {
+    const doc  = new PDFDocument({ margin: 50, size: 'A4' });
+    const bufs = [];
+    doc.on('data', d => bufs.push(d));
+    doc.on('end',  () => resolve(Buffer.concat(bufs)));
+    doc.on('error', reject);
+
+    // Header
+    doc.rect(50, 50, 500, 70).fill('#1e3a5f');
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#ffffff')
+      .text('MONTHLY TASK REPORT', 55, 62, { align: 'center', width: 490 });
+    doc.fontSize(10).font('Helvetica').fillColor('#93c5fd')
+      .text(`${MONTHS[month - 1]} ${year}`, 55, 88, { align: 'center', width: 490 });
+
+    let y = 140;
+
+    // Employee info
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e3a5f').text('Employee Details', 55, y);
+    y += 18; line(doc, y); y += 8;
+    row(doc, 'Employee ID', employee.employeeId, y); y += 20;
+    row(doc, 'Name', employee.name, y); y += 20;
+    row(doc, 'Designation', employee.designation || '—', y); y += 20;
+    row(doc, 'Department', employee.department?.name || '—', y); y += 20;
+
+    // Summary
+    const totalTasks = entries.reduce((sum, e) => sum + e.tasks.length, 0);
+    const completed = entries.reduce((sum, e) => sum + e.tasks.filter(t => t.status === 'COMPLETED').length, 0);
+    row(doc, 'Days Reported', entries.length, y); y += 20;
+    row(doc, 'Total Tasks', totalTasks, y); y += 20;
+    row(doc, 'Completed Tasks', completed, y); y += 20;
+
+    y += 8; line(doc, y); y += 16;
+
+    // Daily entries
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e3a5f').text('Daily Task Entries', 55, y);
+    y += 20;
+
+    if (entries.length === 0) {
+      doc.fontSize(10).font('Helvetica').fillColor('#6b7280')
+        .text('No task entries found for this month.', 55, y);
+    } else {
+      for (const entry of entries) {
+        if (y > 700) { doc.addPage(); y = 50; }
+
+        const dateStr = new Date(entry.date).toLocaleDateString('en-IN', {
+          weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+        });
+
+        doc.rect(50, y, 500, 22).fill('#f0f4ff');
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e3a5f')
+          .text(dateStr, 55, y + 6);
+        doc.fontSize(9).font('Helvetica').fillColor('#6b7280')
+          .text(`${entry.tasks.length} task${entry.tasks.length > 1 ? 's' : ''}`, 0, y + 6, { align: 'right', width: 545 });
+        y += 28;
+
+        for (const task of entry.tasks) {
+          if (y > 720) { doc.addPage(); y = 50; }
+
+          const statusColor = STATUS_COLORS_PDF[task.status] || '#374151';
+          doc.fontSize(9).font('Helvetica-Bold').fillColor('#374151')
+            .text(`• ${task.title}`, 65, y, { width: 380, continued: false });
+
+          doc.fontSize(8).font('Helvetica-Bold').fillColor(statusColor)
+            .text(STATUS_LABELS[task.status] || task.status, 460, y, { width: 90, align: 'right' });
+
+          y = Math.max(doc.y, y + 14);
+
+          if (task.description) {
+            doc.fontSize(8).font('Helvetica').fillColor('#6b7280')
+              .text(task.description, 75, y, { width: 420 });
+            y = doc.y + 4;
+          }
+          y += 4;
+        }
+        y += 6;
+      }
+    }
+
+    // Footer
+    y = Math.max(y, doc.y) + 20;
+    if (y > 740) { doc.addPage(); y = 50; }
+    doc.fontSize(8).font('Helvetica').fillColor('#9ca3af')
+      .text(`Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}`, 55, y, { align: 'center', width: 490 });
+
+    doc.end();
+  });
+};
+
+module.exports = { generateResignationPDF, generateSalarySlipPDF, generateMonthlyTaskPDF };
