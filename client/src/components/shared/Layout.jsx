@@ -4,7 +4,7 @@ import useAuthStore from '../../store/authStore';
 import api from '../../utils/api';
 import {
   LayoutDashboard, Fingerprint, CalendarDays, Leaf, CreditCard,
-  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList,
+  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { path: '/documents',       label: 'Documents',       Icon: FolderOpen,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/expense-claims',  label: 'Expense Claims',  Icon: Receipt,         roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/daily-tasks',     label: 'Daily Tasks',      Icon: ClipboardList,   roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/task-reports',    label: 'Task Reports',     Icon: BarChart3,       roles: ['SUPER_ADMIN','DIRECTOR','HR'] },
   { path: '/branch-settings', label: 'Office Settings', Icon: Settings,        roles: ['SUPER_ADMIN','DIRECTOR'] },
 ];
 

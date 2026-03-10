@@ -89,13 +89,15 @@ router.get('/today', authenticate, async (req, res, next) => {
 // ── GET / — HR/Admin: all task entries with filters ───────────
 router.get('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
-    const { employeeId, name, date, month, year } = req.query;
+    const { employeeId, name, department, date, month, year } = req.query;
     const filter = {};
 
-    if (employeeId || name) {
-      const userFilter = {};
-      if (employeeId) userFilter.employeeId = new RegExp(employeeId.trim(), 'i');
-      if (name) userFilter.name = new RegExp(name.trim(), 'i');
+    const userFilter = {};
+    if (employeeId) userFilter.employeeId = new RegExp(employeeId.trim(), 'i');
+    if (name) userFilter.name = new RegExp(name.trim(), 'i');
+    if (department) userFilter.department = department;
+
+    if (Object.keys(userFilter).length > 0) {
       const users = await User.find(userFilter).select('_id');
       filter.employee = { $in: users.map(u => u._id) };
     }
@@ -112,7 +114,7 @@ router.get('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async 
     }
 
     const entries = await DailyTask.find(filter)
-      .populate('employee', 'name employeeId designation department')
+      .populate({ path: 'employee', select: 'name employeeId designation department', populate: { path: 'department', select: 'name' } })
       .sort({ date: -1, createdAt: -1 })
       .limit(500);
 

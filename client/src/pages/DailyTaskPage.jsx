@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import useAuthStore from '../store/authStore';
 import api from '../utils/api';
 
 const STATUS_OPTIONS = [
@@ -7,6 +6,8 @@ const STATUS_OPTIONS = [
   { value: 'IN_PROGRESS', label: 'In Progress',  bg: '#fef3c7', color: '#b45309' },
   { value: 'BLOCKED',     label: 'Blocked',       bg: '#fee2e2', color: '#b91c1c' },
 ];
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function StatusBadge({ status }) {
   const opt = STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
@@ -21,7 +22,7 @@ function fmt(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-/* ── Employee: submit today's tasks ─────────────────────────── */
+/* ── Submit today's tasks ──────────────────────────────────── */
 function SubmitTaskForm({ onSubmitted }) {
   const [tasks, setTasks] = useState([{ title: '', description: '', status: 'COMPLETED' }]);
   const [busy, setBusy] = useState(false);
@@ -131,7 +132,7 @@ function SubmitTaskForm({ onSubmitted }) {
   );
 }
 
-/* ── Employee: task history ─────────────────────────────────── */
+/* ── My task history ───────────────────────────────────────── */
 function MyTaskHistory() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,8 +153,6 @@ function MyTaskHistory() {
   const years = [];
   const curYear = new Date().getFullYear();
   for (let y = curYear; y >= curYear - 2; y--) years.push(y);
-
-  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
   return (
     <div>
@@ -199,187 +198,16 @@ function MyTaskHistory() {
   );
 }
 
-/* ── HR: view all tasks + download PDF ─────────────────────── */
-function HRTaskView() {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [monthFilter, setMonthFilter] = useState(String(new Date().getMonth() + 1));
-  const [yearFilter, setYearFilter] = useState(String(new Date().getFullYear()));
-  const [filterMode, setFilterMode] = useState('month');
-  const [downloading, setDownloading] = useState(null);
-
-  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const years = [];
-  const curYear = new Date().getFullYear();
-  for (let y = curYear; y >= curYear - 2; y--) years.push(y);
-
-  const fetchEntries = async () => {
-    setLoading(true);
-    try {
-      let params = '';
-      if (search.trim()) {
-        const isEmpId = search.trim().toUpperCase().startsWith('EMP');
-        params += isEmpId ? `&employeeId=${encodeURIComponent(search.trim())}` : `&name=${encodeURIComponent(search.trim())}`;
-      }
-      if (filterMode === 'date' && dateFilter) {
-        params += `&date=${dateFilter}`;
-      } else if (filterMode === 'month') {
-        params += `&month=${monthFilter}&year=${yearFilter}`;
-      }
-      const { data } = await api.get(`/daily-tasks?${params.replace(/^&/, '')}`);
-      setEntries(data.data);
-    } catch { setEntries([]); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchEntries(); }, [search, dateFilter, monthFilter, yearFilter, filterMode]);
-
-  const downloadPDF = async (empId, empName) => {
-    setDownloading(empId);
-    try {
-      const { data } = await api.get(
-        `/daily-tasks/report/${empId}/${monthFilter}/${yearFilter}/pdf`,
-        { responseType: 'blob' }
-      );
-      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Task_Report_${empId}_${MONTHS[monthFilter - 1]}_${yearFilter}.pdf`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.response?.data?.message || 'Download failed.');
-    } finally { setDownloading(null); }
-  };
-
-  const uniqueEmployees = [];
-  const seenEmpIds = new Set();
-  for (const e of entries) {
-    const emp = e.employee;
-    if (emp && !seenEmpIds.has(emp.employeeId)) {
-      seenEmpIds.add(emp.employeeId);
-      uniqueEmployees.push(emp);
-    }
-  }
-
-  return (
-    <div>
-      {/* Filters */}
-      <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="form-group" style={{ margin: 0, flex: '1 1 220px' }}>
-            <label className="form-label">Search by Name or Employee ID</label>
-            <input className="form-input" placeholder="e.g. John or EMP-0002" value={search}
-              onChange={e => setSearch(e.target.value)} />
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Filter by</label>
-            <select className="form-input" value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ width: 120 }}>
-              <option value="month">Month</option>
-              <option value="date">Date</option>
-            </select>
-          </div>
-
-          {filterMode === 'date' ? (
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Date</label>
-              <input className="form-input" type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
-            </div>
-          ) : (
-            <>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Month</label>
-                <select className="form-input" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{ width: 140 }}>
-                  {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                </select>
-              </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Year</label>
-                <select className="form-input" value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{ width: 100 }}>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Download PDF buttons per employee */}
-      {filterMode === 'month' && uniqueEmployees.length > 0 && (
-        <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-          <h4 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>Download Monthly Report</h4>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {uniqueEmployees.map(emp => (
-              <button key={emp.employeeId}
-                className="btn btn--secondary"
-                style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6 }}
-                onClick={() => downloadPDF(emp.employeeId, emp.name)}
-                disabled={downloading === emp.employeeId}>
-                <span style={{ fontSize: 14 }}>&#128196;</span>
-                {downloading === emp.employeeId ? 'Downloading...' : `${emp.name} (${emp.employeeId})`}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Entries */}
-      {loading ? <div className="page-loading">Loading...</div> : entries.length === 0 ? (
-        <div className="empty-state" style={{ paddingTop: 24 }}>
-          <div className="empty-state-icon">&#128221;</div>
-          <h3>No task entries found</h3>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Try adjusting the filters</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {entries.map(entry => (
-            <div key={entry._id} className="card" style={{ padding: '14px 18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-                <div>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>
-                    {entry.employee?.name}
-                  </span>
-                  <span style={{ fontSize: '0.78rem', color: '#6b7280', marginLeft: 8 }}>
-                    {entry.employee?.employeeId} · {entry.employee?.designation}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#2563eb' }}>{fmt(entry.date)}</span>
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{entry.tasks.length} task{entry.tasks.length > 1 ? 's' : ''}</span>
-                </div>
-              </div>
-              {entry.tasks.map((task, i) => (
-                <div key={task._id || i} style={{ padding: '6px 0', borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#374151' }}>{task.title}</span>
-                    <StatusBadge status={task.status} />
-                  </div>
-                  {task.description && (
-                    <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>{task.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Employee view ──────────────────────────────────────────── */
-function EmployeeTaskView() {
+/* ── Page: all roles submit + view own tasks ───────────────── */
+export default function DailyTaskPage() {
   const [tab, setTab] = useState('submit');
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Daily Tasks</h1>
-        <p className="page-subtitle">Submit your daily task updates and view history</p>
+        <h1 className="page-title">My Daily Tasks</h1>
+        <p className="page-subtitle">Submit your daily task updates and view your history</p>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -393,24 +221,4 @@ function EmployeeTaskView() {
       {tab === 'history' && <MyTaskHistory />}
     </div>
   );
-}
-
-/* ── HR/Admin view ──────────────────────────────────────────── */
-function HRTaskPage() {
-  return (
-    <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">Daily Tasks</h1>
-        <p className="page-subtitle">View employee daily task updates and download monthly reports</p>
-      </div>
-      <HRTaskView />
-    </div>
-  );
-}
-
-/* ── Root ────────────────────────────────────────────────────── */
-export default function DailyTaskPage() {
-  const { user } = useAuthStore();
-  const isManager = ['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
-  return isManager ? <HRTaskPage /> : <EmployeeTaskView />;
 }
