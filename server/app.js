@@ -25,6 +25,7 @@ const exportRoutes        = require("./routes/export.routes");
 const documentRoutes      = require("./routes/document.routes");
 const expenseClaimRoutes  = require("./routes/expenseClaim.routes");
 const dailyTaskRoutes     = require("./routes/dailyTask.routes");
+const announcementRoutes  = require("./routes/announcement.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 
@@ -102,6 +103,7 @@ app.use("/api/export",          exportRoutes);
 app.use("/api/documents",       documentRoutes);
 app.use("/api/expense-claims",  expenseClaimRoutes);
 app.use("/api/daily-tasks",     dailyTaskRoutes);
+app.use("/api/announcements",   announcementRoutes);
 
 /** Test email — protected by SEED_SECRET, hits your EMAIL_USER inbox */
 app.get("/api/test-email", async (req, res) => {

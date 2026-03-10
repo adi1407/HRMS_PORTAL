@@ -18,6 +18,7 @@ import DocumentVaultPage   from './pages/DocumentVaultPage';
 import ExpenseClaimsPage   from './pages/ExpenseClaimsPage';
 import DailyTaskPage       from './pages/DailyTaskPage';
 import TaskReportsPage     from './pages/TaskReportsPage';
+import AnnouncementsPage   from './pages/AnnouncementsPage';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import Layout        from './components/shared/Layout';
 
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="expense-claims" element={<ExpenseClaimsPage />} />
           <Route path="daily-tasks"   element={<DailyTaskPage />} />
           <Route path="task-reports"  element={<ProtectedRoute roles={['HR','DIRECTOR','SUPER_ADMIN']}><TaskReportsPage /></ProtectedRoute>} />
+          <Route path="announcements" element={<ProtectedRoute roles={['HR','DIRECTOR','SUPER_ADMIN']}><AnnouncementsPage /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

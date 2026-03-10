@@ -1225,3 +1225,105 @@ input, select, textarea { font-family: var(--font); }
   .dv-doc-btn   { padding: 8px 10px; font-size: 0.8rem; }
   .dv-emp-sidebar { max-height: 200px; }
 }
+
+/* ── Announcement Banner ─────────────────────────── */
+.announcement-banner-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.announcement-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1.5px solid;
+  position: relative;
+  animation: ann-slide-in 0.4s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+@keyframes ann-slide-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.announcement-banner-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.announcement-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.announcement-banner-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.announcement-banner-text {
+  font-size: 0.88rem;
+  color: #374151;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.announcement-banner-meta {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+.announcement-banner-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.announcement-banner-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #374151;
+}
+
+.announcement-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+  display: inline-block;
+  animation: ann-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ann-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(1.4); }
+}
+
+@media (max-width: 600px) {
+  .announcement-banner {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .announcement-banner-title { font-size: 0.88rem; }
+  .announcement-banner-text  { font-size: 0.82rem; }
+}

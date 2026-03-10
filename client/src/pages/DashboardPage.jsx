@@ -4,7 +4,7 @@ import api from '../utils/api';
 import {
   Users, UserCheck, Clock, UserX, Briefcase, HelpCircle,
   CheckCircle2, XCircle, ClipboardList, Timer, CalendarDays,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Megaphone, X, AlertTriangle, Info,
 } from 'lucide-react';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -19,6 +19,66 @@ const CELL_COLOR = {
   HOLIDAY:          'holiday',
   WEEKLY_OFF:       'weekoff',
 };
+
+const PRIORITY_STYLE = {
+  URGENT:    { bg: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: '#fca5a5', icon: AlertTriangle, iconColor: '#dc2626', label: '#991b1b' },
+  IMPORTANT: { bg: 'linear-gradient(135deg, #fffbeb, #fef3c7)', border: '#fcd34d', icon: Megaphone, iconColor: '#d97706', label: '#92400e' },
+  NORMAL:    { bg: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '#93c5fd', icon: Info, iconColor: '#2563eb', label: '#1e40af' },
+};
+
+function AnnouncementBanner() {
+  const [announcements, setAnnouncements] = useState([]);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('dismissed_ann') || '[]'); } catch { return []; }
+  });
+
+  useEffect(() => {
+    api.get('/announcements/active')
+      .then(({ data }) => setAnnouncements(data.data || []))
+      .catch(() => {});
+  }, []);
+
+  const dismiss = (id) => {
+    const updated = [...dismissed, id];
+    setDismissed(updated);
+    sessionStorage.setItem('dismissed_ann', JSON.stringify(updated));
+  };
+
+  const visible = announcements.filter(a => !dismissed.includes(a._id));
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="announcement-banner-wrapper">
+      {visible.map(ann => {
+        const style = PRIORITY_STYLE[ann.priority] || PRIORITY_STYLE.NORMAL;
+        const IconComp = style.icon;
+        return (
+          <div key={ann._id} className="announcement-banner" style={{ background: style.bg, borderColor: style.border }}>
+            <div className="announcement-banner-icon">
+              <IconComp size={20} color={style.iconColor} strokeWidth={2.2} />
+            </div>
+            <div className="announcement-banner-body">
+              <div className="announcement-banner-title" style={{ color: style.label }}>
+                {ann.title}
+                {ann.priority === 'URGENT' && <span className="announcement-pulse" />}
+              </div>
+              <div className="announcement-banner-text">{ann.content}</div>
+              <div className="announcement-banner-meta">
+                By {ann.createdBy?.name} &middot; {new Date(ann.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                {ann.audience !== 'ALL' && (
+                  <> &middot; {ann.audience === 'DEPARTMENT' ? ann.department?.name : ann.branch?.name}</>
+                )}
+              </div>
+            </div>
+            <button className="announcement-banner-close" onClick={() => dismiss(ann._id)} title="Dismiss">
+              <X size={16} strokeWidth={2.5} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function AttendanceCalendar({ records, month, year, holidays = [] }) {
   const today    = new Date();
@@ -367,6 +427,8 @@ export default function DashboardPage() {
           </button>
         )}
       </div>
+
+      <AnnouncementBanner />
 
       {/* Admin stats section — SUPER_ADMIN, DIRECTOR, HR */}
       {isAdminRole && (
