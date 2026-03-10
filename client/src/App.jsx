@@ -22,6 +22,7 @@ import AnnouncementsPage   from './pages/AnnouncementsPage';
 import TicketsPage         from './pages/TicketsPage';
 import AssetsPage          from './pages/AssetsPage';
 import OnboardingPage      from './pages/OnboardingPage';
+import WarningsPage        from './pages/WarningsPage';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import Layout        from './components/shared/Layout';
 
@@ -77,6 +78,7 @@ export default function App() {
           <Route path="tickets"       element={<TicketsPage />} />
           <Route path="assets"        element={<AssetsPage />} />
           <Route path="onboarding"    element={<OnboardingPage />} />
+          <Route path="warnings"      element={<WarningsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../utils/api';
+import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard, Fingerprint, CalendarDays, Leaf, CreditCard,
-  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket,
+  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { path: '/onboarding',       label: 'Onboarding',       Icon: Rocket,          roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/tickets',          label: 'Help Desk',        Icon: LifeBuoy,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/assets',           label: 'Assets',           Icon: Package,         roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/warnings',         label: 'Warnings',         Icon: ShieldAlert,     roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/announcements',   label: 'Announcements',    Icon: Megaphone,       roles: ['SUPER_ADMIN','DIRECTOR','HR'] },
   { path: '/branch-settings', label: 'Office Settings', Icon: Settings,        roles: ['SUPER_ADMIN','DIRECTOR'] },
 ];
@@ -108,7 +110,10 @@ export default function Layout() {
             <img src="/logo.png" alt="Sangi" className="topbar-logo-img" />
             <span className="topbar-title">Sangi</span>
           </div>
-          <div className="topbar-user">{user?.employeeId}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <NotificationBell />
+            <div className="topbar-user">{user?.employeeId}</div>
+          </div>
         </header>
 
         <main className="main-content">
