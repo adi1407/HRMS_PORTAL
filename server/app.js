@@ -31,6 +31,7 @@ const assetRoutes         = require("./routes/asset.routes");
 const onboardingRoutes    = require("./routes/onboarding.routes");
 const notificationRoutes  = require("./routes/notification.routes");
 const warningRoutes       = require("./routes/warning.routes");
+const appraisalRoutes     = require("./routes/appraisal.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 
@@ -114,6 +115,7 @@ app.use("/api/assets",          assetRoutes);
 app.use("/api/onboarding",      onboardingRoutes);
 app.use("/api/notifications",   notificationRoutes);
 app.use("/api/warnings",        warningRoutes);
+app.use("/api/appraisals",      appraisalRoutes);
 
 /** Test email — protected by SEED_SECRET, hits your EMAIL_USER inbox */
 app.get("/api/test-email", async (req, res) => {

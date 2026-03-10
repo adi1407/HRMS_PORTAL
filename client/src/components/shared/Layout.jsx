@@ -5,7 +5,7 @@ import api from '../../utils/api';
 import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard, Fingerprint, CalendarDays, Leaf, CreditCard,
-  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert,
+  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert, Star,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { path: '/onboarding',       label: 'Onboarding',       Icon: Rocket,          roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/tickets',          label: 'Help Desk',        Icon: LifeBuoy,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/assets',           label: 'Assets',           Icon: Package,         roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/appraisals',       label: 'Appraisals',       Icon: Star,            roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/warnings',         label: 'Warnings',         Icon: ShieldAlert,     roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/announcements',   label: 'Announcements',    Icon: Megaphone,       roles: ['SUPER_ADMIN','DIRECTOR','HR'] },
   { path: '/branch-settings', label: 'Office Settings', Icon: Settings,        roles: ['SUPER_ADMIN','DIRECTOR'] },
