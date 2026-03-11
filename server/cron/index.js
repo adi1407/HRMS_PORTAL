@@ -4,6 +4,7 @@ const Attendance  = require('../models/Attendance.model');
 const Holiday     = require('../models/Holiday.model');
 const Resignation = require('../models/Resignation.model');
 const { generateAllSalaries } = require('../services/salary.service');
+const { runAllAlerts } = require('../services/emailAlerts.service');
 
 const initCronJobs = () => {
 
@@ -97,7 +98,15 @@ const initCronJobs = () => {
     } catch (err) { console.error('[CRON] Auto-remove resigned employees failed:', err.message); }
   });
 
-  console.log('✅ Cron jobs scheduled: auto-absent | holiday | auto-checkout | salary-gen | auto-remove-resigned');
+  // Automated email alerts — 8:30 AM daily (birthdays, anniversaries, probation, leave balance, SLA)
+  cron.schedule('30 8 * * *', async () => {
+    try {
+      const results = await runAllAlerts();
+      console.log('[CRON] Email alerts:', JSON.stringify(results));
+    } catch (err) { console.error('[CRON] Email alerts failed:', err.message); }
+  });
+
+  console.log('✅ Cron jobs scheduled: auto-absent | holiday | auto-checkout | salary-gen | auto-remove-resigned | email-alerts');
 };
 
 module.exports = { initCronJobs };
