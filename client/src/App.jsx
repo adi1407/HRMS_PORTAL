@@ -24,6 +24,7 @@ import AssetsPage          from './pages/AssetsPage';
 import OnboardingPage      from './pages/OnboardingPage';
 import WarningsPage        from './pages/WarningsPage';
 import AppraisalPage       from './pages/AppraisalPage';
+import AuditLogPage        from './pages/AuditLogPage';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import Layout        from './components/shared/Layout';
 
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="onboarding"    element={<OnboardingPage />} />
           <Route path="warnings"      element={<WarningsPage />} />
           <Route path="appraisals"    element={<AppraisalPage />} />
+          <Route path="audit-log"     element={<ProtectedRoute roles={['DIRECTOR','SUPER_ADMIN']}><AuditLogPage /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

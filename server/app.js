@@ -32,8 +32,10 @@ const onboardingRoutes    = require("./routes/onboarding.routes");
 const notificationRoutes  = require("./routes/notification.routes");
 const warningRoutes       = require("./routes/warning.routes");
 const appraisalRoutes     = require("./routes/appraisal.routes");
+const auditLogRoutes      = require("./routes/auditLog.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
+const { auditLogMiddleware } = require("./middleware/auditLog.middleware");
 
 const app = express();
 
@@ -92,6 +94,9 @@ if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
+/** Audit logging for all mutating API requests */
+app.use("/api", auditLogMiddleware);
+
 /** Routes */
 app.use("/api/auth",        authRoutes);
 app.use("/api/users",       userRoutes);
@@ -116,6 +121,7 @@ app.use("/api/onboarding",      onboardingRoutes);
 app.use("/api/notifications",   notificationRoutes);
 app.use("/api/warnings",        warningRoutes);
 app.use("/api/appraisals",      appraisalRoutes);
+app.use("/api/audit-logs",      auditLogRoutes);
 
 /** Test email — protected by SEED_SECRET, hits your EMAIL_USER inbox */
 app.get("/api/test-email", async (req, res) => {
