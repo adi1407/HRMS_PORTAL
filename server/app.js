@@ -35,6 +35,7 @@ const appraisalRoutes     = require("./routes/appraisal.routes");
 const auditLogRoutes      = require("./routes/auditLog.routes");
 const emailAlertRoutes      = require("./routes/emailAlerts.routes");
 const policyDocumentRoutes  = require("./routes/policyDocument.routes");
+const employeeProfileRoutes = require("./routes/employeeProfile.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 const { auditLogMiddleware } = require("./middleware/auditLog.middleware");
@@ -126,6 +127,7 @@ app.use("/api/appraisals",      appraisalRoutes);
 app.use("/api/audit-logs",      auditLogRoutes);
 app.use("/api/email-alerts",    emailAlertRoutes);
 app.use("/api/policies",        policyDocumentRoutes);
+app.use("/api/employee-profile", employeeProfileRoutes);
 
 /** Test email — protected by SEED_SECRET, hits your EMAIL_USER inbox */
 app.get("/api/test-email", async (req, res) => {

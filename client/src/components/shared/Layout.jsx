@@ -5,11 +5,12 @@ import api from '../../utils/api';
 import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard, Fingerprint, CalendarDays, Leaf, CreditCard,
-  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert, Star, ScrollText, Mail, BookOpen,
+  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert, Star, ScrollText, Mail, BookOpen, UserCircle,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/dashboard',       label: 'Dashboard',       Icon: LayoutDashboard, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/my-profile',      label: 'My Profile',      Icon: UserCircle,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/checkin',         label: 'Check In/Out',    Icon: Fingerprint,     roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/attendance',      label: 'Attendance',      Icon: CalendarDays,    roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/leave',           label: 'Leave',           Icon: Leaf,            roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },

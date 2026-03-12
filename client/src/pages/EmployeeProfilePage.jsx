@@ -1,0 +1,761 @@
+import { useState, useEffect, useCallback } from 'react';
+import useAuthStore from '../store/authStore';
+import api from '../utils/api';
+import {
+  User, GraduationCap, Briefcase, Building2, FileUp, Trash2, Plus, Save, Upload, Eye, Check, ChevronDown, ChevronUp, Search, X,
+} from 'lucide-react';
+
+const TABS = [
+  { id: 'personal', label: 'Personal Info', Icon: User },
+  { id: 'education', label: 'Education', Icon: GraduationCap },
+  { id: 'experience', label: 'Experience', Icon: Briefcase },
+  { id: 'bank', label: 'Bank & IDs', Icon: Building2 },
+  { id: 'documents', label: 'Documents', Icon: FileUp },
+];
+
+const EDU_LEVELS = [
+  { value: '10TH', label: '10th / SSC' },
+  { value: '12TH', label: '12th / HSC' },
+  { value: 'DIPLOMA', label: 'Diploma' },
+  { value: 'GRADUATION', label: 'Graduation' },
+  { value: 'POST_GRADUATION', label: 'Post Graduation' },
+  { value: 'PHD', label: 'PhD' },
+  { value: 'CERTIFICATION', label: 'Certification' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+const DOC_CATEGORIES = [
+  { value: 'AADHAAR', label: 'Aadhaar Card' },
+  { value: 'PAN', label: 'PAN Card' },
+  { value: 'PASSPORT', label: 'Passport' },
+  { value: 'VOTER_ID', label: 'Voter ID' },
+  { value: 'DRIVING_LICENSE', label: 'Driving License' },
+  { value: 'PHOTO', label: 'Passport Photo' },
+  { value: 'RESUME', label: 'Resume / CV' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+function fmt(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; }
+function fmtInput(d) { return d ? new Date(d).toISOString().split('T')[0] : ''; }
+function formatBytes(b) { if (!b) return ''; if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
+
+const labelSt = { display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#374151', marginBottom: 4 };
+const inputSt = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' };
+const btnPrimary = { padding: '8px 18px', borderRadius: 8, background: '#2563eb', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 };
+const btnDanger = { ...btnPrimary, background: '#ef4444' };
+const btnGreen = { ...btnPrimary, background: '#15803d' };
+const cardSt = { background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 20, marginBottom: 14 };
+
+/* ──────────────────────────────────────────────────────────────────────────── */
+/*  Employee Self-Service Profile                                              */
+/* ──────────────────────────────────────────────────────────────────────────── */
+function MyProfile() {
+  const { user } = useAuthStore();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('personal');
+  const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get('/employee-profile/my');
+      setProfile(data.data);
+    } catch { setProfile(null); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const showMsg = (m, dur = 3000) => { setMsg(m); setTimeout(() => setMsg(''), dur); };
+
+  if (loading) return <div className="page-loading"><div className="spinner" /><p>Loading profile...</p></div>;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>My Profile</h2>
+          <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: '0.88rem' }}>Complete your personal, education, experience and document details</p>
+        </div>
+        {profile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 120, height: 8, borderRadius: 4, background: '#f3f4f6', overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 4, background: profile.completionPercent >= 80 ? '#22c55e' : profile.completionPercent >= 40 ? '#f59e0b' : '#ef4444', width: `${profile.completionPercent}%`, transition: 'width 0.3s' }} />
+            </div>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{profile.completionPercent}% Complete</span>
+          </div>
+        )}
+      </div>
+
+      {msg && <div style={{ padding: '10px 16px', borderRadius: 8, marginBottom: 14, background: msg.includes('success') || msg.includes('uploaded') || msg.includes('added') || msg.includes('updated') || msg.includes('removed') || msg.includes('saved') ? '#dcfce7' : '#fef2f2', color: msg.includes('success') || msg.includes('uploaded') || msg.includes('added') || msg.includes('updated') || msg.includes('removed') || msg.includes('saved') ? '#15803d' : '#b91c1c', fontSize: '0.88rem', fontWeight: 500 }}>{msg}</div>}
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, overflowX: 'auto', paddingBottom: 2 }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
+            background: tab === t.id ? '#2563eb' : '#fff', color: tab === t.id ? '#fff' : '#374151',
+            display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+          }}>
+            <t.Icon size={15} /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'personal' && <PersonalTab profile={profile} load={load} showMsg={showMsg} saving={saving} setSaving={setSaving} />}
+      {tab === 'education' && <EducationTab profile={profile} load={load} showMsg={showMsg} />}
+      {tab === 'experience' && <ExperienceTab profile={profile} load={load} showMsg={showMsg} />}
+      {tab === 'bank' && <BankTab profile={profile} load={load} showMsg={showMsg} saving={saving} setSaving={setSaving} />}
+      {tab === 'documents' && <DocumentsTab profile={profile} load={load} showMsg={showMsg} />}
+    </div>
+  );
+}
+
+/* ── Personal Info Tab ──────────────────────────────────────── */
+function PersonalTab({ profile, load, showMsg, saving, setSaving }) {
+  const [f, setF] = useState({
+    fatherName: '', motherName: '', dateOfBirth: '', gender: '', bloodGroup: '',
+    maritalStatus: '', spouseName: '', nationality: 'Indian', religion: '',
+    personalEmail: '', personalPhone: '',
+    emergencyContactName: '', emergencyContactRelation: '', emergencyContactPhone: '',
+    currentAddress: '', permanentAddress: '',
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setF({
+        fatherName: profile.fatherName || '', motherName: profile.motherName || '',
+        dateOfBirth: fmtInput(profile.dateOfBirth), gender: profile.gender || '', bloodGroup: profile.bloodGroup || '',
+        maritalStatus: profile.maritalStatus || '', spouseName: profile.spouseName || '',
+        nationality: profile.nationality || 'Indian', religion: profile.religion || '',
+        personalEmail: profile.personalEmail || '', personalPhone: profile.personalPhone || '',
+        emergencyContactName: profile.emergencyContactName || '', emergencyContactRelation: profile.emergencyContactRelation || '', emergencyContactPhone: profile.emergencyContactPhone || '',
+        currentAddress: profile.currentAddress || '', permanentAddress: profile.permanentAddress || '',
+      });
+    }
+  }, [profile]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/employee-profile/my', f);
+      showMsg('Personal info saved successfully!');
+      load();
+    } catch (err) { showMsg(err.response?.data?.message || 'Save failed.'); }
+    finally { setSaving(false); }
+  };
+
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  return (
+    <div style={cardSt}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '1rem' }}>Personal Information</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <div><label style={labelSt}>Father's Name *</label><input value={f.fatherName} onChange={e => set('fatherName', e.target.value)} style={inputSt} placeholder="Full name" /></div>
+        <div><label style={labelSt}>Mother's Name *</label><input value={f.motherName} onChange={e => set('motherName', e.target.value)} style={inputSt} placeholder="Full name" /></div>
+        <div><label style={labelSt}>Date of Birth</label><input type="date" value={f.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>Gender</label>
+          <select value={f.gender} onChange={e => set('gender', e.target.value)} style={inputSt}>
+            <option value="">Select</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div><label style={labelSt}>Blood Group</label>
+          <select value={f.bloodGroup} onChange={e => set('bloodGroup', e.target.value)} style={inputSt}>
+            <option value="">Select</option>{['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+        <div><label style={labelSt}>Marital Status</label>
+          <select value={f.maritalStatus} onChange={e => set('maritalStatus', e.target.value)} style={inputSt}>
+            <option value="">Select</option><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="DIVORCED">Divorced</option><option value="WIDOWED">Widowed</option>
+          </select>
+        </div>
+        {f.maritalStatus === 'MARRIED' && <div><label style={labelSt}>Spouse Name</label><input value={f.spouseName} onChange={e => set('spouseName', e.target.value)} style={inputSt} /></div>}
+        <div><label style={labelSt}>Nationality</label><input value={f.nationality} onChange={e => set('nationality', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>Religion</label><input value={f.religion} onChange={e => set('religion', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>Personal Email</label><input type="email" value={f.personalEmail} onChange={e => set('personalEmail', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>Personal Phone *</label><input value={f.personalPhone} onChange={e => set('personalPhone', e.target.value)} style={inputSt} placeholder="+91 XXXXX XXXXX" /></div>
+      </div>
+
+      <h4 style={{ margin: '20px 0 12px', fontSize: '0.92rem', color: '#374151' }}>Emergency Contact</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <div><label style={labelSt}>Contact Name *</label><input value={f.emergencyContactName} onChange={e => set('emergencyContactName', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>Relation</label><input value={f.emergencyContactRelation} onChange={e => set('emergencyContactRelation', e.target.value)} style={inputSt} placeholder="e.g. Father, Mother, Spouse" /></div>
+        <div><label style={labelSt}>Phone *</label><input value={f.emergencyContactPhone} onChange={e => set('emergencyContactPhone', e.target.value)} style={inputSt} /></div>
+      </div>
+
+      <h4 style={{ margin: '20px 0 12px', fontSize: '0.92rem', color: '#374151' }}>Address</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+        <div><label style={labelSt}>Current Address *</label><textarea value={f.currentAddress} onChange={e => set('currentAddress', e.target.value)} rows={3} style={{ ...inputSt, resize: 'vertical' }} /></div>
+        <div><label style={labelSt}>Permanent Address *</label><textarea value={f.permanentAddress} onChange={e => set('permanentAddress', e.target.value)} rows={3} style={{ ...inputSt, resize: 'vertical' }} /></div>
+      </div>
+
+      <button onClick={save} disabled={saving} style={{ ...btnPrimary, marginTop: 18, opacity: saving ? 0.6 : 1 }}>
+        <Save size={15} /> {saving ? 'Saving…' : 'Save Personal Info'}
+      </button>
+    </div>
+  );
+}
+
+/* ── Education Tab ──────────────────────────────────────────── */
+function EducationTab({ profile, load, showMsg }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ level: '10TH', boardOrUniversity: '', schoolOrCollege: '', degree: '', specialization: '', stream: '', yearOfPassing: '', percentage: '', cgpa: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(null);
+
+  const addEdu = async () => {
+    setSubmitting(true);
+    try {
+      await api.post('/employee-profile/my/education', { ...form, yearOfPassing: form.yearOfPassing ? Number(form.yearOfPassing) : undefined, percentage: form.percentage ? Number(form.percentage) : undefined, cgpa: form.cgpa ? Number(form.cgpa) : undefined });
+      showMsg('Education added successfully!');
+      setShowForm(false);
+      setForm({ level: '10TH', boardOrUniversity: '', schoolOrCollege: '', degree: '', specialization: '', stream: '', yearOfPassing: '', percentage: '', cgpa: '' });
+      load();
+    } catch (err) { showMsg(err.response?.data?.message || 'Failed.'); }
+    finally { setSubmitting(false); }
+  };
+
+  const delEdu = async (id) => {
+    if (!window.confirm('Remove this education entry?')) return;
+    try { await api.delete(`/employee-profile/my/education/${id}`); showMsg('Education removed.'); load(); }
+    catch (err) { showMsg(err.response?.data?.message || 'Failed.'); }
+  };
+
+  const uploadMarksheet = async (eduId, file) => {
+    setUploading(eduId);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      await api.post(`/employee-profile/my/education/${eduId}/marksheet`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showMsg('Marksheet uploaded!');
+      load();
+    } catch (err) { showMsg(err.response?.data?.message || 'Upload failed.'); }
+    finally { setUploading(null); }
+  };
+
+  const list = profile?.education || [];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontSize: '1rem' }}>Education Details</h3>
+        <button onClick={() => setShowForm(!showForm)} style={showForm ? btnDanger : btnPrimary}>
+          {showForm ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Add Education</>}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ ...cardSt, border: '2px solid #2563eb' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+            <div><label style={labelSt}>Level *</label>
+              <select value={form.level} onChange={e => setForm({ ...form, level: e.target.value })} style={inputSt}>
+                {EDU_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+              </select>
+            </div>
+            <div><label style={labelSt}>Board / University</label><input value={form.boardOrUniversity} onChange={e => setForm({ ...form, boardOrUniversity: e.target.value })} style={inputSt} placeholder="e.g. CBSE, Mumbai University" /></div>
+            <div><label style={labelSt}>School / College</label><input value={form.schoolOrCollege} onChange={e => setForm({ ...form, schoolOrCollege: e.target.value })} style={inputSt} /></div>
+            {['GRADUATION', 'POST_GRADUATION', 'PHD', 'DIPLOMA', 'CERTIFICATION'].includes(form.level) && (
+              <>
+                <div><label style={labelSt}>Degree</label><input value={form.degree} onChange={e => setForm({ ...form, degree: e.target.value })} style={inputSt} placeholder="e.g. B.Tech, BBA, MBA" /></div>
+                <div><label style={labelSt}>Specialization</label><input value={form.specialization} onChange={e => setForm({ ...form, specialization: e.target.value })} style={inputSt} placeholder="e.g. Computer Science" /></div>
+              </>
+            )}
+            {['12TH'].includes(form.level) && (
+              <div><label style={labelSt}>Stream</label><input value={form.stream} onChange={e => setForm({ ...form, stream: e.target.value })} style={inputSt} placeholder="e.g. Science, Commerce, Arts" /></div>
+            )}
+            <div><label style={labelSt}>Year of Passing</label><input type="number" value={form.yearOfPassing} onChange={e => setForm({ ...form, yearOfPassing: e.target.value })} style={inputSt} placeholder="2020" min={1970} max={2040} /></div>
+            <div><label style={labelSt}>Percentage (%)</label><input type="number" value={form.percentage} onChange={e => setForm({ ...form, percentage: e.target.value })} style={inputSt} placeholder="85.5" min={0} max={100} step="0.1" /></div>
+            <div><label style={labelSt}>CGPA (out of 10)</label><input type="number" value={form.cgpa} onChange={e => setForm({ ...form, cgpa: e.target.value })} style={inputSt} placeholder="8.5" min={0} max={10} step="0.01" /></div>
+          </div>
+          <button onClick={addEdu} disabled={submitting} style={{ ...btnGreen, marginTop: 14, opacity: submitting ? 0.6 : 1 }}>
+            <Save size={15} /> {submitting ? 'Adding…' : 'Add Education'}
+          </button>
+        </div>
+      )}
+
+      {list.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
+          <GraduationCap size={40} style={{ marginBottom: 8, opacity: 0.4 }} />
+          <p>No education entries yet. Add your 10th, 12th, and degree details.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {list.map(e => {
+            const levelLabel = EDU_LEVELS.find(l => l.value === e.level)?.label || e.level;
+            return (
+              <div key={e._id} style={cardSt}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 4 }}>
+                      {levelLabel} {e.degree ? `— ${e.degree}` : ''} {e.specialization ? `(${e.specialization})` : ''}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.6 }}>
+                      {e.schoolOrCollege && <span>{e.schoolOrCollege}</span>}
+                      {e.boardOrUniversity && <span> • {e.boardOrUniversity}</span>}
+                      {e.stream && <span> • {e.stream}</span>}
+                      {e.yearOfPassing && <span> • {e.yearOfPassing}</span>}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#374151', marginTop: 4 }}>
+                      {e.percentage != null && <span>Percentage: {e.percentage}%</span>}
+                      {e.percentage != null && e.cgpa != null && <span> | </span>}
+                      {e.cgpa != null && <span>CGPA: {e.cgpa}</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => delEdu(e._id)} style={{ ...btnDanger, padding: '5px 10px', fontSize: '0.78rem' }}><Trash2 size={14} /></button>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {e.marksheetUrl ? (
+                    <a href={e.marksheetUrl} target="_blank" rel="noreferrer" style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.78rem', textDecoration: 'none' }}><Eye size={13} /> View Marksheet</a>
+                  ) : null}
+                  <label style={{ ...btnGreen, padding: '5px 12px', fontSize: '0.78rem', cursor: uploading === e._id ? 'wait' : 'pointer', opacity: uploading === e._id ? 0.6 : 1 }}>
+                    <Upload size={13} /> {e.marksheetUrl ? 'Replace' : 'Upload'} Marksheet
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={ev => ev.target.files[0] && uploadMarksheet(e._id, ev.target.files[0])} />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Experience Tab ─────────────────────────────────────────── */
+function ExperienceTab({ profile, load, showMsg }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ companyName: '', designation: '', department: '', location: '', fromDate: '', toDate: '', ctcPerAnnum: '', reasonForLeaving: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(null);
+
+  const addExp = async () => {
+    setSubmitting(true);
+    try {
+      await api.post('/employee-profile/my/experience', { ...form, ctcPerAnnum: form.ctcPerAnnum ? Number(form.ctcPerAnnum) : undefined });
+      showMsg('Experience added!');
+      setShowForm(false);
+      setForm({ companyName: '', designation: '', department: '', location: '', fromDate: '', toDate: '', ctcPerAnnum: '', reasonForLeaving: '' });
+      load();
+    } catch (err) { showMsg(err.response?.data?.message || 'Failed.'); }
+    finally { setSubmitting(false); }
+  };
+
+  const delExp = async (id) => {
+    if (!window.confirm('Remove this experience entry?')) return;
+    try { await api.delete(`/employee-profile/my/experience/${id}`); showMsg('Experience removed.'); load(); }
+    catch (err) { showMsg(err.response?.data?.message || 'Failed.'); }
+  };
+
+  const uploadDoc = async (expId, docType, file) => {
+    setUploading(`${expId}-${docType}`);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      await api.post(`/employee-profile/my/experience/${expId}/${docType}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showMsg(`${docType.replace(/([A-Z])/g, ' $1').trim()} uploaded!`);
+      load();
+    } catch (err) { showMsg(err.response?.data?.message || 'Upload failed.'); }
+    finally { setUploading(null); }
+  };
+
+  const list = profile?.experience || [];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1rem' }}>Work Experience</h3>
+          <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>Skip this section if you're a fresher</p>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} style={showForm ? btnDanger : btnPrimary}>
+          {showForm ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Add Experience</>}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ ...cardSt, border: '2px solid #2563eb' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+            <div><label style={labelSt}>Company Name *</label><input value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} style={inputSt} /></div>
+            <div><label style={labelSt}>Designation</label><input value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} style={inputSt} /></div>
+            <div><label style={labelSt}>Department</label><input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} style={inputSt} /></div>
+            <div><label style={labelSt}>Location</label><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} style={inputSt} placeholder="City, State" /></div>
+            <div><label style={labelSt}>From Date</label><input type="date" value={form.fromDate} onChange={e => setForm({ ...form, fromDate: e.target.value })} style={inputSt} /></div>
+            <div><label style={labelSt}>To Date</label><input type="date" value={form.toDate} onChange={e => setForm({ ...form, toDate: e.target.value })} style={inputSt} /></div>
+            <div><label style={labelSt}>CTC Per Annum (₹)</label><input type="number" value={form.ctcPerAnnum} onChange={e => setForm({ ...form, ctcPerAnnum: e.target.value })} style={inputSt} /></div>
+            <div><label style={labelSt}>Reason for Leaving</label><input value={form.reasonForLeaving} onChange={e => setForm({ ...form, reasonForLeaving: e.target.value })} style={inputSt} /></div>
+          </div>
+          <button onClick={addExp} disabled={submitting} style={{ ...btnGreen, marginTop: 14, opacity: submitting ? 0.6 : 1 }}>
+            <Save size={15} /> {submitting ? 'Adding…' : 'Add Experience'}
+          </button>
+        </div>
+      )}
+
+      {list.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
+          <Briefcase size={40} style={{ marginBottom: 8, opacity: 0.4 }} />
+          <p>No experience entries. Add previous work experience or skip if fresher.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {list.map(ex => (
+            <div key={ex._id} style={cardSt}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>{ex.companyName}</div>
+                  <div style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 500 }}>{ex.designation || '—'} {ex.department ? `• ${ex.department}` : ''}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: 4 }}>
+                    {fmt(ex.fromDate)} — {fmt(ex.toDate) || 'Present'}
+                    {ex.location && <span> • {ex.location}</span>}
+                    {ex.ctcPerAnnum && <span> • ₹{(ex.ctcPerAnnum / 100000).toFixed(1)} LPA</span>}
+                  </div>
+                  {ex.reasonForLeaving && <div style={{ fontSize: '0.82rem', color: '#9ca3af', marginTop: 2 }}>Left: {ex.reasonForLeaving}</div>}
+                </div>
+                <button onClick={() => delExp(ex._id)} style={{ ...btnDanger, padding: '5px 10px', fontSize: '0.78rem' }}><Trash2 size={14} /></button>
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                {['experienceLetter', 'relievingLetter', 'offerLetter'].map(dt => {
+                  const url = ex[`${dt}Url`];
+                  const lbl = dt.replace(/([A-Z])/g, ' $1').trim();
+                  const isUploading = uploading === `${ex._id}-${dt}`;
+                  return (
+                    <span key={dt} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                      {url && <a href={url} target="_blank" rel="noreferrer" style={{ ...btnPrimary, padding: '4px 10px', fontSize: '0.75rem', textDecoration: 'none' }}><Eye size={12} /> {lbl}</a>}
+                      <label style={{ ...btnGreen, padding: '4px 10px', fontSize: '0.75rem', cursor: isUploading ? 'wait' : 'pointer', opacity: isUploading ? 0.6 : 1 }}>
+                        <Upload size={12} /> {url ? 'Replace' : 'Upload'} {lbl}
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={ev => ev.target.files[0] && uploadDoc(ex._id, dt, ev.target.files[0])} />
+                      </label>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Bank & IDs Tab ─────────────────────────────────────────── */
+function BankTab({ profile, load, showMsg, saving, setSaving }) {
+  const [f, setF] = useState({
+    aadhaarNumber: '', panNumber: '', passportNumber: '', passportExpiry: '', uanNumber: '', esicNumber: '',
+    bankName: '', bankAccountNumber: '', ifscCode: '', bankBranch: '',
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setF({
+        aadhaarNumber: profile.aadhaarNumber || '', panNumber: profile.panNumber || '',
+        passportNumber: profile.passportNumber || '', passportExpiry: fmtInput(profile.passportExpiry),
+        uanNumber: profile.uanNumber || '', esicNumber: profile.esicNumber || '',
+        bankName: profile.bankName || '', bankAccountNumber: profile.bankAccountNumber || '',
+        ifscCode: profile.ifscCode || '', bankBranch: profile.bankBranch || '',
+      });
+    }
+  }, [profile]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/employee-profile/my', f);
+      showMsg('Bank & ID details saved!');
+      load();
+    } catch (err) { showMsg(err.response?.data?.message || 'Save failed.'); }
+    finally { setSaving(false); }
+  };
+
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  return (
+    <div style={cardSt}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '1rem' }}>Identity Documents</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <div><label style={labelSt}>Aadhaar Number *</label><input value={f.aadhaarNumber} onChange={e => set('aadhaarNumber', e.target.value)} style={inputSt} placeholder="XXXX XXXX XXXX" maxLength={14} /></div>
+        <div><label style={labelSt}>PAN Number *</label><input value={f.panNumber} onChange={e => set('panNumber', e.target.value.toUpperCase())} style={inputSt} placeholder="ABCDE1234F" maxLength={10} /></div>
+        <div><label style={labelSt}>Passport Number</label><input value={f.passportNumber} onChange={e => set('passportNumber', e.target.value.toUpperCase())} style={inputSt} /></div>
+        <div><label style={labelSt}>Passport Expiry</label><input type="date" value={f.passportExpiry} onChange={e => set('passportExpiry', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>UAN Number (PF)</label><input value={f.uanNumber} onChange={e => set('uanNumber', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>ESIC Number</label><input value={f.esicNumber} onChange={e => set('esicNumber', e.target.value)} style={inputSt} /></div>
+      </div>
+
+      <h3 style={{ margin: '24px 0 16px', fontSize: '1rem' }}>Bank Details</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <div><label style={labelSt}>Bank Name *</label><input value={f.bankName} onChange={e => set('bankName', e.target.value)} style={inputSt} placeholder="e.g. State Bank of India" /></div>
+        <div><label style={labelSt}>Account Number *</label><input value={f.bankAccountNumber} onChange={e => set('bankAccountNumber', e.target.value)} style={inputSt} /></div>
+        <div><label style={labelSt}>IFSC Code *</label><input value={f.ifscCode} onChange={e => set('ifscCode', e.target.value.toUpperCase())} style={inputSt} placeholder="e.g. SBIN0001234" /></div>
+        <div><label style={labelSt}>Bank Branch</label><input value={f.bankBranch} onChange={e => set('bankBranch', e.target.value)} style={inputSt} /></div>
+      </div>
+
+      <button onClick={save} disabled={saving} style={{ ...btnPrimary, marginTop: 18, opacity: saving ? 0.6 : 1 }}>
+        <Save size={15} /> {saving ? 'Saving…' : 'Save Bank & ID Details'}
+      </button>
+    </div>
+  );
+}
+
+/* ── Documents Tab ──────────────────────────────────────────── */
+function DocumentsTab({ profile, load, showMsg }) {
+  const [showForm, setShowForm] = useState(false);
+  const [label, setLabel] = useState('');
+  const [category, setCategory] = useState('OTHER');
+  const [file, setFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const uploadDoc = async () => {
+    if (!file || !label.trim()) { showMsg('Label and file are required.'); return; }
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('label', label.trim());
+      fd.append('category', category);
+      await api.post('/employee-profile/my/documents', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showMsg('Document uploaded!');
+      setShowForm(false);
+      setLabel(''); setCategory('OTHER'); setFile(null);
+      load();
+    } catch (err) { showMsg(err.response?.data?.message || 'Upload failed.'); }
+    finally { setSubmitting(false); }
+  };
+
+  const delDoc = async (id) => {
+    if (!window.confirm('Delete this document?')) return;
+    try { await api.delete(`/employee-profile/my/documents/${id}`); showMsg('Document removed.'); load(); }
+    catch (err) { showMsg(err.response?.data?.message || 'Failed.'); }
+  };
+
+  const list = profile?.documents || [];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1rem' }}>Identity & Other Documents</h3>
+          <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>Upload Aadhaar, PAN, Passport, Photo, Resume, etc.</p>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} style={showForm ? btnDanger : btnPrimary}>
+          {showForm ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Upload Document</>}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ ...cardSt, border: '2px solid #2563eb' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+            <div><label style={labelSt}>Label *</label><input value={label} onChange={e => setLabel(e.target.value)} style={inputSt} placeholder="e.g. Aadhaar Card Front" /></div>
+            <div><label style={labelSt}>Category</label>
+              <select value={category} onChange={e => setCategory(e.target.value)} style={inputSt}>
+                {DOC_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
+            <div><label style={labelSt}>File (PDF, JPG, PNG) *</label><input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => setFile(e.target.files[0])} style={inputSt} /></div>
+          </div>
+          <button onClick={uploadDoc} disabled={submitting} style={{ ...btnGreen, marginTop: 14, opacity: submitting ? 0.6 : 1 }}>
+            <Upload size={15} /> {submitting ? 'Uploading…' : 'Upload'}
+          </button>
+        </div>
+      )}
+
+      {list.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
+          <FileUp size={40} style={{ marginBottom: 8, opacity: 0.4 }} />
+          <p>No documents uploaded yet.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+          {list.map(d => {
+            const catLabel = DOC_CATEGORIES.find(c => c.value === d.category)?.label || d.category;
+            return (
+              <div key={d._id} style={{ ...cardSt, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 14 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 2 }}>{d.label}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>{catLabel} {d.fileSize ? `• ${formatBytes(d.fileSize)}` : ''}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 2 }}>{fmt(d.uploadedAt)}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                  <a href={d.fileUrl} target="_blank" rel="noreferrer" style={{ ...btnPrimary, padding: '4px 10px', fontSize: '0.75rem', textDecoration: 'none' }}><Eye size={12} /> View</a>
+                  <button onClick={() => delDoc(d._id)} style={{ ...btnDanger, padding: '4px 10px', fontSize: '0.75rem' }}><Trash2 size={12} /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────── */
+/*  HR View — All Employee Profiles                                            */
+/* ──────────────────────────────────────────────────────────────────────────── */
+function AdminProfileView() {
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [viewingEmp, setViewingEmp] = useState(null);
+  const [viewProfile, setViewProfile] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const params = {};
+      if (search.trim()) params.search = search.trim();
+      if (statusFilter) params.status = statusFilter;
+      const { data } = await api.get('/employee-profile', { params });
+      setEmployees(data.data);
+    } catch { setEmployees([]); }
+    finally { setLoading(false); }
+  }, [search, statusFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const viewEmp = async (empId) => {
+    if (viewingEmp === empId) { setViewingEmp(null); setViewProfile(null); return; }
+    setViewingEmp(empId); setViewLoading(true);
+    try {
+      const { data } = await api.get(`/employee-profile/${empId}`);
+      setViewProfile(data.data);
+    } catch { setViewProfile(null); }
+    finally { setViewLoading(false); }
+  };
+
+  if (loading) return <div className="page-loading"><div className="spinner" /><p>Loading profiles...</p></div>;
+
+  return (
+    <div>
+      <h2 style={{ margin: '0 0 4px' }}>Employee Profiles</h2>
+      <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: '0.88rem' }}>Track profile completion across all employees</p>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 300 }}>
+          <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or ID..." style={{ ...inputSt, paddingLeft: 32, margin: 0 }} />
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...inputSt, width: 'auto', minWidth: 140 }}>
+          <option value="">All Profiles</option>
+          <option value="complete">80%+ Complete</option>
+          <option value="incomplete">Below 80%</option>
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {employees.map(e => (
+          <div key={e._id}>
+            <div onClick={() => viewEmp(e._id)} style={{ ...cardSt, marginBottom: 0, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{e.name} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({e.employeeId})</span></div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{e.designation || '—'} • {e.department}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 80, height: 8, borderRadius: 4, background: '#f3f4f6', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: 4, background: e.completionPercent >= 80 ? '#22c55e' : e.completionPercent >= 40 ? '#f59e0b' : '#ef4444', width: `${e.completionPercent}%` }} />
+                </div>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: e.completionPercent >= 80 ? '#15803d' : e.completionPercent >= 40 ? '#b45309' : '#b91c1c', minWidth: 35 }}>{e.completionPercent}%</span>
+                {viewingEmp === e._id ? <ChevronUp size={16} color="#9ca3af" /> : <ChevronDown size={16} color="#9ca3af" />}
+              </div>
+            </div>
+
+            {viewingEmp === e._id && (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: 18 }}>
+                {viewLoading ? <p style={{ color: '#6b7280', fontSize: '0.85rem' }}>Loading…</p> : viewProfile ? (
+                  <ProfileSummary profile={viewProfile} />
+                ) : <p style={{ color: '#9ca3af' }}>Profile not found.</p>}
+              </div>
+            )}
+          </div>
+        ))}
+        {employees.length === 0 && <p style={{ textAlign: 'center', color: '#9ca3af', padding: 20 }}>No employees found.</p>}
+      </div>
+    </div>
+  );
+}
+
+function ProfileSummary({ profile }) {
+  const p = profile;
+  const sec = { marginBottom: 14 };
+  const heading = { fontWeight: 700, fontSize: '0.88rem', marginBottom: 6, color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 };
+  const row = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '4px 16px', fontSize: '0.82rem', color: '#4b5563' };
+  const field = (label, val) => <div><span style={{ color: '#9ca3af' }}>{label}:</span> <strong>{val || '—'}</strong></div>;
+
+  return (
+    <div>
+      <div style={sec}>
+        <div style={heading}>Personal Information</div>
+        <div style={row}>
+          {field("Father's Name", p.fatherName)}{field("Mother's Name", p.motherName)}
+          {field('DOB', fmt(p.dateOfBirth))}{field('Gender', p.gender)}{field('Blood Group', p.bloodGroup)}
+          {field('Marital Status', p.maritalStatus)}{p.spouseName && field('Spouse', p.spouseName)}
+          {field('Nationality', p.nationality)}{field('Religion', p.religion)}
+          {field('Personal Email', p.personalEmail)}{field('Personal Phone', p.personalPhone)}
+        </div>
+      </div>
+      <div style={sec}>
+        <div style={heading}>Emergency Contact</div>
+        <div style={row}>{field('Name', p.emergencyContactName)}{field('Relation', p.emergencyContactRelation)}{field('Phone', p.emergencyContactPhone)}</div>
+      </div>
+      <div style={sec}>
+        <div style={heading}>Address</div>
+        <div style={row}>{field('Current', p.currentAddress)}{field('Permanent', p.permanentAddress)}</div>
+      </div>
+      <div style={sec}>
+        <div style={heading}>Identity & Bank</div>
+        <div style={row}>
+          {field('Aadhaar', p.aadhaarNumber)}{field('PAN', p.panNumber)}{field('Passport', p.passportNumber)}{field('UAN', p.uanNumber)}{field('ESIC', p.esicNumber)}
+          {field('Bank', p.bankName)}{field('A/C No', p.bankAccountNumber)}{field('IFSC', p.ifscCode)}{field('Branch', p.bankBranch)}
+        </div>
+      </div>
+      {p.education?.length > 0 && (
+        <div style={sec}>
+          <div style={heading}>Education ({p.education.length})</div>
+          {p.education.map((e, i) => (
+            <div key={i} style={{ fontSize: '0.82rem', color: '#4b5563', marginBottom: 4 }}>
+              <strong>{EDU_LEVELS.find(l => l.value === e.level)?.label || e.level}</strong>
+              {e.degree ? ` — ${e.degree}` : ''}{e.specialization ? ` (${e.specialization})` : ''}
+              {e.schoolOrCollege ? ` • ${e.schoolOrCollege}` : ''}{e.yearOfPassing ? ` • ${e.yearOfPassing}` : ''}
+              {e.percentage != null ? ` • ${e.percentage}%` : ''}{e.cgpa != null ? ` • CGPA ${e.cgpa}` : ''}
+              {e.marksheetUrl && <a href={e.marksheetUrl} target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: '#2563eb', fontSize: '0.78rem' }}>View Marksheet</a>}
+            </div>
+          ))}
+        </div>
+      )}
+      {p.experience?.length > 0 && (
+        <div style={sec}>
+          <div style={heading}>Experience ({p.experience.length})</div>
+          {p.experience.map((ex, i) => (
+            <div key={i} style={{ fontSize: '0.82rem', color: '#4b5563', marginBottom: 4 }}>
+              <strong>{ex.companyName}</strong> — {ex.designation || '—'} ({fmt(ex.fromDate)} – {fmt(ex.toDate) || 'Present'})
+              {ex.location ? ` • ${ex.location}` : ''}
+              {ex.experienceLetterUrl && <a href={ex.experienceLetterUrl} target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: '#2563eb', fontSize: '0.78rem' }}>Exp. Letter</a>}
+              {ex.relievingLetterUrl && <a href={ex.relievingLetterUrl} target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: '#2563eb', fontSize: '0.78rem' }}>Relieving</a>}
+            </div>
+          ))}
+        </div>
+      )}
+      {p.documents?.length > 0 && (
+        <div style={sec}>
+          <div style={heading}>Uploaded Documents ({p.documents.length})</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {p.documents.map((d, i) => (
+              <a key={i} href={d.fileUrl} target="_blank" rel="noreferrer" style={{ padding: '4px 10px', borderRadius: 6, background: '#eff6ff', color: '#2563eb', fontSize: '0.78rem', textDecoration: 'none', fontWeight: 500 }}>
+                {d.label} {d.fileSize ? `(${formatBytes(d.fileSize)})` : ''}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────── */
+/*  Main Export                                                                */
+/* ──────────────────────────────────────────────────────────────────────────── */
+export default function EmployeeProfilePage() {
+  const { user } = useAuthStore();
+  const isAdmin = ['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
+  return (
+    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+      {isAdmin ? <AdminProfileView /> : <MyProfile />}
+    </div>
+  );
+}
