@@ -35,8 +35,8 @@ router.get('/my', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// ── GET /:empId — HR views any employee profile ─────────────
-router.get('/:empId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+// ── GET /:empId — HR/Accounts views any employee profile ────
+router.get('/:empId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS'), async (req, res, next) => {
   try {
     let profile = await EmployeeProfile.findOne({ employee: req.params.empId })
       .populate('employee', 'name employeeId email phone designation department joiningDate')
@@ -50,8 +50,8 @@ router.get('/:empId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), 
   } catch (err) { next(err); }
 });
 
-// ── GET / — HR: all profiles with completion stats ──────────
-router.get('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+// ── GET / — HR/Accounts: all profiles with completion stats ─
+router.get('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS'), async (req, res, next) => {
   try {
     const { search, status } = req.query;
     const employees = await User.find({ isActive: true, role: { $nin: ['SUPER_ADMIN'] } })

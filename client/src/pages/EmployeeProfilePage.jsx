@@ -608,14 +608,170 @@ function EmployeeSelfProfile() {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   Accounts View — read-only view of employee bank & profile info
+   ══════════════════════════════════════════════════════════════ */
+function AccountsProfileView() {
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [viewingEmp, setViewingEmp] = useState(null);
+  const [viewProfile, setViewProfile] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const params = {};
+      if (search.trim()) params.search = search.trim();
+      const { data } = await api.get('/employee-profile', { params });
+      setEmployees(data.data);
+    } catch { setEmployees([]); }
+    finally { setLoading(false); }
+  }, [search]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const viewEmp = async (empId) => {
+    if (viewingEmp === empId) { setViewingEmp(null); setViewProfile(null); return; }
+    setViewingEmp(empId); setViewLoading(true);
+    try { const { data } = await api.get(`/employee-profile/${empId}`); setViewProfile(data.data); }
+    catch { setViewProfile(null); }
+    finally { setViewLoading(false); }
+  };
+
+  if (loading) return <div className="page-loading"><div className="spinner" /><p>Loading profiles...</p></div>;
+
+  const field = (label, val) => (
+    <div style={{ padding: '6px 0' }}>
+      <span style={{ fontSize: '0.78rem', color: '#9ca3af' }}>{label}</span>
+      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }}>{val || '—'}</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <h2 style={{ margin: '0 0 4px' }}>Employee Profiles</h2>
+      <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: '0.88rem' }}>View employee bank details and profile information (read-only)</p>
+
+      <div style={{ position: 'relative', maxWidth: 300, marginBottom: 16 }}>
+        <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or ID..." style={{ ...inputSt, paddingLeft: 32, margin: 0 }} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {employees.map(e => (
+          <div key={e._id}>
+            <div onClick={() => viewEmp(e._id)} style={{ ...cardSt, marginBottom: 0, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{e.name} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({e.employeeId})</span></div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{e.designation || '—'} • {e.department}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {viewingEmp === e._id ? <ChevronUp size={16} color="#9ca3af" /> : <ChevronDown size={16} color="#9ca3af" />}
+              </div>
+            </div>
+
+            {viewingEmp === e._id && (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: 18 }}>
+                {viewLoading ? <p style={{ color: '#6b7280', fontSize: '0.85rem' }}>Loading…</p> : viewProfile ? (
+                  <div>
+                    {/* Bank Details — primary focus for accounts */}
+                    <div style={{ marginBottom: 16 }}>
+                      <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', color: '#2563eb', borderBottom: '2px solid #2563eb', paddingBottom: 4, display: 'inline-block' }}>Bank & Payment Details</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2px 16px' }}>
+                        {field('Bank Name', viewProfile.bankName)}
+                        {field('Account Number', viewProfile.bankAccountNumber)}
+                        {field('IFSC Code', viewProfile.ifscCode)}
+                        {field('Bank Branch', viewProfile.bankBranch)}
+                        {field('PAN Number', viewProfile.panNumber)}
+                        {field('UAN Number (PF)', viewProfile.uanNumber)}
+                        {field('ESIC Number', viewProfile.esicNumber)}
+                        {field('Aadhaar Number', viewProfile.aadhaarNumber)}
+                      </div>
+                    </div>
+
+                    {/* Personal Info summary */}
+                    <div style={{ marginBottom: 16 }}>
+                      <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Personal Information</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2px 16px' }}>
+                        {field("Father's Name", viewProfile.fatherName)}
+                        {field("Mother's Name", viewProfile.motherName)}
+                        {field('Date of Birth', fmt(viewProfile.dateOfBirth))}
+                        {field('Gender', viewProfile.gender)}
+                        {field('Blood Group', viewProfile.bloodGroup)}
+                        {field('Marital Status', viewProfile.maritalStatus)}
+                        {field('Personal Phone', viewProfile.personalPhone)}
+                        {field('Personal Email', viewProfile.personalEmail)}
+                      </div>
+                    </div>
+
+                    {/* Address */}
+                    <div style={{ marginBottom: 16 }}>
+                      <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Address</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2px 16px' }}>
+                        {field('Current Address', viewProfile.currentAddress)}
+                        {field('Permanent Address', viewProfile.permanentAddress)}
+                      </div>
+                    </div>
+
+                    {/* Emergency Contact */}
+                    <div style={{ marginBottom: 16 }}>
+                      <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Emergency Contact</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2px 16px' }}>
+                        {field('Name', viewProfile.emergencyContactName)}
+                        {field('Relation', viewProfile.emergencyContactRelation)}
+                        {field('Phone', viewProfile.emergencyContactPhone)}
+                      </div>
+                    </div>
+
+                    {/* Education summary */}
+                    {viewProfile.education?.length > 0 && (
+                      <div style={{ marginBottom: 16 }}>
+                        <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Education ({viewProfile.education.length})</h4>
+                        {viewProfile.education.map((ed, i) => (
+                          <div key={i} style={{ fontSize: '0.82rem', color: '#4b5563', marginBottom: 4 }}>
+                            <strong>{EDU_LEVELS.find(l => l.value === ed.level)?.label || ed.level}</strong>
+                            {ed.degree ? ` — ${ed.degree}` : ''}{ed.specialization ? ` (${ed.specialization})` : ''}
+                            {ed.schoolOrCollege ? ` • ${ed.schoolOrCollege}` : ''}{ed.yearOfPassing ? ` • ${ed.yearOfPassing}` : ''}
+                            {ed.percentage != null ? ` • ${ed.percentage}%` : ''}{ed.cgpa != null ? ` • CGPA ${ed.cgpa}` : ''}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Experience summary */}
+                    {viewProfile.experience?.length > 0 && (
+                      <div>
+                        <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Experience ({viewProfile.experience.length})</h4>
+                        {viewProfile.experience.map((ex, i) => (
+                          <div key={i} style={{ fontSize: '0.82rem', color: '#4b5563', marginBottom: 4 }}>
+                            <strong>{ex.companyName}</strong> — {ex.designation || '—'} ({fmt(ex.fromDate)} – {fmt(ex.toDate) || 'Present'})
+                            {ex.location ? ` • ${ex.location}` : ''}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : <p style={{ color: '#9ca3af' }}>Profile not found.</p>}
+              </div>
+            )}
+          </div>
+        ))}
+        {employees.length === 0 && <p style={{ textAlign: 'center', color: '#9ca3af', padding: 20 }}>No employees found.</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    Main Export
    ══════════════════════════════════════════════════════════════ */
 export default function EmployeeProfilePage() {
   const { user } = useAuthStore();
   const isAdmin = ['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
+  const isAccounts = user?.role === 'ACCOUNTS';
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-      {isAdmin ? <AdminProfileView /> : <EmployeeSelfProfile />}
+      {isAdmin ? <AdminProfileView /> : isAccounts ? <AccountsProfileView /> : <EmployeeSelfProfile />}
     </div>
   );
 }
