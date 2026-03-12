@@ -290,4 +290,179 @@ router.delete('/my/documents/:docId', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ══════════════════════════════════════════════════════════════
+//  ADMIN routes — HR / DIRECTOR / SUPER_ADMIN edit ANY employee
+// ══════════════════════════════════════════════════════════════
+
+async function findOrCreateProfile(empId) {
+  let profile = await EmployeeProfile.findOne({ employee: empId });
+  if (!profile) profile = await EmployeeProfile.create({ employee: empId });
+  return profile;
+}
+
+// ── PATCH /:empId — admin updates employee profile fields ───
+router.patch('/:empId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const allowed = [
+      'fatherName', 'motherName', 'dateOfBirth', 'gender', 'bloodGroup',
+      'maritalStatus', 'spouseName', 'nationality', 'religion',
+      'personalEmail', 'personalPhone',
+      'emergencyContactName', 'emergencyContactRelation', 'emergencyContactPhone',
+      'currentAddress', 'permanentAddress',
+      'aadhaarNumber', 'panNumber', 'passportNumber', 'passportExpiry', 'uanNumber', 'esicNumber',
+      'bankName', 'bankAccountNumber', 'ifscCode', 'bankBranch',
+      'isFresher', 'totalExperienceYears',
+    ];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    updates.lastUpdatedBy = req.user._id;
+    const profile = await EmployeeProfile.findOneAndUpdate(
+      { employee: req.params.empId },
+      { $set: updates },
+      { new: true, upsert: true }
+    );
+    res.json({ success: true, message: 'Profile updated.', data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── POST /:empId/education — admin adds education ───────────
+router.post('/:empId/education', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const { level, boardOrUniversity, schoolOrCollege, degree, specialization, stream, yearOfPassing, percentage, cgpa } = req.body;
+    if (!level) return next(new ApiError(400, 'Education level is required.'));
+    const profile = await findOrCreateProfile(req.params.empId);
+    profile.education.push({ level, boardOrUniversity, schoolOrCollege, degree, specialization, stream, yearOfPassing, percentage, cgpa });
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.status(201).json({ success: true, message: 'Education added.', data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── DELETE /:empId/education/:eduId — admin removes education
+router.delete('/:empId/education/:eduId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const profile = await EmployeeProfile.findOne({ employee: req.params.empId });
+    if (!profile) return next(new ApiError(404, 'Profile not found.'));
+    const edu = profile.education.id(req.params.eduId);
+    if (!edu) return next(new ApiError(404, 'Education entry not found.'));
+    if (edu.marksheetPublicId) await deleteFile(edu.marksheetPublicId).catch(() => {});
+    if (edu.certificatePublicId) await deleteFile(edu.certificatePublicId).catch(() => {});
+    profile.education.pull(req.params.eduId);
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.json({ success: true, message: 'Education removed.', data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── POST /:empId/education/:eduId/marksheet — admin uploads marksheet
+router.post('/:empId/education/:eduId/marksheet', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) return next(new ApiError(400, 'No file uploaded.'));
+    const profile = await EmployeeProfile.findOne({ employee: req.params.empId });
+    if (!profile) return next(new ApiError(404, 'Profile not found.'));
+    const edu = profile.education.id(req.params.eduId);
+    if (!edu) return next(new ApiError(404, 'Education entry not found.'));
+    if (edu.marksheetPublicId) await deleteFile(edu.marksheetPublicId, rType(req.file.mimetype)).catch(() => {});
+    const pubId = `hrms/profiles/${req.params.empId}/edu/${Date.now()}_marksheet`;
+    const result = await uploadBuffer(req.file.buffer, '', pubId, rType(req.file.mimetype));
+    edu.marksheetUrl = result.secure_url;
+    edu.marksheetPublicId = result.public_id;
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.json({ success: true, message: 'Marksheet uploaded.', data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── POST /:empId/experience — admin adds experience ─────────
+router.post('/:empId/experience', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const { companyName, designation, department, location, fromDate, toDate, ctcPerAnnum, reasonForLeaving } = req.body;
+    if (!companyName?.trim()) return next(new ApiError(400, 'Company name is required.'));
+    const profile = await findOrCreateProfile(req.params.empId);
+    profile.experience.push({ companyName, designation, department, location, fromDate, toDate, ctcPerAnnum, reasonForLeaving });
+    profile.isFresher = false;
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.status(201).json({ success: true, message: 'Experience added.', data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── DELETE /:empId/experience/:expId — admin removes experience
+router.delete('/:empId/experience/:expId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const profile = await EmployeeProfile.findOne({ employee: req.params.empId });
+    if (!profile) return next(new ApiError(404, 'Profile not found.'));
+    const exp = profile.experience.id(req.params.expId);
+    if (!exp) return next(new ApiError(404, 'Experience entry not found.'));
+    for (const f of ['experienceLetterPublicId', 'relievingLetterPublicId', 'offerLetterPublicId']) {
+      if (exp[f]) await deleteFile(exp[f]).catch(() => {});
+    }
+    profile.experience.pull(req.params.expId);
+    if (profile.experience.length === 0) profile.isFresher = true;
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.json({ success: true, message: 'Experience removed.', data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── POST /:empId/experience/:expId/:docType — admin uploads exp doc
+router.post('/:empId/experience/:expId/:docType', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), upload.single('file'), async (req, res, next) => {
+  try {
+    const validTypes = ['experienceLetter', 'relievingLetter', 'offerLetter'];
+    if (!validTypes.includes(req.params.docType)) return next(new ApiError(400, 'Invalid document type.'));
+    if (!req.file) return next(new ApiError(400, 'No file uploaded.'));
+    const profile = await EmployeeProfile.findOne({ employee: req.params.empId });
+    if (!profile) return next(new ApiError(404, 'Profile not found.'));
+    const exp = profile.experience.id(req.params.expId);
+    if (!exp) return next(new ApiError(404, 'Experience entry not found.'));
+    const urlField = `${req.params.docType}Url`;
+    const idField  = `${req.params.docType}PublicId`;
+    if (exp[idField]) await deleteFile(exp[idField], rType(req.file.mimetype)).catch(() => {});
+    const pubId = `hrms/profiles/${req.params.empId}/exp/${Date.now()}_${req.params.docType}`;
+    const result = await uploadBuffer(req.file.buffer, '', pubId, rType(req.file.mimetype));
+    exp[urlField] = result.secure_url;
+    exp[idField]  = result.public_id;
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.json({ success: true, message: `${req.params.docType} uploaded.`, data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── POST /:empId/documents — admin uploads document ─────────
+router.post('/:empId/documents', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) return next(new ApiError(400, 'No file uploaded.'));
+    const { label, category } = req.body;
+    if (!label?.trim()) return next(new ApiError(400, 'Document label is required.'));
+    const profile = await findOrCreateProfile(req.params.empId);
+    const pubId = `hrms/profiles/${req.params.empId}/docs/${Date.now()}_${req.file.originalname.replace(/\s+/g, '_')}`;
+    const result = await uploadBuffer(req.file.buffer, '', pubId, rType(req.file.mimetype));
+    profile.documents.push({
+      label: label.trim(), category: category || 'OTHER',
+      fileUrl: result.secure_url, publicId: result.public_id,
+      fileName: req.file.originalname, fileSize: req.file.size,
+    });
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.status(201).json({ success: true, message: 'Document uploaded.', data: profile });
+  } catch (err) { next(err); }
+});
+
+// ── DELETE /:empId/documents/:docId — admin removes document ─
+router.delete('/:empId/documents/:docId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const profile = await EmployeeProfile.findOne({ employee: req.params.empId });
+    if (!profile) return next(new ApiError(404, 'Profile not found.'));
+    const doc = profile.documents.id(req.params.docId);
+    if (!doc) return next(new ApiError(404, 'Document not found.'));
+    if (doc.publicId) await deleteFile(doc.publicId).catch(() => {});
+    profile.documents.pull(req.params.docId);
+    profile.lastUpdatedBy = req.user._id;
+    await profile.save();
+    res.json({ success: true, message: 'Document removed.', data: profile });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
