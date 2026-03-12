@@ -51,20 +51,77 @@ const initCronJobs = () => {
     } catch (err) { console.error('[CRON] Holiday job failed:', err.message); }
   });
 
-  // End-of-day enforcement — 6:00 PM Mon-Sat
-  // Policy: only check-in without check-out = ABSENT (single entry is not valid attendance)
-  cron.schedule('0 18 * * 1-6', async () => {
+  // End-of-day attendance evaluation — 11:30 PM Mon-Sat
+  // Evaluates all attendance records for the day and applies final status:
+  //   - No check-in/check-out → ABSENT (handled by 11:59 PM cron below)
+  //   - Only check-in (no check-out) → ABSENT
+  //   - Only check-out (no check-in) → ABSENT
+  //   - Both present, 8+ hours worked → FULL DAY (overrides late arrival)
+  //   - Both present, arrived after 1 PM, < 8 h → HALF DAY
+  //   - Both present, left before 4 PM, < 8 h → HALF DAY
+  //   - Both present, < 8 h total → HALF DAY
+  cron.schedule('30 23 * * 1-6', async () => {
     try {
       const today = new Date(); today.setHours(0,0,0,0);
-      const notCheckedOut = await Attendance.find({ date: today, checkIn: { $exists: true }, checkOut: { $exists: false } });
-      for (const r of notCheckedOut) {
+      let absentCount = 0, halfCount = 0, fullCount = 0;
+
+      // 1) Mark ABSENT: check-in exists but no check-out
+      const noCheckout = await Attendance.find({
+        date: today,
+        checkIn:  { $exists: true, $ne: null },
+        $or: [{ checkOut: { $exists: false } }, { checkOut: null }],
+        status: { $nin: ['ON_LEAVE', 'HOLIDAY', 'WEEKLY_OFF'] },
+        markedBy: { $nin: ['HR', 'DIRECTOR', 'SUPER_ADMIN'] },
+      });
+      for (const r of noCheckout) {
         await Attendance.findByIdAndUpdate(r._id, {
           status: 'ABSENT', displayStatus: 'ABSENT', isRealHalfDay: false,
-          notes: 'no_checkout', markedBy: 'CRON',
+          notes: (r.notes || '') + ' | no_checkout', markedBy: 'CRON',
         });
+        absentCount++;
       }
-      console.log(`[CRON] End-of-day: ${notCheckedOut.length} single-entry record(s) marked ABSENT`);
-    } catch (err) { console.error('[CRON] End-of-day enforcement failed:', err.message); }
+
+      // 2) Re-evaluate records with both check-in and check-out
+      const withBoth = await Attendance.find({
+        date: today,
+        checkIn:  { $exists: true, $ne: null },
+        checkOut: { $exists: true, $ne: null },
+        status: { $nin: ['ON_LEAVE', 'HOLIDAY', 'WEEKLY_OFF'] },
+        markedBy: { $nin: ['HR', 'DIRECTOR', 'SUPER_ADMIN'] },
+      });
+
+      const FULLDAY_H = 8;
+      const HALFDAY_CHECKIN_MIN = 13 * 60;
+      const EARLY_CHECKOUT_MIN  = 16 * 60;
+
+      for (const r of withBoth) {
+        const hours = r.workingHours || parseFloat(((new Date(r.checkOut) - new Date(r.checkIn)) / (1000 * 60 * 60)).toFixed(2));
+        const checkinMins  = new Date(r.checkIn).getHours() * 60 + new Date(r.checkIn).getMinutes();
+        const checkoutMins = new Date(r.checkOut).getHours() * 60 + new Date(r.checkOut).getMinutes();
+
+        let newStatus, newDisplay, newRealHalf;
+
+        if (hours >= FULLDAY_H) {
+          newStatus = 'FULL_DAY'; newDisplay = 'FULL_DAY'; newRealHalf = false;
+          fullCount++;
+        } else if (checkinMins > HALFDAY_CHECKIN_MIN || checkoutMins < EARLY_CHECKOUT_MIN) {
+          newStatus = 'HALF_DAY'; newDisplay = 'HALF_DAY'; newRealHalf = true;
+          halfCount++;
+        } else {
+          newStatus = 'HALF_DAY'; newDisplay = 'HALF_DAY'; newRealHalf = true;
+          halfCount++;
+        }
+
+        if (r.status !== newStatus) {
+          await Attendance.findByIdAndUpdate(r._id, {
+            status: newStatus, displayStatus: newDisplay, isRealHalfDay: newRealHalf,
+            workingHours: hours, markedBy: 'CRON',
+          });
+        }
+      }
+
+      console.log(`[CRON] EOD evaluation: ${absentCount} absent (no checkout), ${fullCount} full-day, ${halfCount} half-day re-evaluated`);
+    } catch (err) { console.error('[CRON] End-of-day evaluation failed:', err.message); }
   });
 
   // Monthly salary generation — 1st of month 6:00 AM
@@ -106,7 +163,7 @@ const initCronJobs = () => {
     } catch (err) { console.error('[CRON] Email alerts failed:', err.message); }
   });
 
-  console.log('✅ Cron jobs scheduled: auto-absent | holiday | auto-checkout | salary-gen | auto-remove-resigned | email-alerts');
+  console.log('✅ Cron jobs scheduled: auto-absent | holiday | eod-evaluation | salary-gen | auto-remove-resigned | email-alerts');
 };
 
 module.exports = { initCronJobs };

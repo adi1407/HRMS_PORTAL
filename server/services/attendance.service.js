@@ -11,22 +11,19 @@ const { ApiError }            = require('../utils/api.utils');
 const { generateMonthlySalary } = require('./salary.service');
 
 // ─── Attendance Time Rules ───────────────────────────────────────────────────
-// Full Day   : check-in ≤ 10:00 AM  AND  checkout ≥ 6:00 PM AND worked ≥ 4 h
-// Late+Full  : check-in 10:01–1:00 PM AND checkout ≥ 6:00 PM AND worked ≥ 4 h
-// Half Day   : check-in after 1:00 PM AND worked ≥ 4 h (locked, checkout can't upgrade)
-// Half Day   : checkout before 4:30 PM AND worked ≥ 4 h (early leave)
-// Half Day   : checkout 4:30–6:00 PM AND worked ≥ 4 h (incomplete shift)
-// Absent     : worked < 4 hours (regardless of check-in/out times)
-// Absent     : only check-in with no checkout by 6:00 PM (single entry = no credit)
-// Absent     : no check-in at all (cron marks at 11:59 PM)
+// Full Day   : worked 8+ hours total (regardless of arrival time — overrides everything)
+// Half Day   : check-in after 1:00 PM AND worked < 8 h
+// Half Day   : checkout before 4:00 PM AND worked < 8 h
+// Absent     : no check-in AND no check-out
+// Absent     : only check-in with no checkout (single entry = no credit)
+// Absent     : only check-out with no check-in (should not happen normally)
 // Grace      : 10:01–10:10 AM → treated as on-time, noted only
 
 const ON_TIME_CHECKIN   = 10 * 60;       // 10:00 AM
 const GRACE_END         = 10 * 60 + 10;  // 10:10 AM — 10-min grace window
-const HALFDAY_CHECKIN   = 13 * 60;       // 1:00 PM  — after this = instant HALF_DAY
-const EARLY_CHECKOUT    = 16 * 60 + 30;  // 4:30 PM  — before this = HALF_DAY
-const FULLDAY_CHECKOUT  = 18 * 60;       // 6:00 PM  — at or after = FULL_DAY
-const MIN_WORKING_HOURS = 4;             // below 4 h worked = HALF_DAY regardless
+const HALFDAY_CHECKIN   = 13 * 60;       // 1:00 PM  — after this = HALF_DAY (unless 8+ h worked)
+const EARLY_CHECKOUT    = 16 * 60;       // 4:00 PM  — before this = HALF_DAY (unless 8+ h worked)
+const FULLDAY_HOURS     = 8;             // 8+ hours worked = FULL_DAY regardless of times
 
 const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, req }) => {
 
@@ -83,16 +80,16 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
   let message       = '';
 
   if (totalMins > HALFDAY_CHECKIN) {
-    // After 1:00 PM → instant HALF_DAY, checkout cannot upgrade
+    // After 1:00 PM → tentatively HALF_DAY (can be upgraded to FULL_DAY at checkout if 8+ h worked)
     status        = 'HALF_DAY';
     isRealHalfDay = true;
     displayStatus = 'HALF_DAY';
     checkInNote   = 'late_halfday';
-    message       = 'Checked in after 1:00 PM. Marked as Half Day — checkout time will not change this.';
+    message       = 'Checked in after 1:00 PM. Tentatively Half Day — will be upgraded to Full Day if you work 8+ hours total.';
   } else if (totalMins > GRACE_END) {
     // 10:11 AM – 1:00 PM → Late. Status stays FULL_DAY tentatively; final call at checkout
     checkInNote = 'late_arrival';
-    message     = 'Checked in late. Full Day will be granted only if you check out at or after 6:00 PM.';
+    message     = 'Checked in late. Full Day requires 8+ hours of total work.';
   } else if (totalMins > ON_TIME_CHECKIN) {
     // 10:01 – 10:10 AM → Grace period — on-time, minor note
     checkInNote = 'grace_period';
@@ -167,41 +164,33 @@ const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon,
   const updateFields = { checkOut: now, checkOutTime, workingHours };
   let outMessage = '';
 
-  // Rule: must work at least 4 hours for any credit (half or full). Below 4 h = ABSENT.
-  if (workingHours < MIN_WORKING_HOURS) {
-    // Fewer than 4 hours worked → ABSENT (single-entry or too short)
-    updateFields.status        = 'ABSENT';
-    updateFields.displayStatus = 'ABSENT';
-    updateFields.isRealHalfDay = false;
-    outMessage = `Checked out. Marked as Absent — worked only ${workingHours} hours (minimum 4 required for Half Day).`;
-
-  } else if (attendance.isRealHalfDay && attendance.notes === 'late_halfday') {
-    // Came after 1:00 PM AND worked ≥ 4 h → Half Day (locked, checkout cannot upgrade)
-    outMessage = `Checked out. You worked ${workingHours} hours. Marked as Half Day (check-in after 1:00 PM).`;
-
-  } else if (checkoutMins < EARLY_CHECKOUT) {
-    // Checkout before 4:30 PM and worked ≥ 4 h → Half Day (early leave)
-    updateFields.status        = 'HALF_DAY';
-    updateFields.displayStatus = 'HALF_DAY';
-    updateFields.isRealHalfDay = true;
-    outMessage = `Checked out early (before 4:30 PM). Marked as Half Day. You worked ${workingHours} hours.`;
-
-  } else if (checkoutMins >= FULLDAY_CHECKOUT) {
-    // Checkout at or after 6:00 PM → Full Day (even if check-in was late, up to 1 PM)
+  // ── Priority 1: 8+ hours worked → FULL DAY regardless of arrival/departure time ──
+  if (workingHours >= FULLDAY_HOURS) {
     updateFields.status        = 'FULL_DAY';
     updateFields.displayStatus = 'FULL_DAY';
     updateFields.isRealHalfDay = false;
-    const wasLate = attendance.notes === 'late_arrival';
-    outMessage = wasLate
-      ? `Checked out. Full Day marked — you stayed until 6:00 PM despite late arrival. Worked ${workingHours} hours.`
-      : `Checked out. Full Day marked. Great work! You worked ${workingHours} hours.`;
+    const wasLateHalf = attendance.notes === 'late_halfday';
+    outMessage = wasLateHalf
+      ? `Checked out. Full Day marked — you worked ${workingHours} hours despite arriving after 1:00 PM. Great effort!`
+      : `Checked out. Full Day marked. You worked ${workingHours} hours. Great work!`;
 
-  } else {
-    // Checkout between 4:30 PM – 6:00 PM → Half Day (did not complete full shift)
+  // ── Priority 2: Check-in after 1 PM AND worked < 8 h → HALF DAY ──
+  } else if (attendance.isRealHalfDay && attendance.notes === 'late_halfday') {
+    outMessage = `Checked out. Half Day — arrived after 1:00 PM and worked ${workingHours} hours (need 8+ hours for Full Day).`;
+
+  // ── Priority 3: Checkout before 4:00 PM AND worked < 8 h → HALF DAY ──
+  } else if (checkoutMins < EARLY_CHECKOUT) {
     updateFields.status        = 'HALF_DAY';
     updateFields.displayStatus = 'HALF_DAY';
     updateFields.isRealHalfDay = true;
-    outMessage = `Checked out between 4:30–6:00 PM. Marked as Half Day. Stay until 6:00 PM for a Full Day. Worked ${workingHours} hours.`;
+    outMessage = `Checked out before 4:00 PM. Half Day — worked ${workingHours} hours (need 8+ hours for Full Day).`;
+
+  // ── Priority 4: Checkout at/after 4:00 PM but worked < 8 h → HALF DAY ──
+  } else {
+    updateFields.status        = 'HALF_DAY';
+    updateFields.displayStatus = 'HALF_DAY';
+    updateFields.isRealHalfDay = true;
+    outMessage = `Checked out after 4:00 PM but worked only ${workingHours} hours. Half Day — need 8+ hours for Full Day.`;
   }
 
   await Attendance.findByIdAndUpdate(attendance._id, updateFields);

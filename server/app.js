@@ -33,7 +33,8 @@ const notificationRoutes  = require("./routes/notification.routes");
 const warningRoutes       = require("./routes/warning.routes");
 const appraisalRoutes     = require("./routes/appraisal.routes");
 const auditLogRoutes      = require("./routes/auditLog.routes");
-const emailAlertRoutes    = require("./routes/emailAlerts.routes");
+const emailAlertRoutes      = require("./routes/emailAlerts.routes");
+const policyDocumentRoutes  = require("./routes/policyDocument.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 const { auditLogMiddleware } = require("./middleware/auditLog.middleware");
@@ -124,6 +125,7 @@ app.use("/api/warnings",        warningRoutes);
 app.use("/api/appraisals",      appraisalRoutes);
 app.use("/api/audit-logs",      auditLogRoutes);
 app.use("/api/email-alerts",    emailAlertRoutes);
+app.use("/api/policies",        policyDocumentRoutes);
 
 /** Test email — protected by SEED_SECRET, hits your EMAIL_USER inbox */
 app.get("/api/test-email", async (req, res) => {
