@@ -33,6 +33,7 @@ const ENTITY_MAP = {
   '/api/face':            'Face',
   '/api/policies':        'PolicyDocument',
   '/api/employee-profile': 'EmployeeProfile',
+  '/api/ats':             'ATS',
 };
 
 const ACTION_MAP = {

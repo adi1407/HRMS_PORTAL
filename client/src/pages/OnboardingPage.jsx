@@ -191,7 +191,7 @@ function CreateOnboardingForm({ onCreated, onCancel }) {
       </div>
       {msg && <div className={`alert ${msg.includes('!') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: 12, marginBottom: 12 }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Employee ID *</label>
           <input className="form-input" value={empId} onChange={e => setEmpId(e.target.value)} placeholder="e.g. EMP-0005" />
@@ -218,9 +218,9 @@ function CreateOnboardingForm({ onCreated, onCancel }) {
         <div style={{ marginBottom: 14 }}>
           <h5 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.88rem', color: '#374151' }}>Custom Checklist Items</h5>
           {customItems.map((item, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <input className="form-input" value={item.title} onChange={e => updateItem(i, 'title', e.target.value)} placeholder="Task title" style={{ flex: 1 }} />
-              <select className="form-input" value={item.category} onChange={e => updateItem(i, 'category', e.target.value)} style={{ width: 140 }}>
+              <select className="form-input" value={item.category} onChange={e => updateItem(i, 'category', e.target.value)} style={{ flex: '0 1 140px', minWidth: 0 }}>
                 {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
               {customItems.length > 1 && (
@@ -333,7 +333,7 @@ function OnboardingDetail({ record, onBack, onUpdated }) {
         <h5 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.88rem' }}>Add Checklist Item</h5>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input className="form-input" value={addTitle} onChange={e => setAddTitle(e.target.value)} placeholder="New item title..." style={{ flex: 1, minWidth: 180 }} maxLength={200} />
-          <select className="form-input" value={addCat} onChange={e => setAddCat(e.target.value)} style={{ width: 140 }}>
+          <select className="form-input" value={addCat} onChange={e => setAddCat(e.target.value)} style={{ flex: '0 1 140px', minWidth: 0 }}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           <button className="btn btn--primary" onClick={addItem} disabled={adding || !addTitle.trim()}>{adding ? '...' : 'Add'}</button>
@@ -420,8 +420,8 @@ function AdminOnboarding() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input className="form-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or ID..." style={{ width: 220 }} />
-        <select className="form-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: 160 }}>
+        <input className="form-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or ID..." style={{ flex: '1 1 220px', minWidth: 0 }} />
+        <select className="form-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ flex: '1 1 160px', minWidth: 0 }}>
           <option value="">All Statuses</option>
           <option value="IN_PROGRESS">In Progress</option>
           <option value="COMPLETED">Completed</option>

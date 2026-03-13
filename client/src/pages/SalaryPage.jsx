@@ -150,7 +150,7 @@ function AdminSalaryView() {
     return (
       <div className="page">
         <div className="page-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <button className="btn btn--secondary" onClick={() => setSelected(null)}>← Back</button>
             <div>
               <h1 className="page-title">Salary Slip</h1>
@@ -280,7 +280,7 @@ function AdminSalaryView() {
               <label className="form-label">Note (optional)</label>
               <input className="form-input" placeholder="e.g. Performance bonus, Late penalty..." value={adjNote} onChange={e => setAdjNote(e.target.value)} />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               <button className="btn btn--primary" onClick={handleAdjust} disabled={adjusting || !adjAmount}>
                 {adjusting ? 'Applying...' : 'Apply Adjustment'}
               </button>
@@ -317,7 +317,7 @@ function SalarySlip({ salary }) {
           <h2>Salary Slip</h2>
           <p>{MONTHS[salary.month - 1]} {salary.year}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn btn--secondary" style={{ fontSize: '0.8rem', padding: '6px 12px' }} onClick={downloadPDF}>⬇ PDF</button>
           <div className={`salary-badge ${salary.status === 'FINAL' ? 'salary-badge--final' : 'salary-badge--draft'}`}>
             {salary.status}

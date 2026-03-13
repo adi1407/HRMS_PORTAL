@@ -123,13 +123,13 @@ export default function ReportsPage() {
       {/* ── Controls card ── */}
       <div className="card" style={{ marginBottom: '24px', padding: '20px' }}>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div className="form-group" style={{ margin: 0, minWidth: '150px' }}>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 150px', minWidth: 0 }}>
             <label className="form-label">Month</label>
             <select className="form-select" value={month} onChange={e => setMonth(Number(e.target.value))}>
               {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
             </select>
           </div>
-          <div className="form-group" style={{ margin: 0, minWidth: '120px' }}>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 120px', minWidth: 0 }}>
             <label className="form-label">Year</label>
             <select className="form-select" value={year} onChange={e => setYear(Number(e.target.value))}>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
@@ -176,14 +176,14 @@ export default function ReportsPage() {
           {/* ── Attendance Table ── */}
           {tab === 'attendance' && (
             <div className="report-section">
-              <div className="report-section-header">
+              <div className="report-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                 <div>
                   <h3 style={{ margin: 0, fontWeight: 700 }}>Attendance — {MONTHS[month-1]} {year}</h3>
                   <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>
                     Showing daily attendance summary per employee
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button className="btn btn--secondary" onClick={exportAttCSV}>⬇ Export CSV</button>
                   <button className="btn btn--secondary" onClick={() => window.print()}>🖨 Print</button>
                 </div>
@@ -254,14 +254,14 @@ export default function ReportsPage() {
           {/* ── Salary Table ── */}
           {tab === 'salary' && (
             <div className="report-section">
-              <div className="report-section-header">
+              <div className="report-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                 <div>
                   <h3 style={{ margin: 0, fontWeight: 700 }}>Salary — {MONTHS[month-1]} {year}</h3>
                   <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>
                     Monthly salary breakdown for all employees
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button className="btn btn--secondary" onClick={exportSalCSV}>⬇ Export CSV</button>
                   <button className="btn btn--secondary" onClick={() => window.print()}>🖨 Print</button>
                 </div>

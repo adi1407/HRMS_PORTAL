@@ -66,7 +66,7 @@ function MyResignationSection() {
       {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
 
       {latest && (
-        <div className="card" style={{ padding: 20, maxWidth: 600, marginBottom: 16 }}>
+        <div className="card" style={{ padding: 20, maxWidth: 600, width: '100%', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h4 style={{ margin: 0 }}>Latest Resignation</h4>
             <StatusBadge status={latest.status} />
@@ -97,7 +97,7 @@ function MyResignationSection() {
       )}
 
       {(canApplyAgain && (showForm || !latest)) && (
-        <div className="card" style={{ padding: 20, maxWidth: 600, marginBottom: 16 }}>
+        <div className="card" style={{ padding: 20, maxWidth: 600, width: '100%', marginBottom: 16 }}>
           <h4 style={{ marginBottom: 14 }}>{latest ? 'New Resignation Request' : 'Submit Resignation'}</h4>
           {latest?.status === 'REJECTED' && (
             <div className="alert alert--error" style={{ marginBottom: 12, fontSize: '0.85rem' }}>
@@ -127,7 +127,7 @@ function MyResignationSection() {
       )}
 
       {history.length > 1 && (
-        <div style={{ maxWidth: 600 }}>
+        <div style={{ maxWidth: 600, width: '100%' }}>
           <h4 style={{ marginBottom: 10, color: '#374151' }}>Previous Resignations</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {history.slice(1).map(r => (
@@ -463,7 +463,7 @@ function StatusBadge({ status }) {
 
 function InfoRow({ label, value }) {
   return (
-    <div style={{ display: 'flex', gap: 8, fontSize: '0.9rem' }}>
+    <div style={{ display: 'flex', gap: 8, fontSize: '0.9rem', flexWrap: 'wrap' }}>
       <span style={{ color: '#6b7280', minWidth: 140 }}>{label}:</span>
       <span style={{ color: '#111827' }}>{value}</span>
     </div>

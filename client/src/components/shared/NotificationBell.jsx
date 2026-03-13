@@ -124,14 +124,14 @@ export default function NotificationBell() {
 
       {open && (
         <div style={{
-          position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 380, maxHeight: 480,
+          position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 380, maxWidth: 'calc(100vw - 32px)', maxHeight: 480,
           background: '#fff', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 9999,
           display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #e5e7eb',
         }}>
           {/* Header */}
           <div style={{
             padding: '14px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex',
-            justifyContent: 'space-between', alignItems: 'center',
+            justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8,
           }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>
               Notifications {unreadCount > 0 && <span style={{ color: '#dc2626' }}>({unreadCount})</span>}

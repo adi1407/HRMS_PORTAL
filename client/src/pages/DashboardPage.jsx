@@ -342,7 +342,8 @@ function EmployeeSection({ user }) {
             {holidays.map(h => (
               <div key={h._id} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0'
+                padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0',
+                flexWrap: 'wrap', gap: 8
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <CalendarDays size={16} color="#059669" />
@@ -493,7 +494,8 @@ export default function DashboardPage() {
                     {stats.upcomingHolidays.map(h => (
                       <div key={h._id} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0'
+                        padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0',
+                        flexWrap: 'wrap', gap: 8
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <CalendarDays size={16} color="#059669" />

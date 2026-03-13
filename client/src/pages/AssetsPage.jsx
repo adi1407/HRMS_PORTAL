@@ -73,7 +73,7 @@ function CreateAssetForm({ onCreated, onCancel }) {
         {onCancel && <button onClick={onCancel} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>Cancel</button>}
       </div>
       {msg && <div className={`alert ${msg.includes('!') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 12 }}>
         <div className="form-group" style={{ margin: 0 }}><label className="form-label">Name *</label><input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. MacBook Pro 14" maxLength={200} /></div>
         <div className="form-group" style={{ margin: 0 }}><label className="form-label">Type *</label><select className="form-input" value={type} onChange={e => setType(e.target.value)}>{ASSET_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
         <div className="form-group" style={{ margin: 0 }}><label className="form-label">Brand</label><input className="form-input" value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. Apple" /></div>
@@ -281,12 +281,12 @@ function AdminAssetsView() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input className="form-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, ID, serial..." style={{ width: 220 }} />
-        <select className="form-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: 150 }}>
+        <input className="form-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, ID, serial..." style={{ flex: '1 1 220px', minWidth: 0 }} />
+        <select className="form-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           <option value="">All Statuses</option>
           {Object.entries(STATUS_STYLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select className="form-input" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ width: 150 }}>
+        <select className="form-input" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           <option value="">All Types</option>
           {ASSET_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>

@@ -292,7 +292,7 @@ function AdminPolicies() {
 
       {/* Stats */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
           {[
             { label: 'Total Policies', value: stats.totalPolicies, bg: '#eff6ff', color: '#2563eb', icon: <FileText size={20} /> },
             { label: 'Active', value: stats.activePolicies, bg: '#f0fdf4', color: '#15803d', icon: <Check size={20} /> },
@@ -314,7 +314,7 @@ function AdminPolicies() {
       {showForm && (
         <form onSubmit={handleSubmit} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 24, marginBottom: 20 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: '1rem' }}>Upload New Policy</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 14 }}>
             <div>
               <label style={labelStyle}>Title *</label>
               <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required maxLength={200} style={inputStyle} placeholder="e.g. Leave Policy 2025" />
@@ -497,7 +497,7 @@ function AdminPolicies() {
                         {pendingLoading ? <p style={{ color: '#6b7280', fontSize: '0.85rem' }}>Loading…</p> : pendingList.length === 0 ? (
                           <p style={{ color: '#15803d', fontSize: '0.85rem', fontWeight: 500 }}>All employees have acknowledged this policy!</p>
                         ) : (
-                          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                          <div style={{ maxHeight: 200, overflowY: 'auto', overflowX: 'auto' }}>
                             <table style={{ width: '100%', fontSize: '0.82rem', borderCollapse: 'collapse' }}>
                               <thead>
                                 <tr style={{ borderBottom: '1px solid #fde68a' }}>

@@ -374,7 +374,7 @@ function CreateAppraisalForm({ onCreated, onCancel }) {
       </div>
       {msg && <div className={`alert ${msg.includes('!') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 12, marginBottom: 12 }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Employee ID *</label>
           <input className="form-input" value={form.employeeId} onChange={e => set('employeeId', e.target.value)} placeholder="EMP-0005" />
@@ -391,7 +391,7 @@ function CreateAppraisalForm({ onCreated, onCancel }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12, marginBottom: 12 }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Cycle Name *</label>
           <input className="form-input" value={form.cycleName} onChange={e => set('cycleName', e.target.value)} placeholder="Q1 2026" maxLength={100} />
@@ -603,12 +603,12 @@ function AdminAppraisals() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input className="form-input" value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search name or ID..." style={{ width: 200 }} />
-        <select className="form-input" value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ width: 160 }}>
+        <input className="form-input" value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search name or ID..." style={{ flex: '1 1 180px', minWidth: 0 }} />
+        <select className="form-input" value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }}>
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
         </select>
-        <select className="form-input" value={filters.cycleType} onChange={e => setFilter('cycleType', e.target.value)} style={{ width: 160 }}>
+        <select className="form-input" value={filters.cycleType} onChange={e => setFilter('cycleType', e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }}>
           <option value="">All Cycles</option>
           {CYCLE_TYPES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
         </select>

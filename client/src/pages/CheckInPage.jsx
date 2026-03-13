@@ -433,8 +433,8 @@ export default function CheckInPage() {
       {/* ── Employee: Report issue to HR ── */}
       {!isHR && (
         <div className="card" style={{ marginTop: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ flex: '1 1 0', minWidth: 0 }}>
               <h3 className="card-title" style={{ margin: 0 }}>Having trouble checking in?</h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>
                 Send a message to HR — they will mark your attendance manually.
@@ -479,7 +479,7 @@ export default function CheckInPage() {
       {/* ── HR: Pending attendance requests ── */}
       {isHR && (
         <div className="card" style={{ marginTop: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <h3 className="card-title" style={{ margin: 0 }}>
               Attendance Requests
               {pendingRequests.length > 0 && (

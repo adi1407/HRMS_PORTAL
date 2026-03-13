@@ -175,7 +175,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Visual charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
         <div className="card" style={{ padding: 14 }}>
           <h5 style={{ margin: '0 0 8px', fontSize: '0.82rem', fontWeight: 700, color: '#374151' }}>Today's Activity (Hourly)</h5>
           <HourlyChart data={stats.hourlyToday || []} />

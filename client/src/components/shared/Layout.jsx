@@ -5,7 +5,7 @@ import api from '../../utils/api';
 import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard, Fingerprint, CalendarDays, Leaf, CreditCard,
-  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert, Star, ScrollText, Mail, BookOpen, UserCircle,
+  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert, Star, ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -16,6 +16,8 @@ const NAV_ITEMS = [
   { path: '/leave',           label: 'Leave',           Icon: Leaf,            roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/salary',          label: 'Salary',          Icon: CreditCard,      roles: ['SUPER_ADMIN','DIRECTOR','ACCOUNTS','EMPLOYEE','HR'] },
   { path: '/employees',       label: 'Employees',       Icon: Users,           roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS'] },
+  { path: '/directory',       label: 'Directory',       Icon: UsersRound,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/recruitment',     label: 'Recruitment',     Icon: UserPlus,        roles: ['SUPER_ADMIN','DIRECTOR','HR'] },
   { path: '/holidays',        label: 'Holidays',        Icon: Gift,            roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/resignation',     label: 'Resignation',     Icon: FileText,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/documents',       label: 'Documents',       Icon: FolderOpen,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },

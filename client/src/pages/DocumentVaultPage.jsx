@@ -274,7 +274,7 @@ function AdminVaultView() {
       </div>
 
       {/* Tab switcher */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         <button className={`btn ${tab === 'employees' ? 'btn--primary' : 'btn--secondary'}`}
           onClick={() => setTab('employees')}>Employee Documents</button>
         <button className={`btn ${tab === 'mine' ? 'btn--primary' : 'btn--secondary'}`}
@@ -330,7 +330,7 @@ function AdminVaultView() {
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <h3 style={{ margin: 0, fontWeight: 700 }}>{selectedEmp.name}</h3>
                     <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>{selectedEmp.employeeId}</p>

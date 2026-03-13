@@ -259,7 +259,7 @@ function DepartmentsTab({ canEdit }) {
       {/* Role mapping info */}
       <div className="card" style={{ marginBottom: 20, padding: '16px 20px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
         <p style={{ margin: '0 0 10px', fontSize: '0.875rem', color: '#166534', fontWeight: 600 }}>🏢 Department → System Role Mapping</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 8 }}>
           {DEFAULT_DEPARTMENTS.map(d => (
             <div key={d.name} style={{ padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid #d1fae5' }}>
               <p style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem', color: '#065f46' }}>{d.name}</p>
@@ -316,7 +316,7 @@ function DepartmentsTab({ canEdit }) {
       )}
 
       {!loading && depts.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 14 }}>
           {depts.map(dept => {
             const meta = DEFAULT_DEPARTMENTS.find(d => d.name.toLowerCase() === dept.name.toLowerCase());
             return (
@@ -383,15 +383,15 @@ function GeoFenceForm({ branch, canEdit, onSave, onClear, saving }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
               <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: 4 }}>Latitude</label>
-              <input className="form-input" style={{ fontFamily: 'monospace', width: 160 }} placeholder="e.g. 28.58712734" value={lat} onChange={e => setLat(e.target.value)} />
+              <input className="form-input" style={{ fontFamily: 'monospace', width: '100%', maxWidth: 160 }} placeholder="e.g. 28.58712734" value={lat} onChange={e => setLat(e.target.value)} />
             </div>
             <div>
               <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: 4 }}>Longitude</label>
-              <input className="form-input" style={{ fontFamily: 'monospace', width: 160 }} placeholder="e.g. 77.31566815" value={lon} onChange={e => setLon(e.target.value)} />
+              <input className="form-input" style={{ fontFamily: 'monospace', width: '100%', maxWidth: 160 }} placeholder="e.g. 77.31566815" value={lon} onChange={e => setLon(e.target.value)} />
             </div>
             <div>
               <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: 4 }}>Radius (m)</label>
-              <input className="form-input" style={{ width: 90 }} type="number" min="10" max="500" value={radius} onChange={e => setRadius(e.target.value)} />
+              <input className="form-input" style={{ width: '100%', maxWidth: 90 }} type="number" min="10" max="500" value={radius} onChange={e => setRadius(e.target.value)} />
             </div>
             <button className="btn btn--secondary" onClick={useMyLocation} style={{ fontSize: '0.82rem' }}>📍 Use My GPS</button>
             <button className="btn btn--primary" onClick={() => onSave({ latitude: parseFloat(lat), longitude: parseFloat(lon), radiusMeters: parseInt(radius) })} disabled={!lat || !lon || saving} style={{ fontSize: '0.82rem' }}>

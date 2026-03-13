@@ -99,7 +99,7 @@ function SubmitTaskForm({ onSubmitted }) {
               </button>
             )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 10 }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Title *</label>
               <input className="form-input" value={t.title} placeholder="What did you work on?"
@@ -157,10 +157,10 @@ function MyTaskHistory() {
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select className="form-input" value={month} onChange={e => setMonth(e.target.value)} style={{ width: 150 }}>
+        <select className="form-input" value={month} onChange={e => setMonth(e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
         </select>
-        <select className="form-input" value={year} onChange={e => setYear(e.target.value)} style={{ width: 100 }}>
+        <select className="form-input" value={year} onChange={e => setYear(e.target.value)} style={{ flex: '0 1 100px', minWidth: 0 }}>
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>

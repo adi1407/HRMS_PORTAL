@@ -75,7 +75,7 @@ function CreateTicketForm({ onCreated }) {
     <div className="card" style={{ padding: 20, marginBottom: 20 }}>
       <h4 style={{ margin: '0 0 14px', fontWeight: 600 }}>Raise a Ticket</h4>
       {msg && <div className={`alert ${msg.includes('!') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Category *</label>
           <select className="form-input" value={category} onChange={e => setCategory(e.target.value)}>
@@ -151,7 +151,7 @@ function TicketDetail({ ticket, onClose, onUpdated, isAdmin }) {
 
         {isAdmin && (
           <div style={{ display: 'flex', gap: 10, marginTop: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select className="form-input" value={status} onChange={e => setStatus(e.target.value)} style={{ width: 160 }}>
+            <select className="form-input" value={status} onChange={e => setStatus(e.target.value)} style={{ flex: '1 1 160px', minWidth: 0 }}>
               {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <button className="btn btn--primary" style={{ fontSize: '0.85rem' }} onClick={updateStatus} disabled={busy || status === ticket.status}>
@@ -332,11 +332,11 @@ function AdminTicketView() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <select className="form-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: 150 }}>
+        <select className="form-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <select className="form-input" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ width: 150 }}>
+        <select className="form-input" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           <option value="">All Categories</option>
           {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>

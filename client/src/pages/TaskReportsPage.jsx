@@ -150,7 +150,7 @@ export default function TaskReportsPage() {
 
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label">Filter by</label>
-            <select className="form-input" value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ width: 110 }}>
+            <select className="form-input" value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ flex: '0 1 110px', minWidth: 0 }}>
               <option value="month">Month</option>
               <option value="date">Date</option>
             </select>
@@ -165,13 +165,13 @@ export default function TaskReportsPage() {
             <>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">Month</label>
-                <select className="form-input" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{ width: 130 }}>
+                <select className="form-input" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{ flex: '0 1 130px', minWidth: 0 }}>
                   {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">Year</label>
-                <select className="form-input" value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{ width: 90 }}>
+                <select className="form-input" value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{ flex: '0 1 90px', minWidth: 0 }}>
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>

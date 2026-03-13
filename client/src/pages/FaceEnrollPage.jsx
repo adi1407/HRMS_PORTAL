@@ -204,7 +204,7 @@ export default function FaceEnrollPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <button className="btn btn--secondary" onClick={() => { stopCamera(); navigate('/employees'); }}>
             ← Back
           </button>
@@ -291,7 +291,7 @@ export default function FaceEnrollPage() {
           </p>
 
           {/* Progress dots */}
-          <div style={{ display: 'flex', gap: '10px', margin: '12px 0' }}>
+          <div style={{ display: 'flex', gap: '10px', margin: '12px 0', flexWrap: 'wrap' }}>
             {Array.from({ length: MAX_SAMPLES }, (_, i) => (
               <div
                 key={i}

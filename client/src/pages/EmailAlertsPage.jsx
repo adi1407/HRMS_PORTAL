@@ -133,7 +133,7 @@ export default function EmailAlertsPage() {
       </div>
 
       {/* Upcoming events */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
         <div className="card" style={{ padding: 14 }}>
           <h5 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.88rem', color: '#be185d' }}>🎂 Upcoming Birthdays (30 days)</h5>
           {(stats.upcomingBirthdays || []).length === 0
@@ -166,16 +166,16 @@ export default function EmailAlertsPage() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-        <select className="form-input" value={filters.type} onChange={e => setFilter('type', e.target.value)} style={{ width: 160 }}>
+        <select className="form-input" value={filters.type} onChange={e => setFilter('type', e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }}>
           <option value="">All Types</option>
           {TYPES.map(t => <option key={t} value={t}>{TYPE_CONFIG[t].icon} {TYPE_CONFIG[t].label}</option>)}
         </select>
-        <select className="form-input" value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ width: 120 }}>
+        <select className="form-input" value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ flex: '1 1 100px', minWidth: 0 }}>
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <input className="form-input" type="date" value={filters.startDate} onChange={e => setFilter('startDate', e.target.value)} style={{ width: 140 }} />
-        <input className="form-input" type="date" value={filters.endDate} onChange={e => setFilter('endDate', e.target.value)} style={{ width: 140 }} />
+        <input className="form-input" type="date" value={filters.startDate} onChange={e => setFilter('startDate', e.target.value)} style={{ flex: '1 1 120px', minWidth: 0 }} />
+        <input className="form-input" type="date" value={filters.endDate} onChange={e => setFilter('endDate', e.target.value)} style={{ flex: '1 1 120px', minWidth: 0 }} />
       </div>
 
       <div style={{ fontSize: '0.82rem', color: '#6b7280', marginBottom: 10 }}>{total} alert records &middot; Page {filters.page} of {pages}</div>

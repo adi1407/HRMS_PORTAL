@@ -6,6 +6,45 @@ const Branch = require('../models/Branch.model');
 const { ApiError } = require('../utils/api.utils');
 const { createAuditLog } = require('../utils/auditLog.utils');
 
+// Directory: all authenticated users can list (limited fields). Search by name, employeeId, department, designation.
+router.get('/directory', authenticate, async (req, res, next) => {
+  try {
+    const { search, department, role: roleFilter } = req.query;
+    const filter = { isActive: true };
+    if (roleFilter) filter.role = roleFilter;
+    else filter.role = { $ne: 'SUPER_ADMIN' };
+    if (department) filter.department = department;
+    if (search && search.trim()) {
+      const q = search.trim();
+      const regex = { $regex: q, $options: 'i' };
+      filter.$or = [
+        { name: regex },
+        { employeeId: regex },
+        { email: regex },
+        { designation: regex },
+      ];
+    }
+    const users = await User.find(filter)
+      .select('name employeeId email phone role designation department branch photoUrl')
+      .populate('department', 'name code')
+      .populate('branch', 'name')
+      .sort({ name: 1 });
+    const list = users.map(u => ({
+      _id: u._id,
+      name: u.name,
+      employeeId: u.employeeId,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      designation: u.designation,
+      department: u.department,
+      branch: u.branch,
+      photoUrl: u.photoUrl,
+    }));
+    res.json({ success: true, data: list, count: list.length });
+  } catch (err) { next(err); }
+});
+
 router.get('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS'), async (req, res, next) => {
   try {
     const { dept, branch, role, isActive, search } = req.query;

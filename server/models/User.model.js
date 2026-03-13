@@ -21,6 +21,7 @@ const UserSchema = new Schema({
   bankAccountNumber: { type: String, default: '' },
   ifscCode:          { type: String, uppercase: true, default: '' },
   isManagingHead:    { type: Boolean, default: false },
+  photoUrl:          { type: String, default: '' },
   faceDescriptors: { type: [[Number]], select: false, default: [] },
   faceEnrolled:    { type: Boolean, default: false },
   faceEnrolledAt:  { type: Date },

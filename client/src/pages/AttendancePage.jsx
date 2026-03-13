@@ -300,7 +300,7 @@ export default function AttendancePage() {
               <label className="form-label">Reason <span style={{ color: '#ef4444' }}>*</span></label>
               <input className="form-input" placeholder="Why is this being changed?" value={overrideNote} onChange={e => setOverrideNote(e.target.value)} />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               <button className="btn btn--primary" onClick={handleOverride} disabled={overriding}>
                 {overriding ? 'Saving…' : 'Save'}
               </button>
@@ -338,7 +338,7 @@ export default function AttendancePage() {
               <label className="form-label">Reason <span style={{ color: '#ef4444' }}>*</span></label>
               <input className="form-input" placeholder="e.g. WFH approved, field visit…" value={manualNote} onChange={e => setManualNote(e.target.value)} />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               <button className="btn btn--primary" onClick={handleManualMark} disabled={marking || !manualEmp}>
                 {marking ? 'Marking…' : 'Mark Attendance'}
               </button>

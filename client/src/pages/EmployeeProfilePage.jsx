@@ -128,7 +128,7 @@ function PersonalTab({ apiBase, profile, load, showMsg, saving, setSaving }) {
   return (
     <div style={cardSt}>
       <h3 style={{ margin: '0 0 16px', fontSize: '1rem' }}>Personal Information</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 14 }}>
         <div><label style={labelSt}>Father's Name *</label><input value={f.fatherName} onChange={e => set('fatherName', e.target.value)} style={inputSt} placeholder="Full name" /></div>
         <div><label style={labelSt}>Mother's Name *</label><input value={f.motherName} onChange={e => set('motherName', e.target.value)} style={inputSt} placeholder="Full name" /></div>
         <div><label style={labelSt}>Date of Birth</label><input type="date" value={f.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} style={inputSt} /></div>
@@ -142,13 +142,13 @@ function PersonalTab({ apiBase, profile, load, showMsg, saving, setSaving }) {
         <div><label style={labelSt}>Personal Phone *</label><input value={f.personalPhone} onChange={e => set('personalPhone', e.target.value)} style={inputSt} placeholder="+91 XXXXX XXXXX" /></div>
       </div>
       <h4 style={{ margin: '20px 0 12px', fontSize: '0.92rem', color: '#374151' }}>Emergency Contact</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 14 }}>
         <div><label style={labelSt}>Contact Name *</label><input value={f.emergencyContactName} onChange={e => set('emergencyContactName', e.target.value)} style={inputSt} /></div>
         <div><label style={labelSt}>Relation</label><input value={f.emergencyContactRelation} onChange={e => set('emergencyContactRelation', e.target.value)} style={inputSt} placeholder="e.g. Father, Mother, Spouse" /></div>
         <div><label style={labelSt}>Phone *</label><input value={f.emergencyContactPhone} onChange={e => set('emergencyContactPhone', e.target.value)} style={inputSt} /></div>
       </div>
       <h4 style={{ margin: '20px 0 12px', fontSize: '0.92rem', color: '#374151' }}>Address</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 14 }}>
         <div><label style={labelSt}>Current Address *</label><textarea value={f.currentAddress} onChange={e => set('currentAddress', e.target.value)} rows={3} style={{ ...inputSt, resize: 'vertical' }} /></div>
         <div><label style={labelSt}>Permanent Address *</label><textarea value={f.permanentAddress} onChange={e => set('permanentAddress', e.target.value)} rows={3} style={{ ...inputSt, resize: 'vertical' }} /></div>
       </div>
@@ -198,7 +198,7 @@ function EducationTab({ apiBase, profile, load, showMsg }) {
       </div>
       {showForm && (
         <div style={{ ...cardSt, border: '2px solid #2563eb' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 14 }}>
             <div><label style={labelSt}>Level *</label><select value={form.level} onChange={e => setForm({ ...form, level: e.target.value })} style={inputSt}>{EDU_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select></div>
             <div><label style={labelSt}>Board / University</label><input value={form.boardOrUniversity} onChange={e => setForm({ ...form, boardOrUniversity: e.target.value })} style={inputSt} placeholder="e.g. CBSE, Mumbai University" /></div>
             <div><label style={labelSt}>School / College</label><input value={form.schoolOrCollege} onChange={e => setForm({ ...form, schoolOrCollege: e.target.value })} style={inputSt} /></div>
@@ -284,7 +284,7 @@ function ExperienceTab({ apiBase, profile, load, showMsg }) {
       </div>
       {showForm && (
         <div style={{ ...cardSt, border: '2px solid #2563eb' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 14 }}>
             <div><label style={labelSt}>Company Name *</label><input value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} style={inputSt} /></div>
             <div><label style={labelSt}>Designation</label><input value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} style={inputSt} /></div>
             <div><label style={labelSt}>Department</label><input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} style={inputSt} /></div>
@@ -348,7 +348,7 @@ function BankTab({ apiBase, profile, load, showMsg, saving, setSaving }) {
   return (
     <div style={cardSt}>
       <h3 style={{ margin: '0 0 16px', fontSize: '1rem' }}>Identity Documents</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 14 }}>
         <div><label style={labelSt}>Aadhaar Number *</label><input value={f.aadhaarNumber} onChange={e => set('aadhaarNumber', e.target.value)} style={inputSt} placeholder="XXXX XXXX XXXX" maxLength={14} /></div>
         <div><label style={labelSt}>PAN Number *</label><input value={f.panNumber} onChange={e => set('panNumber', e.target.value.toUpperCase())} style={inputSt} placeholder="ABCDE1234F" maxLength={10} /></div>
         <div><label style={labelSt}>Passport Number</label><input value={f.passportNumber} onChange={e => set('passportNumber', e.target.value.toUpperCase())} style={inputSt} /></div>
@@ -357,7 +357,7 @@ function BankTab({ apiBase, profile, load, showMsg, saving, setSaving }) {
         <div><label style={labelSt}>ESIC Number</label><input value={f.esicNumber} onChange={e => set('esicNumber', e.target.value)} style={inputSt} /></div>
       </div>
       <h3 style={{ margin: '24px 0 16px', fontSize: '1rem' }}>Bank Details</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 14 }}>
         <div><label style={labelSt}>Bank Name *</label><input value={f.bankName} onChange={e => set('bankName', e.target.value)} style={inputSt} placeholder="e.g. State Bank of India" /></div>
         <div><label style={labelSt}>Account Number *</label><input value={f.bankAccountNumber} onChange={e => set('bankAccountNumber', e.target.value)} style={inputSt} /></div>
         <div><label style={labelSt}>IFSC Code *</label><input value={f.ifscCode} onChange={e => set('ifscCode', e.target.value.toUpperCase())} style={inputSt} placeholder="e.g. SBIN0001234" /></div>
@@ -399,7 +399,7 @@ function DocumentsTab({ apiBase, profile, load, showMsg }) {
       </div>
       {showForm && (
         <div style={{ ...cardSt, border: '2px solid #2563eb' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 14 }}>
             <div><label style={labelSt}>Label *</label><input value={label} onChange={e => setLabel(e.target.value)} style={inputSt} placeholder="e.g. Aadhaar Card Front" /></div>
             <div><label style={labelSt}>Category</label><select value={category} onChange={e => setCategory(e.target.value)} style={inputSt}>{DOC_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></div>
             <div><label style={labelSt}>File (PDF, JPG, PNG) *</label><input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => setFile(e.target.files[0])} style={inputSt} /></div>
@@ -410,7 +410,7 @@ function DocumentsTab({ apiBase, profile, load, showMsg }) {
       {list.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}><FileUp size={40} style={{ marginBottom: 8, opacity: 0.4 }} /><p>No documents uploaded yet.</p></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 12 }}>
           {list.map(d => {
             const catLabel = DOC_CATEGORIES.find(c => c.value === d.category)?.label || d.category;
             return (
@@ -677,7 +677,7 @@ function AccountsProfileView() {
                     {/* Bank Details — primary focus for accounts */}
                     <div style={{ marginBottom: 16 }}>
                       <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', color: '#2563eb', borderBottom: '2px solid #2563eb', paddingBottom: 4, display: 'inline-block' }}>Bank & Payment Details</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2px 16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: '2px 16px' }}>
                         {field('Bank Name', viewProfile.bankName)}
                         {field('Account Number', viewProfile.bankAccountNumber)}
                         {field('IFSC Code', viewProfile.ifscCode)}
@@ -692,7 +692,7 @@ function AccountsProfileView() {
                     {/* Personal Info summary */}
                     <div style={{ marginBottom: 16 }}>
                       <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Personal Information</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2px 16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: '2px 16px' }}>
                         {field("Father's Name", viewProfile.fatherName)}
                         {field("Mother's Name", viewProfile.motherName)}
                         {field('Date of Birth', fmt(viewProfile.dateOfBirth))}
@@ -707,7 +707,7 @@ function AccountsProfileView() {
                     {/* Address */}
                     <div style={{ marginBottom: 16 }}>
                       <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Address</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2px 16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '2px 16px' }}>
                         {field('Current Address', viewProfile.currentAddress)}
                         {field('Permanent Address', viewProfile.permanentAddress)}
                       </div>
@@ -716,7 +716,7 @@ function AccountsProfileView() {
                     {/* Emergency Contact */}
                     <div style={{ marginBottom: 16 }}>
                       <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Emergency Contact</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2px 16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: '2px 16px' }}>
                         {field('Name', viewProfile.emergencyContactName)}
                         {field('Relation', viewProfile.emergencyContactRelation)}
                         {field('Phone', viewProfile.emergencyContactPhone)}

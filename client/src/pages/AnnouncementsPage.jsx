@@ -93,7 +93,7 @@ function AnnouncementForm({ editing, departments, branches, onSaved, onCancel })
           onChange={e => setContent(e.target.value)} maxLength={2000} style={{ resize: 'vertical' }} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12, marginBottom: 12 }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Priority</label>
           <select className="form-input" value={priority} onChange={e => setPriority(e.target.value)}>

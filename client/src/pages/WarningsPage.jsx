@@ -180,7 +180,7 @@ function IssueWarningForm({ onCreated, onCancel }) {
       </div>
       {msg && <div className={`alert ${msg.includes('!') ? 'alert--success' : 'alert--error'}`} style={{ marginBottom: 12 }}>{msg}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 12, marginBottom: 12 }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Employee ID *</label>
           <input className="form-input" value={form.employeeId} onChange={e => set('employeeId', e.target.value)} placeholder="EMP-0005" />
@@ -306,16 +306,16 @@ function AdminWarnings() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input className="form-input" value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search name or ID..." style={{ width: 200 }} />
-        <select className="form-input" value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ width: 150 }}>
+        <input className="form-input" value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search name or ID..." style={{ flex: '1 1 200px', minWidth: 0 }} />
+        <select className="form-input" value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
         </select>
-        <select className="form-input" value={filters.type} onChange={e => setFilter('type', e.target.value)} style={{ width: 150 }}>
+        <select className="form-input" value={filters.type} onChange={e => setFilter('type', e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           <option value="">All Types</option>
           {TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
         </select>
-        <select className="form-input" value={filters.category} onChange={e => setFilter('category', e.target.value)} style={{ width: 150 }}>
+        <select className="form-input" value={filters.category} onChange={e => setFilter('category', e.target.value)} style={{ flex: '1 1 150px', minWidth: 0 }}>
           <option value="">All Categories</option>
           {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
         </select>

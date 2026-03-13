@@ -90,7 +90,7 @@ function SubmitClaimForm({ onSubmitted }) {
           {msg}
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: 12 }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Amount (₹) *</label>
           <input className="form-input" type="number" min="1" value={amount}
