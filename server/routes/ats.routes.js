@@ -92,7 +92,8 @@ router.get('/jobs/:jobId/applications', authenticate, authorize(...HR_DIRECTOR_A
     const filter = { job: req.params.jobId };
     if (status) filter.status = status;
     const applications = await Application.find(filter)
-      .populate('job', 'title status noOfPositions')
+      .populate('job', 'title status noOfPositions department')
+      .populate('createdEmployee', 'name employeeId')
       .sort({ createdAt: -1 });
     res.json({ success: true, data: applications });
   } catch (err) { next(err); }
@@ -199,12 +200,13 @@ router.patch('/applications/:appId', authenticate, authorize(...HR_DIRECTOR_ADMI
   try {
     const app = await Application.findById(req.params.appId);
     if (!app) return next(new ApiError(404, 'Application not found.'));
-    const allowed = ['status', 'notes', 'rating', 'interviewDate', 'interviewFeedback', 'offeredSalary', 'rejectedReason'];
+    const allowed = ['status', 'notes', 'rating', 'interviewDate', 'interviewFeedback', 'offeredSalary', 'rejectedReason', 'hiredAt'];
     for (const k of allowed) {
       if (req.body[k] !== undefined) app[k] = req.body[k];
     }
-    if (req.body.status === 'HIRED') app.hiredAt = app.hiredAt || new Date();
+    if (req.body.status === 'HIRED' && !app.hiredAt) app.hiredAt = new Date();
     if (req.body.interviewDate !== undefined) app.interviewDate = req.body.interviewDate ? new Date(req.body.interviewDate) : undefined;
+    if (req.body.hiredAt !== undefined) app.hiredAt = req.body.hiredAt ? new Date(req.body.hiredAt) : null;
     await app.save();
     res.json({ success: true, message: 'Application updated.', data: app });
   } catch (err) { next(err); }
@@ -236,6 +238,55 @@ router.post('/applications/:appId/resume', authenticate, authorize(...HR_DIRECTO
     app.resumeFileName = req.file.originalname;
     await app.save();
     res.json({ success: true, message: 'Resume uploaded.', data: app });
+  } catch (err) { next(err); }
+});
+
+// ── POST /applications/:appId/offer-letter ──────────────────────
+router.post('/applications/:appId/offer-letter', authenticate, authorize(...HR_DIRECTOR_ADMIN), upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) return next(new ApiError(400, 'No file uploaded.'));
+    const app = await Application.findById(req.params.appId);
+    if (!app) return next(new ApiError(404, 'Application not found.'));
+    if (app.offerLetterPublicId) await deleteFile(app.offerLetterPublicId, rType(req.file.mimetype)).catch(() => {});
+    const pubId = `hrms/ats/${app.job}/${Date.now()}_offer`;
+    const result = await uploadBuffer(req.file.buffer, '', pubId, rType(req.file.mimetype));
+    app.offerLetterUrl = result.secure_url;
+    app.offerLetterPublicId = result.public_id;
+    await app.save();
+    res.json({ success: true, message: 'Offer letter uploaded.', data: app });
+  } catch (err) { next(err); }
+});
+
+// ── POST /applications/:appId/create-employee ───────────────────
+router.post('/applications/:appId/create-employee', authenticate, authorize(...HR_DIRECTOR_ADMIN), async (req, res, next) => {
+  try {
+    const app = await Application.findById(req.params.appId).populate('job', 'department title');
+    if (!app) return next(new ApiError(404, 'Application not found.'));
+    if (app.status !== 'HIRED') return next(new ApiError(400, 'Candidate must be in HIRED status to create employee.'));
+    if (app.createdEmployee) return next(new ApiError(400, 'Employee already created for this application.'));
+    const existing = await User.findOne({ email: app.email.toLowerCase() });
+    if (existing) return next(new ApiError(400, 'A user with this email already exists.'));
+    const crypto = require('crypto');
+    const tempPassword = crypto.randomBytes(8).toString('hex');
+    const user = await User.create({
+      name: app.candidateName.trim(),
+      email: app.email.trim().toLowerCase(),
+      phone: app.phone?.trim() || '',
+      password: tempPassword,
+      role: 'EMPLOYEE',
+      department: app.job?.department || undefined,
+      designation: app.job?.title || '',
+      joiningDate: app.hiredAt || new Date(),
+      grossSalary: app.offeredSalary || 0,
+      createdBy: req.user._id,
+    });
+    app.createdEmployee = user._id;
+    await app.save();
+    res.json({
+      success: true,
+      message: 'Employee created. Share the temporary password with the new joinee.',
+      data: { user: user.toSafeObject ? user.toSafeObject() : { _id: user._id, name: user.name, email: user.email, employeeId: user.employeeId }, tempPassword },
+    });
   } catch (err) { next(err); }
 });
 

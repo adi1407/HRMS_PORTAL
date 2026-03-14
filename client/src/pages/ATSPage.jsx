@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import {
-  Briefcase, Plus, Search, X, ChevronDown, ChevronRight, UserPlus, FileText, Trash2, Save, Edit2,
+  Briefcase, Plus, Search, X, ChevronDown, ChevronRight, UserPlus, FileText, Trash2, Save, Edit2, Upload, UserCheck,
 } from 'lucide-react';
 
 const JOB_STATUS = [
@@ -387,7 +387,11 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
   const [interviewFeedback, setInterviewFeedback] = useState(application.interviewFeedback || '');
   const [offeredSalary, setOfferedSalary] = useState(application.offeredSalary ?? '');
   const [rejectedReason, setRejectedReason] = useState(application.rejectedReason || '');
+  const [hiredAt, setHiredAt] = useState(fmtInput(application.hiredAt) || '');
   const [saving, setSaving] = useState(false);
+  const [uploadingOffer, setUploadingOffer] = useState(false);
+  const [creatingEmployee, setCreatingEmployee] = useState(false);
+  const [createResult, setCreateResult] = useState(null);
 
   useEffect(() => {
     setStatus(application.status);
@@ -397,13 +401,15 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
     setInterviewFeedback(application.interviewFeedback || '');
     setOfferedSalary(application.offeredSalary ?? '');
     setRejectedReason(application.rejectedReason || '');
+    setHiredAt(fmtInput(application.hiredAt) || '');
   }, [application]);
 
   const save = async () => {
     setSaving(true);
     try {
       const payload = { status, notes, rating: rating === '' ? undefined : Number(rating), interviewDate: interviewDate || undefined, interviewFeedback: interviewFeedback.trim() || undefined, offeredSalary: offeredSalary === '' ? undefined : Number(offeredSalary), rejectedReason: rejectedReason.trim() || undefined };
-      if (status === 'HIRED') payload.hiredAt = new Date();
+      if (hiredAt) payload.hiredAt = hiredAt;
+      if (status === 'HIRED' && !hiredAt) payload.hiredAt = new Date().toISOString().split('T')[0];
       await api.patch(`/ats/applications/${application._id}`, payload);
       showMsg('Application updated.');
       setEditing(false);
@@ -413,10 +419,41 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
     finally { setSaving(false); }
   };
 
+  const uploadOfferLetter = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setUploadingOffer(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      await api.post(`/ats/applications/${application._id}/offer-letter`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showMsg('Offer letter uploaded.');
+      onUpdated();
+      onRefresh();
+    } catch (err) { showMsg(err.response?.data?.message || 'Upload failed.'); }
+    finally { setUploadingOffer(false); e.target.value = ''; }
+  };
+
+  const createEmployee = async () => {
+    if (!window.confirm('Create an employee account for this candidate? They will get a temporary password to sign in.')) return;
+    setCreatingEmployee(true);
+    setCreateResult(null);
+    try {
+      const { data } = await api.post(`/ats/applications/${application._id}/create-employee`);
+      setCreateResult(data.data);
+      showMsg('Employee created. Share the temporary password with the new joinee.');
+      onUpdated();
+      onRefresh();
+    } catch (err) { showMsg(err.response?.data?.message || 'Create failed.'); }
+    finally { setCreatingEmployee(false); }
+  };
+
+  const isOfferOrHired = status === 'OFFER' || status === 'HIRED';
+
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{application.candidateName}</div>
           <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{application.email} {application.phone ? `• ${application.phone}` : ''}</div>
           <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 2 }}>
@@ -426,10 +463,21 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
             {application.noticePeriod && <span> • Notice: {application.noticePeriod}</span>}
             {' • '}{fmt(application.createdAt)}
           </div>
+          {application.hiredAt && status === 'HIRED' && (
+            <div style={{ fontSize: '0.78rem', color: '#15803d', marginTop: 4 }}>Joining: {fmt(application.hiredAt)}</div>
+          )}
+          {application.createdEmployee && (
+            <div style={{ marginTop: 6 }}>
+              <a href="/employees" style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <UserCheck size={14} /> Employee: {application.createdEmployee.name} ({application.createdEmployee.employeeId})
+              </a>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <Badge list={APP_STATUS} value={application.status} />
           {application.resumeUrl && <a href={application.resumeUrl} target="_blank" rel="noreferrer" style={{ ...btnPrimary, padding: '4px 10px', fontSize: '0.75rem', textDecoration: 'none' }}><FileText size={12} /> Resume</a>}
+          {application.offerLetterUrl && <a href={application.offerLetterUrl} target="_blank" rel="noreferrer" style={{ ...btnPrimary, padding: '4px 10px', fontSize: '0.75rem', textDecoration: 'none', background: '#15803d' }}><FileText size={12} /> Offer</a>}
           {!editing ? <button onClick={() => setEditing(true)} style={{ ...btnPrimary, padding: '4px 10px', fontSize: '0.75rem' }}><Edit2 size={12} /> Edit</button> : (
             <>
               <button onClick={save} disabled={saving} style={{ ...btnGreen, padding: '4px 10px', fontSize: '0.75rem', opacity: saving ? 0.6 : 1 }}><Save size={12} /> Save</button>
@@ -440,6 +488,32 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
         </div>
       </div>
 
+      {isOfferOrHired && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 500 }}>
+            <Upload size={14} />
+            {application.offerLetterUrl ? 'Replace offer letter' : 'Upload offer letter'}
+            <input type="file" accept=".pdf,.doc,.docx" onChange={uploadOfferLetter} disabled={uploadingOffer} style={{ width: 0, height: 0, opacity: 0 }} />
+          </label>
+          {uploadingOffer && <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Uploading…</span>}
+        </div>
+      )}
+
+      {status === 'HIRED' && !application.createdEmployee && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f3f4f6' }}>
+          <button onClick={createEmployee} disabled={creatingEmployee} style={{ ...btnGreen, padding: '8px 14px', fontSize: '0.82rem' }}>
+            <UserCheck size={14} /> {creatingEmployee ? 'Creating…' : 'Create Employee'}
+          </button>
+          {createResult && (
+            <div style={{ marginTop: 10, padding: 10, background: '#f0fdf4', borderRadius: 8, fontSize: '0.82rem' }}>
+              <div style={{ fontWeight: 600, color: '#15803d' }}>Employee created</div>
+              <div style={{ marginTop: 4 }}>Temp password: <code style={{ background: '#dcfce7', padding: '2px 6px', borderRadius: 4 }}>{createResult.tempPassword}</code></div>
+              <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Share this password with the new joinee. They can change it after first login.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {editing && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 10 }}>
@@ -447,6 +521,7 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
             <div><label style={labelSt}>Rating (1-5)</label><input type="number" min={1} max={5} value={rating} onChange={e => setRating(e.target.value)} style={inputSt} /></div>
             <div><label style={labelSt}>Interview Date</label><input type="date" value={interviewDate} onChange={e => setInterviewDate(e.target.value)} style={inputSt} /></div>
             <div><label style={labelSt}>Offered Salary (₹)</label><input type="number" value={offeredSalary} onChange={e => setOfferedSalary(e.target.value)} style={inputSt} /></div>
+            {status === 'HIRED' && <div><label style={labelSt}>Joining Date</label><input type="date" value={hiredAt} onChange={e => setHiredAt(e.target.value)} style={inputSt} /></div>}
           </div>
           <div style={{ marginTop: 10 }}><label style={labelSt}>Notes</label><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputSt, resize: 'vertical' }} /></div>
           <div style={{ marginTop: 10 }}><label style={labelSt}>Interview Feedback</label><textarea value={interviewFeedback} onChange={e => setInterviewFeedback(e.target.value)} rows={2} style={{ ...inputSt, resize: 'vertical' }} /></div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
 import {
-  User, GraduationCap, Briefcase, Building2, FileUp, Trash2, Plus, Save, Upload, Eye, ChevronDown, ChevronUp, Search, X, ArrowLeft,
+  User, GraduationCap, Briefcase, Building2, FileUp, Trash2, Plus, Save, Upload, Eye, ChevronDown, ChevronUp, Search, X, ArrowLeft, Lock,
 } from 'lucide-react';
 
 const TABS = [
@@ -37,6 +37,118 @@ const btnPrimary = { padding: '8px 18px', borderRadius: 8, background: '#2563eb'
 const btnDanger = { ...btnPrimary, background: '#ef4444' };
 const btnGreen = { ...btnPrimary, background: '#15803d' };
 const cardSt = { background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 20, marginBottom: 14 };
+
+/* ── Payslip PIN (secure access for salary slip) ────────────── */
+function PayslipPinCard() {
+  const [hasPin, setHasPin] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState('set'); // 'set' | 'change' | 'remove'
+  const [pin, setPin] = useState('');
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get('/users/me/payslip-pin');
+      setHasPin(!!data.data?.hasPayslipPin);
+    } catch { setHasPin(false); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const handleSet = async (e) => {
+    e.preventDefault();
+    const p = String(pin || '').trim();
+    if (p.length < 4 || p.length > 8) { setMsg('PIN must be 4–8 digits.'); return; }
+    if (!/^\d+$/.test(p)) { setMsg('PIN must contain only digits.'); return; }
+    setSaving(true); setMsg('');
+    try {
+      await api.post('/users/me/payslip-pin', { pin: p });
+      setMsg('Payslip PIN set. You will need it to view or download your salary slip.');
+      setPin('');
+      load();
+    } catch (err) { setMsg(err.response?.data?.message || 'Failed.'); }
+    finally { setSaving(false); }
+  };
+
+  const handleChange = async (e) => {
+    e.preventDefault();
+    const np = String(newPin || '').trim();
+    if (np.length < 4 || np.length > 8) { setMsg('New PIN must be 4–8 digits.'); return; }
+    if (!/^\d+$/.test(np)) { setMsg('New PIN must contain only digits.'); return; }
+    setSaving(true); setMsg('');
+    try {
+      await api.patch('/users/me/payslip-pin', { currentPin: currentPin.trim(), newPin: np });
+      setMsg('Payslip PIN updated.');
+      setCurrentPin(''); setNewPin('');
+      load();
+    } catch (err) { setMsg(err.response?.data?.message || 'Failed.'); }
+    finally { setSaving(false); }
+  };
+
+  const handleRemove = async (e) => {
+    e.preventDefault();
+    if (!currentPin.trim()) { setMsg('Enter current PIN to remove.'); return; }
+    setSaving(true); setMsg('');
+    try {
+      await api.patch('/users/me/payslip-pin', { currentPin: currentPin.trim() });
+      setMsg('Payslip PIN removed. Your salary slip will no longer require a PIN.');
+      setCurrentPin('');
+      setMode('set');
+      load();
+    } catch (err) { setMsg(err.response?.data?.message || 'Failed.'); }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return null;
+  return (
+    <div style={{ ...cardSt, marginBottom: 20, borderColor: '#e0e7ff', background: '#fafbff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Lock size={18} color="#4f46e5" />
+        <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#374151' }}>Payslip PIN</h3>
+      </div>
+      <p style={{ fontSize: '0.82rem', color: '#6b7280', marginBottom: 14 }}>
+        Optional 4–8 digit PIN to view or download your salary slip. Only you need to enter it.
+      </p>
+      {msg && <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 12, background: msg.includes('set') || msg.includes('updated') || msg.includes('removed') ? '#dcfce7' : msg.includes('Failed') ? '#fef2f2' : '#f0f9ff', color: msg.includes('Failed') ? '#b91c1c' : '#15803d', fontSize: '0.82rem' }}>{msg}</div>}
+      {!hasPin ? (
+        <form onSubmit={handleSet} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 140px', maxWidth: 180 }}>
+            <label className="form-label" style={{ marginBottom: 4 }}>PIN (4–8 digits)</label>
+            <input type="password" inputMode="numeric" autoComplete="off" className="form-input" placeholder="••••" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))} />
+          </div>
+          <button type="submit" className="btn btn--primary" disabled={saving}>{saving ? 'Setting…' : 'Set PIN'}</button>
+        </form>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {mode === 'change' && (
+            <form onSubmit={handleChange} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+              <div className="form-group" style={{ margin: 0, flex: '1 1 120px' }}><label className="form-label" style={{ marginBottom: 4 }}>Current PIN</label><input type="password" inputMode="numeric" autoComplete="off" className="form-input" placeholder="••••" value={currentPin} onChange={e => setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 8))} /></div>
+              <div className="form-group" style={{ margin: 0, flex: '1 1 120px' }}><label className="form-label" style={{ marginBottom: 4 }}>New PIN</label><input type="password" inputMode="numeric" autoComplete="off" className="form-input" placeholder="••••" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 8))} /></div>
+              <button type="submit" className="btn btn--primary" disabled={saving}>{saving ? 'Updating…' : 'Update PIN'}</button>
+              <button type="button" className="btn btn--secondary" onClick={() => { setMode(''); setCurrentPin(''); setNewPin(''); setMsg(''); }}>Cancel</button>
+            </form>
+          )}
+          {mode === 'remove' && (
+            <form onSubmit={handleRemove} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+              <div className="form-group" style={{ margin: 0, flex: '1 1 140px', maxWidth: 180 }}><label className="form-label" style={{ marginBottom: 4 }}>Current PIN</label><input type="password" inputMode="numeric" autoComplete="off" className="form-input" placeholder="••••" value={currentPin} onChange={e => setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 8))} /></div>
+              <button type="submit" className="btn btn--danger" disabled={saving}>{saving ? 'Removing…' : 'Remove PIN'}</button>
+              <button type="button" className="btn btn--secondary" onClick={() => { setMode(''); setCurrentPin(''); setMsg(''); }}>Cancel</button>
+            </form>
+          )}
+          {mode !== 'change' && mode !== 'remove' && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn--secondary" onClick={() => { setMode('change'); setMsg(''); }}>Change PIN</button>
+              <button type="button" className="btn btn--secondary" style={{ color: '#b91c1c', borderColor: '#fecaca' }} onClick={() => { setMode('remove'); setMsg(''); }}>Remove PIN</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ══════════════════════════════════════════════════════════════
    ProfileEditor — used by BOTH employee self-service AND admin
@@ -518,6 +630,7 @@ function AdminProfileView() {
     return (
       <div>
         <button onClick={() => { setViewMode('list'); }} style={{ ...btnPrimary, background: '#6b7280', marginBottom: 16 }}><ArrowLeft size={15} /> Back to All Employees</button>
+        <PayslipPinCard />
         {myLoading ? <div className="page-loading"><div className="spinner" /><p>Loading profile...</p></div> : myProfile ? (
           <ProfileEditor
             apiBase="/employee-profile/my"
@@ -597,13 +710,16 @@ function EmployeeSelfProfile() {
   if (loading) return <div className="page-loading"><div className="spinner" /><p>Loading profile...</p></div>;
 
   return (
-    <ProfileEditor
-      apiBase="/employee-profile/my"
-      profile={profile}
-      load={load}
-      title="My Profile"
-      subtitle="Complete your personal, education, experience and document details"
-    />
+    <div>
+      <PayslipPinCard />
+      <ProfileEditor
+        apiBase="/employee-profile/my"
+        profile={profile}
+        load={load}
+        title="My Profile"
+        subtitle="Complete your personal, education, experience and document details"
+      />
+    </div>
   );
 }
 

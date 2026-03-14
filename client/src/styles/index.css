@@ -1415,3 +1415,56 @@ input, select, textarea { font-family: var(--font); }
   .announcement-banner-title { font-size: 0.88rem; }
   .announcement-banner-text  { font-size: 0.82rem; }
 }
+
+/* ── Notification dropdown (mobile-friendly) ───────────────────── */
+.notification-bell-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-ring);
+}
+
+.notification-dropdown-action {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  min-height: 44px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.notification-dropdown-action--muted { color: #6b7280; }
+.notification-dropdown-action:hover { background: rgba(0, 0, 0, 0.05); }
+
+.notification-dropdown-item-title {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .notification-dropdown-item-title {
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 600px) {
+  .notification-dropdown {
+    position: fixed !important;
+    top: 56px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    margin-top: 0 !important;
+    max-height: calc(100vh - 70px) !important;
+    border-radius: 12px;
+  }
+
+  .notification-dropdown-header {
+    padding: 12px 14px !important;
+  }
+
+  .notification-dropdown-item {
+    min-height: 60px !important;
+    padding: 14px 16px !important;
+  }
+}

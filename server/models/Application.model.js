@@ -42,6 +42,7 @@ const applicationSchema = new mongoose.Schema({
   offerLetterPublicId: { type: String, default: '' },
   rejectedReason:   { type: String, trim: true, maxlength: 500, default: '' },
   hiredAt:          { type: Date },
+  createdEmployee:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdBy:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 

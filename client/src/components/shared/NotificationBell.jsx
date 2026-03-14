@@ -100,20 +100,23 @@ export default function NotificationBell() {
   };
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className="notification-bell-wrap" style={{ position: 'relative' }}>
       <button
+        type="button"
         onClick={() => setOpen(p => !p)}
+        className="notification-bell-btn"
         style={{
           position: 'relative', background: 'none', border: 'none', cursor: 'pointer',
-          padding: 6, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          minWidth: 44, minHeight: 44,
         }}
         aria-label="Notifications"
       >
-        <Bell size={20} strokeWidth={2} color="#374151" />
+        <Bell size={22} strokeWidth={2} color="#374151" />
         {unreadCount > 0 && (
           <span style={{
-            position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8,
-            background: '#dc2626', color: '#fff', fontSize: '0.65rem', fontWeight: 700,
+            position: 'absolute', top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9,
+            background: '#dc2626', color: '#fff', fontSize: '0.7rem', fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px',
             lineHeight: 1, border: '2px solid #fff',
           }}>
@@ -123,37 +126,35 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 380, maxWidth: 'calc(100vw - 32px)', maxHeight: 480,
+        <div className="notification-dropdown" style={{
+          position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 380, maxWidth: 'calc(100vw - 24px)', maxHeight: 'min(480px, 75vh)',
           background: '#fff', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 9999,
           display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #e5e7eb',
         }}>
           {/* Header */}
-          <div style={{
+          <div className="notification-dropdown-header" style={{
             padding: '14px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex',
             justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8,
           }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>
               Notifications {unreadCount > 0 && <span style={{ color: '#dc2626' }}>({unreadCount})</span>}
             </span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {unreadCount > 0 && (
-                <button onClick={markAllRead} style={{
-                  background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer',
-                  fontSize: '0.78rem', fontWeight: 600,
-                }}>Mark all read</button>
+                <button type="button" onClick={markAllRead} className="notification-dropdown-action">
+                  Mark all read
+                </button>
               )}
               {notifications.length > 0 && (
-                <button onClick={clearAll} style={{
-                  background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
-                  fontSize: '0.78rem', fontWeight: 600,
-                }}>Clear all</button>
+                <button type="button" onClick={clearAll} className="notification-dropdown-action notification-dropdown-action--muted">
+                  Clear all
+                </button>
               )}
             </div>
           </div>
 
           {/* List */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="notification-dropdown-list" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {loading ? (
               <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af', fontSize: '0.88rem' }}>Loading...</div>
             ) : notifications.length === 0 ? (
@@ -165,22 +166,26 @@ export default function NotificationBell() {
               notifications.map(n => (
                 <div
                   key={n._id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleClick(n)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleClick(n); }}
+                  className="notification-dropdown-item"
                   style={{
-                    padding: '12px 16px', display: 'flex', gap: 10, cursor: n.link ? 'pointer' : 'default',
+                    padding: '14px 16px', display: 'flex', gap: 10, cursor: n.link ? 'pointer' : 'default',
                     background: n.isRead ? '#fff' : '#f0f7ff', borderBottom: '1px solid #f3f4f6',
-                    transition: 'background 0.15s',
+                    transition: 'background 0.15s', minHeight: 56,
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = n.isRead ? '#f9fafb' : '#e0effe'}
-                  onMouseLeave={e => e.currentTarget.style.background = n.isRead ? '#fff' : '#f0f7ff'}
+                  onMouseEnter={e => { e.currentTarget.style.background = n.isRead ? '#f9fafb' : '#e0effe'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? '#fff' : '#f0f7ff'; }}
                 >
                   <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: 2 }}>
                     {TYPE_ICONS[n.type] || '🔔'}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
+                    <p className="notification-dropdown-item-title" style={{
                       margin: 0, fontWeight: n.isRead ? 500 : 700, fontSize: '0.85rem',
-                      color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>{n.title}</p>
                     <p style={{
                       margin: '2px 0 0', fontSize: '0.78rem', color: '#6b7280',

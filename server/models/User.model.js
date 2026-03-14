@@ -27,12 +27,21 @@ const UserSchema = new Schema({
   faceEnrolledAt:  { type: Date },
   faceEnrolledBy:  { type: Schema.Types.ObjectId, ref: 'User' },
   refreshToken:    { type: String, select: false },
+  payslipPin:      { type: String, select: false, default: '' },
   createdBy:       { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, parseInt(process.env.BCRYPT_ROUNDS) || 12);
+  next();
+});
+
+UserSchema.pre('save', async function (next) {
+  if (!this.isModified('payslipPin')) return next();
+  if (this.payslipPin && this.payslipPin.length >= 4) {
+    this.payslipPin = await bcrypt.hash(this.payslipPin, 10);
+  }
   next();
 });
 
@@ -47,11 +56,17 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+UserSchema.methods.comparePayslipPin = async function (candidatePin) {
+  if (!this.payslipPin) return false;
+  return bcrypt.compare(String(candidatePin || ''), this.payslipPin);
+};
+
 UserSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.refreshToken;
   delete obj.faceDescriptors;
+  delete obj.payslipPin;
   return obj;
 };
 

@@ -8,6 +8,19 @@ const { buildSalaryExcel }      = require('../utils/excel.utils');
 const { generateSalarySlipPDF } = require('../utils/pdf.utils');
 const { sendSalaryFinalizedEmail } = require('../utils/email.utils');
 const User = require('../models/User.model');
+const { createAuditLog } = require('../utils/auditLog.utils');
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+async function requirePayslipPinIfSet(req, employeeId) {
+  const emp = await User.findById(employeeId).select('payslipPin name employeeId').lean();
+  if (!emp || !emp.payslipPin) return true;
+  const pin = req.headers['x-payslip-pin'] || req.body?.pin || '';
+  const user = await User.findById(employeeId).select('payslipPin');
+  const valid = await user.comparePayslipPin(pin);
+  if (!valid) throw new ApiError(403, 'Payslip PIN required or incorrect.');
+  return true;
+}
 
 router.post('/generate', authenticate, authorize('ACCOUNTS', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
@@ -25,10 +38,20 @@ router.post('/generate', authenticate, authorize('ACCOUNTS', 'DIRECTOR', 'SUPER_
 
 router.get('/my', authenticate, async (req, res, next) => {
   try {
+    await requirePayslipPinIfSet(req, req.user._id);
     const m = parseInt(req.query.month) || new Date().getMonth() + 1;
     const y = parseInt(req.query.year)  || new Date().getFullYear();
     const salary = await Salary.findOne({ employee: req.user._id, month: m, year: y }).populate('employee', 'name employeeId designation department');
     if (!salary) return next(new ApiError(404, 'Salary slip not found for this month.'));
+    await createAuditLog({
+      actor: req.user,
+      action: 'PAYSLIP_VIEW',
+      entity: 'Salary',
+      entityId: salary._id,
+      description: `Viewed own payslip: ${MONTH_NAMES[m - 1]} ${y}`,
+      req,
+      severity: 'INFO',
+    });
     const safe = salary.toObject();
     delete safe.displayHalfDays;
     res.status(200).json({ success: true, data: safe });
@@ -50,9 +73,24 @@ router.get('/:empId/:month/:year', authenticate, async (req, res, next) => {
   try {
     const { user } = req;
     const { empId, month, year } = req.params;
-    if (user.role === 'EMPLOYEE' && user._id.toString() !== empId) return next(new ApiError(403, 'Access denied.'));
+    const isOwn = user._id.toString() === empId;
+    if (user.role === 'EMPLOYEE' && !isOwn) return next(new ApiError(403, 'Access denied.'));
+    if (isOwn) await requirePayslipPinIfSet(req, empId);
     const salary = await Salary.findOne({ employee: empId, month: parseInt(month), year: parseInt(year) }).populate('employee', 'name employeeId designation');
     if (!salary) return next(new ApiError(404, 'Salary slip not found.'));
+    const m = parseInt(month);
+    const y = parseInt(year);
+    await createAuditLog({
+      actor: req.user,
+      action: 'PAYSLIP_VIEW',
+      entity: 'Salary',
+      entityId: salary._id,
+      description: isOwn
+        ? `Viewed own payslip: ${MONTH_NAMES[m - 1]} ${y}`
+        : `Viewed payslip: ${salary.employee?.name} (${salary.employee?.employeeId}), ${MONTH_NAMES[m - 1]} ${y}`,
+      req,
+      severity: 'INFO',
+    });
     res.status(200).json({ success: true, data: salary });
   } catch (err) { next(err); }
 });
@@ -116,16 +154,31 @@ router.get('/:empId/:month/:year/pdf', authenticate, async (req, res, next) => {
     const { user } = req;
     const { empId, month, year } = req.params;
     const isAdmin = ['ACCOUNTS', 'DIRECTOR', 'SUPER_ADMIN', 'HR'].includes(user.role);
-    if (!isAdmin && user._id.toString() !== empId) return next(new ApiError(403, 'Access denied.'));
+    const isOwn = user._id.toString() === empId;
+    if (!isAdmin && !isOwn) return next(new ApiError(403, 'Access denied.'));
+    if (isOwn) await requirePayslipPinIfSet(req, empId);
 
     const salary = await Salary.findOne({ employee: empId, month: parseInt(month), year: parseInt(year) })
       .populate('employee', 'name employeeId designation department joiningDate');
     if (!salary) return next(new ApiError(404, 'Salary slip not found.'));
 
+    const m = parseInt(month);
+    const y = parseInt(year);
+    await createAuditLog({
+      actor: req.user,
+      action: 'PAYSLIP_DOWNLOAD',
+      entity: 'Salary',
+      entityId: salary._id,
+      description: isOwn
+        ? `Downloaded own payslip PDF: ${MONTH_NAMES[m - 1]} ${y}`
+        : `Downloaded payslip PDF: ${salary.employee?.name} (${salary.employee?.employeeId}), ${MONTH_NAMES[m - 1]} ${y}`,
+      req,
+      severity: 'INFO',
+    });
+
     const pdfBuffer = await generateSalarySlipPDF(salary);
-    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Salary_${salary.employee?.name?.replace(/\s+/g,'_')}_${MONTHS[parseInt(month)-1]}_${year}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="Salary_${salary.employee?.name?.replace(/\s+/g,'_')}_${MONTH_NAMES[m - 1]}_${year}.pdf"`);
     res.send(pdfBuffer);
   } catch (err) { next(err); }
 });

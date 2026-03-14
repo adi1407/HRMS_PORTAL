@@ -17,19 +17,42 @@ function EmployeeSalaryView() {
   const [salary,  setSalary]  = useState(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+  const [pinForSession, setPinForSession] = useState('');
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
   const years = Array.from({ length: 3 }, (_, i) => new Date().getFullYear() - i);
+
+  const getPayslipHeaders = () => (pinForSession ? { 'X-Payslip-Pin': pinForSession } : {});
+
+  const fetchSalary = async (pinOverride) => {
+    setLoading(true); setError('');
+    const headers = pinOverride != null ? { 'X-Payslip-Pin': pinOverride } : getPayslipHeaders();
+    try {
+      const { data } = await api.get(`/salary/my?month=${month}&year=${year}`, { headers });
+      setSalary(data.data);
+      if (pinOverride) setPinForSession(pinOverride);
+      setShowPinModal(false);
+      setPinInput('');
+      setPinError('');
+    } catch (err) {
+      setSalary(null);
+      if (err.response?.status === 403 && /payslip pin/i.test(err.response?.data?.message || '')) {
+        setShowPinModal(true);
+        setError('');
+      } else if (err.response?.status !== 404) {
+        setError(err.response?.data?.message || 'Failed to load salary.');
+      }
+    } finally { setLoading(false); }
+  };
 
   useEffect(() => { fetchSalary(); }, [month, year]);
 
-  const fetchSalary = async () => {
-    setLoading(true); setError('');
-    try {
-      const { data } = await api.get(`/salary/my?month=${month}&year=${year}`);
-      setSalary(data.data);
-    } catch (err) {
-      setSalary(null);
-      if (err.response?.status !== 404) setError(err.response?.data?.message || 'Failed to load salary.');
-    } finally { setLoading(false); }
+  const submitPin = () => {
+    const p = String(pinInput || '').trim();
+    if (p.length < 4) { setPinError('Enter 4–8 digit PIN'); return; }
+    setPinError('');
+    fetchSalary(p);
   };
 
   return (
@@ -45,18 +68,46 @@ function EmployeeSalaryView() {
         <select className="form-select" value={year} onChange={e => setYear(Number(e.target.value))}>
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <button className="btn btn--secondary" onClick={fetchSalary}>🔄 Refresh</button>
+        <button className="btn btn--secondary" onClick={() => fetchSalary()}>🔄 Refresh</button>
       </div>
       {error && <div className="alert alert--error">{error}</div>}
+      {showPinModal && (
+        <div className="modal-overlay" onClick={() => setShowPinModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+            <h3 className="modal-title">Payslip PIN required</h3>
+            <p style={{ fontSize: '0.88rem', color: '#6b7280', marginBottom: 16 }}>
+              Enter your payslip PIN to view or download your salary slip.
+            </p>
+            <div className="form-group">
+              <label className="form-label">PIN (4–8 digits)</label>
+              <input
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                className="form-input"
+                placeholder="••••"
+                value={pinInput}
+                onChange={e => { setPinInput(e.target.value.replace(/\D/g, '').slice(0, 8)); setPinError(''); }}
+                onKeyDown={e => e.key === 'Enter' && submitPin()}
+              />
+              {pinError && <p className="form-error">{pinError}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+              <button className="btn btn--primary" onClick={submitPin}>Submit</button>
+              <button className="btn btn--secondary" onClick={() => { setShowPinModal(false); setPinInput(''); setPinError(''); setLoading(false); }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {loading && <div className="page-loading">Loading salary slip...</div>}
-      {!loading && !salary && !error && (
+      {!loading && !salary && !error && !showPinModal && (
         <div className="empty-state">
           <div className="empty-state-icon">💰</div>
           <h3>No salary slip found</h3>
           <p>Salary for {MONTHS[month-1]} {year} has not been generated yet.</p>
         </div>
       )}
-      {salary && <SalarySlip salary={salary} />}
+      {salary && <SalarySlip salary={salary} payslipPinHeaders={getPayslipHeaders()} />}
     </div>
   );
 }
@@ -294,12 +345,12 @@ function AdminSalaryView() {
 }
 
 /* ─── Shared Salary Slip ────────────────────────────────────── */
-function SalarySlip({ salary }) {
+function SalarySlip({ salary, payslipPinHeaders }) {
   const downloadPDF = async () => {
     try {
       const res = await api.get(
         `/salary/${salary.employee?._id}/${salary.month}/${salary.year}/pdf`,
-        { responseType: 'blob' }
+        { responseType: 'blob', headers: payslipPinHeaders || {} }
       );
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const a = document.createElement('a');
@@ -307,7 +358,13 @@ function SalarySlip({ salary }) {
       a.download = `Salary_${salary.employee?.name}_${MONTHS[salary.month-1]}_${salary.year}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch { alert('Failed to download PDF. Ensure salary slip is generated.'); }
+    } catch (err) {
+      if (err.response?.status === 403 && /payslip pin/i.test(err.response?.data?.message || '')) {
+        alert('Payslip PIN required or incorrect. Please refresh the page and enter your PIN when prompted.');
+      } else {
+        alert('Failed to download PDF. Ensure salary slip is generated.');
+      }
+    }
   };
 
   return (

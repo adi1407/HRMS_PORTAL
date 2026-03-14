@@ -45,6 +45,54 @@ router.get('/directory', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Payslip PIN: optional secure access for viewing/downloading own payslips
+router.get('/me/payslip-pin', authenticate, async (req, res, next) => {
+  try {
+    const u = await User.findById(req.user._id).select('payslipPin').lean();
+    res.json({ success: true, data: { hasPayslipPin: !!(u && u.payslipPin) } });
+  } catch (err) { next(err); }
+});
+
+router.post('/me/payslip-pin', authenticate, async (req, res, next) => {
+  try {
+    const { pin } = req.body;
+    const p = String(pin || '').trim();
+    if (p.length < 4 || p.length > 8) return next(new ApiError(400, 'PIN must be 4–8 digits.'));
+    if (!/^\d+$/.test(p)) return next(new ApiError(400, 'PIN must contain only digits.'));
+    const user = await User.findById(req.user._id).select('payslipPin');
+    if (!user) return next(new ApiError(404, 'User not found.'));
+    user.payslipPin = p;
+    await user.save();
+    await createAuditLog({ actor: req.user, action: 'PAYSLIP_PIN_SET', entity: 'User', entityId: user._id, description: 'Payslip PIN set', req });
+    res.json({ success: true, message: 'Payslip PIN set. You will need it to view or download your salary slip.' });
+  } catch (err) { next(err); }
+});
+
+router.patch('/me/payslip-pin', authenticate, async (req, res, next) => {
+  try {
+    const { currentPin, newPin } = req.body;
+    const user = await User.findById(req.user._id).select('payslipPin');
+    if (!user) return next(new ApiError(404, 'User not found.'));
+    if (!user.payslipPin) return next(new ApiError(400, 'No payslip PIN set. Use POST to set one.'));
+    const valid = await user.comparePayslipPin(currentPin);
+    if (!valid) return next(new ApiError(401, 'Current PIN is incorrect.'));
+    if (newPin !== undefined && newPin !== null && newPin !== '') {
+      const p = String(newPin).trim();
+      if (p.length < 4 || p.length > 8) return next(new ApiError(400, 'New PIN must be 4–8 digits.'));
+      if (!/^\d+$/.test(p)) return next(new ApiError(400, 'New PIN must contain only digits.'));
+      user.payslipPin = p;
+      await user.save();
+      await createAuditLog({ actor: req.user, action: 'PAYSLIP_PIN_CHANGED', entity: 'User', entityId: user._id, description: 'Payslip PIN changed', req });
+      res.json({ success: true, message: 'Payslip PIN updated.' });
+    } else {
+      user.payslipPin = '';
+      await user.save();
+      await createAuditLog({ actor: req.user, action: 'PAYSLIP_PIN_REMOVED', entity: 'User', entityId: user._id, description: 'Payslip PIN removed', req });
+      res.json({ success: true, message: 'Payslip PIN removed.' });
+    }
+  } catch (err) { next(err); }
+});
+
 router.get('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS'), async (req, res, next) => {
   try {
     const { dept, branch, role, isActive, search } = req.query;
