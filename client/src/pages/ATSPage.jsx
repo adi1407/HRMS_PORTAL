@@ -30,6 +30,17 @@ const APP_STATUS = [
   { value: 'WITHDRAWN', label: 'Withdrawn', bg: '#f3f4f6', color: '#6b7280' },
 ];
 
+// Pipeline order: Jobs → Applications → Shortlist → Interview → Offer → Hired
+const PIPELINE_STAGES = ['APPLIED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'HIRED'];
+const OUT_STAGES = ['REJECTED', 'WITHDRAWN'];
+
+function getNextStages(current) {
+  const idx = PIPELINE_STAGES.indexOf(current);
+  if (idx === -1) return [];
+  const next = PIPELINE_STAGES.slice(idx + 1);
+  return [...next, ...OUT_STAGES];
+}
+
 const SOURCES = [
   { value: 'REFERRAL', label: 'Referral' },
   { value: 'JOB_PORTAL', label: 'Job Portal' },
@@ -104,7 +115,7 @@ export default function ATSPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
         <div>
           <h2 style={{ margin: 0 }}>Applicant Tracking (ATS)</h2>
-          <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: '0.88rem' }}>Jobs → Applications → Shortlist → Interview → Offer</p>
+          <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: '0.88rem' }}>Jobs → Applications → Shortlist → Interview → Offer → Hired</p>
         </div>
         <button onClick={() => { setEditingJob(null); setShowJobForm(true); }} style={btnPrimary}>
           <Plus size={16} /> New Job Opening
@@ -253,18 +264,28 @@ function JobCard({ job, onEdit, onDelete, onRefresh, showMsg }) {
   const [appLoading, setAppLoading] = useState(false);
   const [showAppForm, setShowAppForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [viewMode, setViewMode] = useState('pipeline'); // 'pipeline' | 'list'
 
   const loadApplications = useCallback(async () => {
     setAppLoading(true);
     try {
-      const params = statusFilter ? { status: statusFilter } : {};
+      const params = viewMode === 'list' && statusFilter ? { status: statusFilter } : {};
       const { data } = await api.get(`/ats/jobs/${job._id}/applications`, { params });
       setApplications(data.data);
     } catch { setApplications([]); }
     finally { setAppLoading(false); }
-  }, [job._id, statusFilter]);
+  }, [job._id, statusFilter, viewMode]);
 
   useEffect(() => { if (expanded) loadApplications(); }, [expanded, loadApplications]);
+
+  const byStage = applications.reduce((acc, app) => {
+    const s = app.status || 'APPLIED';
+    if (!acc[s]) acc[s] = [];
+    acc[s].push(app);
+    return acc;
+  }, {});
+
+  const pipelineCounts = PIPELINE_STAGES.map(st => ({ stage: st, count: (byStage[st] || []).length, label: APP_STATUS.find(s => s.value === st)?.label || st }));
 
   return (
     <div style={cardSt}>
@@ -274,7 +295,13 @@ function JobCard({ job, onEdit, onDelete, onRefresh, showMsg }) {
           <div>
             <div style={{ fontWeight: 700, fontSize: '1rem' }}>{job.title}</div>
             <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>
-              {job.department?.name || '—'} • {EMP_TYPE.find(e => e.value === job.employmentType)?.label || job.employmentType} • {job.applicationCount || 0} applications {job.hiredCount > 0 ? `• ${job.hiredCount} hired` : ''}
+              {job.department?.name || '—'} • {EMP_TYPE.find(e => e.value === job.employmentType)?.label || job.employmentType} • {job.applicationCount || 0} applications
+              {pipelineCounts.some(p => p.count > 0) && (
+                <span style={{ marginLeft: 6 }}>
+                  ({pipelineCounts.filter(p => p.count > 0).map(p => `${p.count} ${p.label}`).join(', ')})
+                </span>
+              )}
+              {job.hiredCount > 0 && <span style={{ color: '#15803d', fontWeight: 600 }}> • {job.hiredCount} hired</span>}
             </div>
           </div>
           <Badge list={JOB_STATUS} value={job.status} />
@@ -288,11 +315,27 @@ function JobCard({ job, onEdit, onDelete, onRefresh, showMsg }) {
       {expanded && (
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #e5e7eb' }} onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...inputSt, width: 'auto', minWidth: 140 }}>
                 <option value="">All status</option>
-                {APP_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {PIPELINE_STAGES.map(st => (
+                  <option key={st} value={st}>{APP_STATUS.find(s => s.value === st)?.label || st}</option>
+                ))}
+                <option value="REJECTED">Rejected</option>
+                <option value="WITHDRAWN">Withdrawn</option>
               </select>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button type="button" onClick={() => setViewMode('pipeline')} style={{
+                  padding: '6px 12px', borderRadius: 8, border: `1px solid ${viewMode === 'pipeline' ? '#2563eb' : '#e5e7eb'}`,
+                  background: viewMode === 'pipeline' ? '#eff6ff' : '#fff', color: viewMode === 'pipeline' ? '#2563eb' : '#6b7280',
+                  fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                }}>Pipeline</button>
+                <button type="button" onClick={() => setViewMode('list')} style={{
+                  padding: '6px 12px', borderRadius: 8, border: `1px solid ${viewMode === 'list' ? '#2563eb' : '#e5e7eb'}`,
+                  background: viewMode === 'list' ? '#eff6ff' : '#fff', color: viewMode === 'list' ? '#2563eb' : '#6b7280',
+                  fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                }}>List</button>
+              </div>
             </div>
             <button onClick={() => setShowAppForm(true)} style={btnGreen}><UserPlus size={15} /> Add Application</button>
           </div>
@@ -307,7 +350,44 @@ function JobCard({ job, onEdit, onDelete, onRefresh, showMsg }) {
           )}
 
           {appLoading ? <p style={{ color: '#6b7280', fontSize: '0.88rem' }}>Loading applications...</p> : applications.length === 0 ? (
-            <p style={{ color: '#9ca3af', fontSize: '0.88rem' }}>No applications yet.</p>
+            <p style={{ color: '#9ca3af', fontSize: '0.88rem' }}>No applications yet. Add candidates to move them through: Applied → Shortlist → Interview → Offer → Hired.</p>
+          ) : viewMode === 'pipeline' ? (
+            <div className="ats-pipeline" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, minHeight: 120 }}>
+              {PIPELINE_STAGES.map(st => (
+                <div key={st} style={{
+                  flex: '0 0 180px', minWidth: 180, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0',
+                  display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                }}>
+                  <div style={{
+                    padding: '10px 12px', background: APP_STATUS.find(s => s.value === st)?.bg || '#f1f5f9',
+                    color: APP_STATUS.find(s => s.value === st)?.color || '#374151', fontSize: '0.8rem', fontWeight: 700,
+                    borderBottom: '1px solid #e2e8f0',
+                  }}>
+                    {APP_STATUS.find(s => s.value === st)?.label || st} {(byStage[st] || []).length}
+                  </div>
+                  <div style={{ flex: 1, padding: 8, overflowY: 'auto', maxHeight: 400 }}>
+                    {(byStage[st] || []).map(app => (
+                      <ApplicationPipelineCard key={app._id} application={app} onUpdated={loadApplications} onRefresh={onRefresh} showMsg={showMsg} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {(byStage['REJECTED']?.length > 0 || byStage['WITHDRAWN']?.length > 0) && (
+                <div style={{
+                  flex: '0 0 140px', minWidth: 140, background: '#fef2f2', borderRadius: 10, border: '1px solid #fecaca',
+                  display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '10px 12px', fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c', borderBottom: '1px solid #fecaca' }}>
+                    Out ({(byStage['REJECTED'] || []).length + (byStage['WITHDRAWN'] || []).length})
+                  </div>
+                  <div style={{ flex: 1, padding: 8, overflowY: 'auto', maxHeight: 400 }}>
+                    {[...(byStage['REJECTED'] || []), ...(byStage['WITHDRAWN'] || [])].map(app => (
+                      <ApplicationPipelineCard key={app._id} application={app} onUpdated={loadApplications} onRefresh={onRefresh} showMsg={showMsg} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {applications.map(app => (
@@ -317,6 +397,62 @@ function JobCard({ job, onEdit, onDelete, onRefresh, showMsg }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ApplicationPipelineCard({ application, onUpdated, onRefresh, showMsg }) {
+  const [moving, setMoving] = useState(false);
+  const [showFull, setShowFull] = useState(false);
+  const nextOptions = getNextStages(application.status);
+
+  const moveTo = async (newStatus) => {
+    setMoving(true);
+    try {
+      const payload = { status: newStatus };
+      if (newStatus === 'INTERVIEW' && !application.interviewDate) payload.interviewDate = new Date().toISOString().split('T')[0];
+      await api.patch(`/ats/applications/${application._id}`, payload);
+      showMsg(`Moved to ${APP_STATUS.find(s => s.value === newStatus)?.label || newStatus}.`);
+      onUpdated();
+      onRefresh();
+    } catch (err) { showMsg(err.response?.data?.message || 'Failed.'); }
+    finally { setMoving(false); }
+  };
+
+  if (showFull) {
+    return (
+      <div style={{ marginBottom: 8 }}>
+        <ApplicationRow application={application} onUpdated={onUpdated} onRefresh={onRefresh} showMsg={showMsg} />
+        <button type="button" onClick={() => setShowFull(false)} style={{ ...btnPrimary, marginTop: 6, padding: '4px 10px', fontSize: '0.75rem' }}>← Back to card</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, marginBottom: 8,
+      boxShadow: '0 1px 2px rgba(0,0,0,.05)',
+    }}>
+      <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: 4 }}>{application.candidateName}</div>
+      <div style={{ fontSize: '0.72rem', color: '#6b7280', marginBottom: 6 }}>{application.email}</div>
+      {application.rating != null && (
+        <div style={{ fontSize: '0.72rem', marginBottom: 6 }}>★ {application.rating}/5</div>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+        {nextOptions.slice(0, 4).map(st => (
+          <button key={st} type="button" onClick={() => moveTo(st)} disabled={moving} style={{
+            padding: '3px 8px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', fontSize: '0.7rem', fontWeight: 600,
+            color: APP_STATUS.find(s => s.value === st)?.color || '#374151', cursor: 'pointer',
+          }}>{APP_STATUS.find(s => s.value === st)?.label || st}</button>
+        ))}
+        {nextOptions.length > 4 && (
+          <select value="" onChange={e => { const v = e.target.value; if (v) moveTo(v); e.target.value = ''; }} style={{ ...inputSt, padding: '3px 6px', fontSize: '0.7rem', width: 'auto', minWidth: 80 }}>
+            <option value="">More...</option>
+            {nextOptions.slice(4).map(st => <option key={st} value={st}>{APP_STATUS.find(s => s.value === st)?.label || st}</option>)}
+          </select>
+        )}
+      </div>
+      <button type="button" onClick={() => setShowFull(true)} style={{ fontSize: '0.7rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Edit details</button>
     </div>
   );
 }
@@ -449,6 +585,21 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
   };
 
   const isOfferOrHired = status === 'OFFER' || status === 'HIRED';
+  const [moving, setMoving] = useState(false);
+  const nextOptions = getNextStages(application.status);
+
+  const moveTo = async (newStatus) => {
+    setMoving(true);
+    try {
+      const payload = { status: newStatus };
+      if (newStatus === 'INTERVIEW' && !application.interviewDate) payload.interviewDate = new Date().toISOString().split('T')[0];
+      await api.patch(`/ats/applications/${application._id}`, payload);
+      showMsg(`Moved to ${APP_STATUS.find(s => s.value === newStatus)?.label || newStatus}.`);
+      onUpdated();
+      onRefresh();
+    } catch (err) { showMsg(err.response?.data?.message || 'Failed.'); }
+    finally { setMoving(false); }
+  };
 
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
@@ -487,6 +638,15 @@ function ApplicationRow({ application, onUpdated, onRefresh, showMsg }) {
           <button onClick={async () => { if (!window.confirm('Delete this application?')) return; await api.delete(`/ats/applications/${application._id}`); showMsg('Application deleted.'); onUpdated(); onRefresh(); }} style={{ ...btnDanger, padding: '4px 10px', fontSize: '0.75rem' }}><Trash2 size={12} /></button>
         </div>
       </div>
+
+      {nextOptions.length > 0 && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f3f4f6', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: '0.78rem', color: '#6b7280', marginRight: 4 }}>Move to →</span>
+          {nextOptions.map(st => (
+            <button key={st} type="button" onClick={() => moveTo(st)} disabled={moving} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', fontSize: '0.75rem', fontWeight: 500, color: APP_STATUS.find(s => s.value === st)?.color || '#374151', cursor: 'pointer' }}>{APP_STATUS.find(s => s.value === st)?.label || st}</button>
+          ))}
+        </div>
+      )}
 
       {isOfferOrHired && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>

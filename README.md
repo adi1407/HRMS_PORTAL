@@ -313,6 +313,19 @@ Net Salary = Gross Salary − Deduction
 
 ---
 
+## ⏰ Cron on Render (or when the server sleeps)
+
+On Render free tier the server can sleep, so **in-process cron (e.g. 11:59 PM auto-absent) may not run**. Two things are in place:
+
+1. **Dashboard red block (Absent Today)** — The dashboard now counts "expected to work today but no attendance record" as absent, so the red block shows the right number even if cron didn’t run.
+2. **HTTP cron trigger** — You can run the same jobs via HTTP so an external scheduler can call your app:
+   - Set `CRON_SECRET` in Render (e.g. a long random string).
+   - Call `POST /api/cron/trigger` with body `{ "secret": "<CRON_SECRET>", "job": "<job>" }` or GET `.../api/cron/trigger?secret=xxx&job=auto-absent`.
+   - Jobs: `auto-absent` (11:59 PM), `holiday` (00:05), `eod` (11:30 PM Mon–Sat), `salary-gen`, `auto-remove-resigned`, `email-alerts`.
+   - Use [Render Cron Jobs](https://render.com/docs/cron-jobs) or [cron-job.org](https://cron-job.org) to hit your backend URL at the right times (in your timezone).
+
+---
+
 ## 🗂️ .env Reference
 
 ```
@@ -325,6 +338,7 @@ JWT_REFRESH_SECRET=...
 JWT_ACCESS_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
 BCRYPT_ROUNDS=12
+CRON_SECRET=...          ← optional; for /api/cron/trigger when using external cron (e.g. Render)
 ```
 
 ---

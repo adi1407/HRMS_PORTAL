@@ -11,15 +11,17 @@ router.get('/dashboard', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const next30     = new Date(todayStart.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    const [totalEmployees, todayRecords, roleAgg, upcomingHolidays] = await Promise.all([
+    const [totalEmployees, todayRecords, roleAgg, upcomingHolidays, isSunday, todayHoliday, expectedEmployeeIds] = await Promise.all([
       User.countDocuments({ role: { $nin: ['SUPER_ADMIN'] }, isActive: true }),
-      Attendance.find({ date: todayStart }),
-      // Count every active non-super-admin role
+      Attendance.find({ date: todayStart }).populate('employee', '_id'),
       User.aggregate([
         { $match: { isActive: true, role: { $ne: 'SUPER_ADMIN' } } },
         { $group: { _id: '$role', count: { $sum: 1 } } },
       ]),
       Holiday.find({ date: { $gte: todayStart, $lte: next30 } }).sort({ date: 1 }).limit(5),
+      Promise.resolve(todayStart.getDay() === 0),
+      Holiday.findOne({ date: todayStart }).then(h => !!h),
+      User.find({ role: { $in: ['EMPLOYEE', 'HR', 'ACCOUNTS'] }, isActive: true }).select('_id').lean(),
     ]);
 
     const summary = { totalEmployees, presentToday: 0, halfDayToday: 0, absentToday: 0, onLeaveToday: 0 };
@@ -29,7 +31,16 @@ router.get('/dashboard', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'
       else if (r.displayStatus === 'ABSENT')    summary.absentToday++;
       else if (r.displayStatus === 'ON_LEAVE')  summary.onLeaveToday++;
     });
-    summary.notMarkedYet = totalEmployees - todayRecords.length;
+
+    // If cron didn't run (e.g. Render free tier sleep), treat "expected to work but no record" as absent so red block is correct
+    const workingToday = !isSunday && !todayHoliday;
+    if (workingToday && expectedEmployeeIds.length > 0) {
+      const hasRecord = new Set(todayRecords.map(r => (r.employee?._id || r.employee)?.toString()).filter(Boolean));
+      const absentNoRecord = expectedEmployeeIds.filter(e => !hasRecord.has(e._id.toString())).length;
+      summary.absentToday += absentNoRecord;
+    }
+
+    summary.notMarkedYet = Math.max(0, totalEmployees - todayRecords.length);
 
     // Build role breakdown map { EMPLOYEE: n, HR: n, ACCOUNTS: n, DIRECTOR: n }
     const roleBreakdown = {};

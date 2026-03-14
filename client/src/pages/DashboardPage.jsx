@@ -5,6 +5,8 @@ import {
   Users, UserCheck, Clock, UserX, Briefcase, HelpCircle,
   CheckCircle2, XCircle, ClipboardList, Timer, CalendarDays,
   ChevronLeft, ChevronRight, Megaphone, X, AlertTriangle, Info,
+  TrendingUp, ArrowUpRight, Sun, Moon, Sparkles, FileText,
+  Building2, BadgeCheck, Activity, Shield,
 } from 'lucide-react';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -25,6 +27,16 @@ const PRIORITY_STYLE = {
   IMPORTANT: { bg: 'linear-gradient(135deg, #fffbeb, #fef3c7)', border: '#fcd34d', icon: Megaphone, iconColor: '#d97706', label: '#92400e' },
   NORMAL:    { bg: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '#93c5fd', icon: Info, iconColor: '#2563eb', label: '#1e40af' },
 };
+
+const ROLE_ICON = { EMPLOYEE: Users, HR: Shield, ACCOUNTS: FileText, DIRECTOR: Building2, SUPER_ADMIN: Shield };
+const ROLE_COLOR = { EMPLOYEE: '#2563eb', HR: '#7c3aed', ACCOUNTS: '#0891b2', DIRECTOR: '#059669', SUPER_ADMIN: '#dc2626' };
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return { text: 'Good Morning', icon: Sun, emoji: '☀️' };
+  if (h < 17) return { text: 'Good Afternoon', icon: Sun, emoji: '🌤️' };
+  return { text: 'Good Evening', icon: Moon, emoji: '🌙' };
+}
 
 function AnnouncementBanner() {
   const [announcements, setAnnouncements] = useState([]);
@@ -48,30 +60,30 @@ function AnnouncementBanner() {
   if (visible.length === 0) return null;
 
   return (
-    <div className="announcement-banner-wrapper">
+    <div className="db-announcements">
       {visible.map(ann => {
         const style = PRIORITY_STYLE[ann.priority] || PRIORITY_STYLE.NORMAL;
         const IconComp = style.icon;
         return (
-          <div key={ann._id} className="announcement-banner" style={{ background: style.bg, borderColor: style.border }}>
-            <div className="announcement-banner-icon">
-              <IconComp size={20} color={style.iconColor} strokeWidth={2.2} />
+          <div key={ann._id} className="db-ann-card" style={{ background: style.bg, borderColor: style.border }}>
+            <div className="db-ann-icon">
+              <IconComp size={18} color={style.iconColor} strokeWidth={2.2} />
             </div>
-            <div className="announcement-banner-body">
-              <div className="announcement-banner-title" style={{ color: style.label }}>
+            <div className="db-ann-body">
+              <div className="db-ann-title" style={{ color: style.label }}>
                 {ann.title}
                 {ann.priority === 'URGENT' && <span className="announcement-pulse" />}
               </div>
-              <div className="announcement-banner-text">{ann.content}</div>
-              <div className="announcement-banner-meta">
+              <div className="db-ann-text">{ann.content}</div>
+              <div className="db-ann-meta">
                 By {ann.createdBy?.name} &middot; {new Date(ann.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                 {ann.audience !== 'ALL' && (
                   <> &middot; {ann.audience === 'DEPARTMENT' ? ann.department?.name : ann.branch?.name}</>
                 )}
               </div>
             </div>
-            <button className="announcement-banner-close" onClick={() => dismiss(ann._id)} title="Dismiss">
-              <X size={16} strokeWidth={2.5} />
+            <button className="db-ann-close" onClick={() => dismiss(ann._id)} title="Dismiss">
+              <X size={15} strokeWidth={2.5} />
             </button>
           </div>
         );
@@ -174,7 +186,33 @@ function AttendanceCalendar({ records, month, year, holidays = [] }) {
   );
 }
 
-// Reusable personal attendance + leave section (used by EMPLOYEE, ACCOUNTS, and HR)
+function QuickAction({ icon: Icon, label, href, color }) {
+  return (
+    <a href={href} className="db-quick-action" style={{ '--qa-color': color }}>
+      <div className="db-qa-icon"><Icon size={18} strokeWidth={2} /></div>
+      <span className="db-qa-label">{label}</span>
+      <ArrowUpRight size={14} className="db-qa-arrow" />
+    </a>
+  );
+}
+
+function AdminStatCard({ icon: Icon, value, label, color, trend }) {
+  return (
+    <div className="db-stat-card" style={{ '--sc-color': color }}>
+      <div className="db-stat-top">
+        <div className="db-stat-icon"><Icon size={20} strokeWidth={2} /></div>
+        {trend !== undefined && (
+          <span className={`db-stat-trend ${trend >= 0 ? 'db-stat-trend--up' : 'db-stat-trend--down'}`}>
+            <TrendingUp size={12} /> {trend >= 0 ? '+' : ''}{trend}%
+          </span>
+        )}
+      </div>
+      <div className="db-stat-value">{value}</div>
+      <div className="db-stat-label">{label}</div>
+    </div>
+  );
+}
+
 function EmployeeSection({ user }) {
   const nowMonth = new Date().getMonth() + 1;
   const nowYear  = new Date().getFullYear();
@@ -228,133 +266,148 @@ function EmployeeSection({ user }) {
 
   if (loading) return <div className="page-loading">Loading your attendance…</div>;
 
+  const totalWorking = present + halfDay + absent + onLeave;
+  const attendancePct = totalWorking > 0 ? Math.round(((present + halfDay * 0.5) / totalWorking) * 100) : 0;
+
   return (
     <>
-      <div className="stats-grid">
-        <div className="stat-card stat-card--green">
-          <div className="stat-card-icon"><UserCheck size={22} strokeWidth={2} /></div>
-          <div className="stat-card-value">{present}</div>
-          <div className="stat-card-label">Present Days</div>
+      {/* My stats mini cards */}
+      <div className="db-emp-stats">
+        <div className="db-emp-stat" style={{ '--es-color': '#059669' }}>
+          <div className="db-emp-stat-icon"><UserCheck size={18} /></div>
+          <div className="db-emp-stat-num">{present}</div>
+          <div className="db-emp-stat-label">Present</div>
         </div>
-        <div className="stat-card stat-card--yellow">
-          <div className="stat-card-icon"><Clock size={22} strokeWidth={2} /></div>
-          <div className="stat-card-value">{halfDay}</div>
-          <div className="stat-card-label">Half Days</div>
+        <div className="db-emp-stat" style={{ '--es-color': '#d97706' }}>
+          <div className="db-emp-stat-icon"><Clock size={18} /></div>
+          <div className="db-emp-stat-num">{halfDay}</div>
+          <div className="db-emp-stat-label">Half Day</div>
         </div>
-        <div className="stat-card stat-card--red">
-          <div className="stat-card-icon"><UserX size={22} strokeWidth={2} /></div>
-          <div className="stat-card-value">{absent}</div>
-          <div className="stat-card-label">Absent</div>
+        <div className="db-emp-stat" style={{ '--es-color': '#dc2626' }}>
+          <div className="db-emp-stat-icon"><UserX size={18} /></div>
+          <div className="db-emp-stat-num">{absent}</div>
+          <div className="db-emp-stat-label">Absent</div>
         </div>
-        <div className="stat-card stat-card--blue">
-          <div className="stat-card-icon"><Briefcase size={22} strokeWidth={2} /></div>
-          <div className="stat-card-value">{onLeave}</div>
-          <div className="stat-card-label">On Leave</div>
+        <div className="db-emp-stat" style={{ '--es-color': '#2563eb' }}>
+          <div className="db-emp-stat-icon"><Briefcase size={18} /></div>
+          <div className="db-emp-stat-num">{onLeave}</div>
+          <div className="db-emp-stat-label">On Leave</div>
         </div>
-        <div className="stat-card stat-card--purple">
-          <div className="stat-card-icon"><ClipboardList size={22} strokeWidth={2} /></div>
-          <div className="stat-card-value">{leaveReqCount}</div>
-          <div className="stat-card-label">Leave Requests</div>
+        <div className="db-emp-stat" style={{ '--es-color': '#7c3aed' }}>
+          <div className="db-emp-stat-icon"><ClipboardList size={18} /></div>
+          <div className="db-emp-stat-num">{leaveReqCount}</div>
+          <div className="db-emp-stat-label">Leave Req</div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="att-cal-header">
-          <h3 className="card-title" style={{ margin: 0 }}>
-            Attendance — {MONTH_NAMES[calMonth - 1]} {calYear}
-          </h3>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="btn btn--secondary" style={{ padding: '5px 10px' }} onClick={handlePrevMonth}>
-              <ChevronLeft size={16} />
-            </button>
-            <button className="btn btn--secondary" style={{ padding: '5px 10px' }} onClick={handleNextMonth} disabled={isCurrentMonth}>
-              <ChevronRight size={16} />
-            </button>
+      {/* Two-column: Today + My Details */}
+      <div className="db-emp-grid">
+        <div className="db-card db-today-card">
+          <div className="db-card-header">
+            <h3>Today's Status</h3>
+            {attendancePct > 0 && (
+              <div className="db-attendance-ring" title={`${attendancePct}% attendance this month`}>
+                <svg viewBox="0 0 36 36" className="db-ring-svg">
+                  <path className="db-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path className="db-ring-fg" strokeDasharray={`${attendancePct}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <span className="db-ring-text">{attendancePct}%</span>
+              </div>
+            )}
           </div>
-        </div>
-        <AttendanceCalendar records={monthRecords} month={calMonth} year={calYear} holidays={allHolidays} />
-      </div>
-
-      <div className="dashboard-employee">
-        <div className="today-card">
-          <h2 className="today-card-title">Today's Status</h2>
           {todayRecord ? (
-            <div className="today-status">
-              <div className={`status-badge status-badge--${(todayRecord.displayStatus || '').toLowerCase().replace(/_/g,'-')}`}>
+            <div className="db-today-body">
+              <div className={`db-today-badge db-today-badge--${(todayRecord.displayStatus || '').toLowerCase().replace(/_/g,'-')}`}>
                 {todayRecord.displayStatus?.replace(/_/g, ' ')}
               </div>
-              <div className="today-times">
+              <div className="db-today-times">
                 {todayRecord.checkInTime && (
-                  <div className="today-time-item">
-                    <span className="today-time-label">Check In</span>
-                    <span className="today-time-value today-time-checkin">
-                      <CheckCircle2 size={13} strokeWidth={2.5} /> {todayRecord.checkInTime}
-                    </span>
+                  <div className="db-time-row">
+                    <span className="db-time-label"><CheckCircle2 size={14} color="#059669" /> Check In</span>
+                    <span className="db-time-val">{todayRecord.checkInTime}</span>
                   </div>
                 )}
                 {todayRecord.checkOutTime && (
-                  <div className="today-time-item">
-                    <span className="today-time-label">Check Out</span>
-                    <span className="today-time-value today-time-checkout">
-                      <XCircle size={13} strokeWidth={2.5} /> {todayRecord.checkOutTime}
-                    </span>
+                  <div className="db-time-row">
+                    <span className="db-time-label"><XCircle size={14} color="#dc2626" /> Check Out</span>
+                    <span className="db-time-val">{todayRecord.checkOutTime}</span>
                   </div>
                 )}
                 {todayRecord.workingHours > 0 && (
-                  <div className="today-time-item">
-                    <span className="today-time-label">Hours Worked</span>
-                    <span className="today-time-value">
-                      <Timer size={13} strokeWidth={2.5} /> {todayRecord.workingHours}h
-                    </span>
+                  <div className="db-time-row">
+                    <span className="db-time-label"><Timer size={14} color="#2563eb" /> Hours</span>
+                    <span className="db-time-val db-time-val--accent">{todayRecord.workingHours}h</span>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="today-empty">
-              <p>No attendance record for today.</p>
-              <a href="/checkin" className="btn btn--primary">Check In Now</a>
+            <div className="db-today-empty">
+              <Activity size={32} color="#94a3b8" strokeWidth={1.5} />
+              <p>No attendance record for today</p>
+              <a href="/checkin" className="db-btn-primary">Check In Now</a>
             </div>
           )}
         </div>
 
-        <div className="employee-info-card">
-          <h3>My Details</h3>
-          <div className="info-row"><span>Employee ID</span><strong>{user?.employeeId}</strong></div>
-          <div className="info-row"><span>Designation</span><strong>{user?.designation || '—'}</strong></div>
-          <div className="info-row"><span>Department</span><strong>{user?.department?.name || '—'}</strong></div>
-          <div className="info-row"><span>Branch</span><strong>{user?.branch?.name || '—'}</strong></div>
-          <div className="info-row">
-            <span>Face Enrolled</span>
-            <strong style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              {user?.faceEnrolled
-                ? <><CheckCircle2 size={14} color="#059669" strokeWidth={2.5} /> Yes</>
-                : <><XCircle size={14} color="#dc2626" strokeWidth={2.5} /> No — Contact HR</>}
-            </strong>
+        <div className="db-card db-info-card">
+          <div className="db-card-header"><h3>My Details</h3></div>
+          <div className="db-info-rows">
+            <div className="db-info-row">
+              <span className="db-info-label">Employee ID</span>
+              <span className="db-info-val">{user?.employeeId}</span>
+            </div>
+            <div className="db-info-row">
+              <span className="db-info-label">Designation</span>
+              <span className="db-info-val">{user?.designation || '—'}</span>
+            </div>
+            <div className="db-info-row">
+              <span className="db-info-label">Department</span>
+              <span className="db-info-val">{user?.department?.name || '—'}</span>
+            </div>
+            <div className="db-info-row">
+              <span className="db-info-label">Branch</span>
+              <span className="db-info-val">{user?.branch?.name || '—'}</span>
+            </div>
+            <div className="db-info-row">
+              <span className="db-info-label">Face Enrolled</span>
+              <span className="db-info-val" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                {user?.faceEnrolled
+                  ? <><BadgeCheck size={15} color="#059669" /> Yes</>
+                  : <><XCircle size={15} color="#dc2626" /> No — Contact HR</>}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Calendar */}
+      <div className="db-card">
+        <div className="db-card-header" style={{ marginBottom: 12 }}>
+          <h3>Attendance — {MONTH_NAMES[calMonth - 1]} {calYear}</h3>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="db-nav-btn" onClick={handlePrevMonth}><ChevronLeft size={16} /></button>
+            <button className="db-nav-btn" onClick={handleNextMonth} disabled={isCurrentMonth}><ChevronRight size={16} /></button>
+          </div>
+        </div>
+        <AttendanceCalendar records={monthRecords} month={calMonth} year={calYear} holidays={allHolidays} />
+      </div>
+
+      {/* Upcoming holidays */}
       {holidays.length > 0 && (
-        <div className="card" style={{ marginTop: 20 }}>
-          <h3 className="card-title" style={{ marginBottom: 14 }}>Upcoming Holidays</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="db-card">
+          <div className="db-card-header"><h3>Upcoming Holidays</h3></div>
+          <div className="db-holiday-list">
             {holidays.map(h => (
-              <div key={h._id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0',
-                flexWrap: 'wrap', gap: 8
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <CalendarDays size={16} color="#059669" />
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>{h.name}</p>
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#6b7280' }}>
-                      {new Date(h.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long' })}
-                    </p>
-                  </div>
+              <div key={h._id} className="db-holiday-row">
+                <div className="db-holiday-icon"><CalendarDays size={16} /></div>
+                <div className="db-holiday-info">
+                  <span className="db-holiday-name">{h.name}</span>
+                  <span className="db-holiday-date">
+                    {new Date(h.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long' })}
+                  </span>
                 </div>
-                <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>{h.type}</span>
+                <span className="db-holiday-type">{h.type}</span>
               </div>
             ))}
           </div>
@@ -366,12 +419,10 @@ function EmployeeSection({ user }) {
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const greeting = getGreeting();
 
-  // Who sees the admin stats panel
   const isAdminRole = ['SUPER_ADMIN', 'DIRECTOR', 'HR'].includes(user?.role);
-  // HR sees both admin stats AND their own personal attendance section
   const showEmployeeSection = ['HR', 'ACCOUNTS', 'EMPLOYEE'].includes(user?.role);
-  // Only Managing Head / DIRECTOR / SUPER_ADMIN can export all data
   const canExport = user?.isManagingHead || ['DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
 
   const [stats,     setStats]     = useState(null);
@@ -408,105 +459,92 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="page">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">
-            Welcome back, <strong>{user?.name}</strong>!
-            &nbsp;—&nbsp;{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
+    <div className="page db-page">
+      {/* Hero header */}
+      <div className="db-hero">
+        <div className="db-hero-content">
+          <div className="db-hero-text">
+            <h1 className="db-hero-greeting">
+              {greeting.text}, <strong>{user?.name?.split(' ')[0]}</strong> {greeting.emoji}
+            </h1>
+            <p className="db-hero-date">
+              {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="db-hero-actions">
+            {canExport && (
+              <button className="db-btn-export" onClick={handleExport} disabled={exporting}>
+                <FileText size={16} />
+                {exporting ? 'Exporting...' : 'Export Data'}
+              </button>
+            )}
+          </div>
         </div>
-        {canExport && (
-          <button
-            className="btn btn--secondary"
-            onClick={handleExport}
-            disabled={exporting}
-            style={{ whiteSpace: 'nowrap', alignSelf: 'center' }}
-          >
-            {exporting ? 'Exporting...' : '⬇ Export All Data'}
-          </button>
-        )}
       </div>
 
       <AnnouncementBanner />
 
-      {/* Admin stats section — SUPER_ADMIN, DIRECTOR, HR */}
+      {/* Quick actions */}
+      <div className="db-quick-actions">
+        <QuickAction icon={CheckCircle2} label="Check In" href="/checkin" color="#059669" />
+        <QuickAction icon={ClipboardList} label="Apply Leave" href="/leaves" color="#2563eb" />
+        <QuickAction icon={FileText} label="My Salary" href="/salary" color="#7c3aed" />
+        <QuickAction icon={CalendarDays} label="Attendance" href="/attendance" color="#d97706" />
+      </div>
+
+      {/* Admin stats */}
       {isAdminRole && (
         <>
           {loading && <div className="page-loading">Loading dashboard…</div>}
           {!loading && stats && (
             <>
-              <div className="stats-grid">
-                <div className="stat-card stat-card--blue">
-                  <div className="stat-card-icon"><Users size={22} strokeWidth={2} /></div>
-                  <div className="stat-card-value">{stats.totalEmployees}</div>
-                  <div className="stat-card-label">Total Staff</div>
-                </div>
-                <div className="stat-card stat-card--green">
-                  <div className="stat-card-icon"><UserCheck size={22} strokeWidth={2} /></div>
-                  <div className="stat-card-value">{stats.presentToday}</div>
-                  <div className="stat-card-label">Present Today</div>
-                </div>
-                <div className="stat-card stat-card--yellow">
-                  <div className="stat-card-icon"><Clock size={22} strokeWidth={2} /></div>
-                  <div className="stat-card-value">{stats.halfDayToday}</div>
-                  <div className="stat-card-label">Half Day</div>
-                </div>
-                <div className="stat-card stat-card--red">
-                  <div className="stat-card-icon"><UserX size={22} strokeWidth={2} /></div>
-                  <div className="stat-card-value">{stats.absentToday}</div>
-                  <div className="stat-card-label">Absent Today</div>
-                </div>
-                <div className="stat-card stat-card--purple">
-                  <div className="stat-card-icon"><Briefcase size={22} strokeWidth={2} /></div>
-                  <div className="stat-card-value">{stats.onLeaveToday}</div>
-                  <div className="stat-card-label">On Leave</div>
-                </div>
-                <div className="stat-card stat-card--gray">
-                  <div className="stat-card-icon"><HelpCircle size={22} strokeWidth={2} /></div>
-                  <div className="stat-card-value">{stats.notMarkedYet}</div>
-                  <div className="stat-card-label">Not Marked Yet</div>
-                </div>
+              <div className="db-section-title">
+                <Sparkles size={18} /> Organization Overview
+              </div>
+              <div className="db-admin-stats">
+                <AdminStatCard icon={Users} value={stats.totalEmployees} label="Total Staff" color="#2563eb" />
+                <AdminStatCard icon={UserCheck} value={stats.presentToday} label="Present Today" color="#059669" />
+                <AdminStatCard icon={Clock} value={stats.halfDayToday} label="Half Day" color="#d97706" />
+                <AdminStatCard icon={UserX} value={stats.absentToday} label="Absent Today" color="#dc2626" />
+                <AdminStatCard icon={Briefcase} value={stats.onLeaveToday} label="On Leave" color="#7c3aed" />
+                <AdminStatCard icon={HelpCircle} value={stats.notMarkedYet} label="Not Marked" color="#64748b" />
               </div>
 
+              {/* Role breakdown */}
               {stats.roleBreakdown && Object.keys(stats.roleBreakdown).length > 0 && (
-                <div className="card" style={{ marginTop: 20, marginBottom: 20 }}>
-                  <h3 className="card-title" style={{ marginBottom: 14 }}>Staff Overview</h3>
-                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                    {Object.entries(stats.roleBreakdown).map(([role, count]) => (
-                      <div key={role} style={{
-                        padding: '10px 20px', borderRadius: 10, background: '#f8fafc',
-                        border: '1px solid #e2e8f0', textAlign: 'center', minWidth: 90
-                      }}>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>{count}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2, fontWeight: 500 }}>{role}</div>
-                      </div>
-                    ))}
+                <div className="db-card db-role-card">
+                  <div className="db-card-header"><h3>Staff by Role</h3></div>
+                  <div className="db-role-grid">
+                    {Object.entries(stats.roleBreakdown).map(([role, count]) => {
+                      const RoleIcon = ROLE_ICON[role] || Users;
+                      const color = ROLE_COLOR[role] || '#64748b';
+                      return (
+                        <div key={role} className="db-role-chip" style={{ '--rc-color': color }}>
+                          <div className="db-role-icon"><RoleIcon size={16} /></div>
+                          <div className="db-role-count">{count}</div>
+                          <div className="db-role-name">{role.replace(/_/g, ' ')}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
+              {/* Admin holidays */}
               {stats.upcomingHolidays?.length > 0 && (
-                <div className="card" style={{ marginBottom: 24 }}>
-                  <h3 className="card-title" style={{ marginBottom: 14 }}>Upcoming Holidays</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="db-card">
+                  <div className="db-card-header"><h3>Upcoming Holidays</h3></div>
+                  <div className="db-holiday-list">
                     {stats.upcomingHolidays.map(h => (
-                      <div key={h._id} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0',
-                        flexWrap: 'wrap', gap: 8
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <CalendarDays size={16} color="#059669" />
-                          <div>
-                            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>{h.name}</p>
-                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#6b7280' }}>
-                              {new Date(h.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long' })}
-                            </p>
-                          </div>
+                      <div key={h._id} className="db-holiday-row">
+                        <div className="db-holiday-icon"><CalendarDays size={16} /></div>
+                        <div className="db-holiday-info">
+                          <span className="db-holiday-name">{h.name}</span>
+                          <span className="db-holiday-date">
+                            {new Date(h.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long' })}
+                          </span>
                         </div>
-                        <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>{h.type}</span>
+                        <span className="db-holiday-type">{h.type}</span>
                       </div>
                     ))}
                   </div>
@@ -515,19 +553,15 @@ export default function DashboardPage() {
             </>
           )}
 
-          {/* HR also sees their own attendance section below admin stats */}
           {showEmployeeSection && (
-            <div style={{ marginTop: 4 }}>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', marginBottom: 16, paddingBottom: 10, borderBottom: '2px solid #e2e8f0' }}>
-                My Attendance &amp; Leave
-              </h2>
+            <div className="db-section-divider">
+              <div className="db-section-title"><Activity size={18} /> My Attendance & Leave</div>
               <EmployeeSection user={user} />
             </div>
           )}
         </>
       )}
 
-      {/* Employee / Accounts — only their own personal section */}
       {!isAdminRole && <EmployeeSection user={user} />}
     </div>
   );

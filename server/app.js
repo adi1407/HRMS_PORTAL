@@ -37,6 +37,7 @@ const emailAlertRoutes      = require("./routes/emailAlerts.routes");
 const policyDocumentRoutes  = require("./routes/policyDocument.routes");
 const employeeProfileRoutes = require("./routes/employeeProfile.routes");
 const atsRoutes             = require("./routes/ats.routes");
+const cronRoutes            = require("./routes/cron.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 const { auditLogMiddleware } = require("./middleware/auditLog.middleware");
@@ -130,6 +131,7 @@ app.use("/api/email-alerts",    emailAlertRoutes);
 app.use("/api/policies",        policyDocumentRoutes);
 app.use("/api/employee-profile", employeeProfileRoutes);
 app.use("/api/ats",             atsRoutes);
+app.use("/api/cron",             cronRoutes);
 
 /** Test email — protected by SEED_SECRET, hits your EMAIL_USER inbox */
 app.get("/api/test-email", async (req, res) => {
