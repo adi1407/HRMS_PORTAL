@@ -141,8 +141,8 @@ app.get("/api/test-email", async (req, res) => {
   try {
     await sendMail({
       to:      process.env.EMAIL_USER,
-      subject: "Sangi HRMS — Test Email",
-      html:    "<h2>Test email from Sangi HRMS</h2><p>If you see this, email is working correctly.</p>",
+      subject: "Adiverse HRMS — Test Email",
+      html:    "<h2>Test email from Adiverse HRMS</h2><p>If you see this, email is working correctly.</p>",
     });
     res.json({ success: true, message: `Test email sent to ${process.env.EMAIL_USER}` });
   } catch (err) {

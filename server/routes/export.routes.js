@@ -42,7 +42,7 @@ router.get('/all', authenticate, async (req, res, next) => {
     ]);
 
     const wb = new ExcelJS.Workbook();
-    wb.creator  = 'Sangi HRMS';
+    wb.creator  = 'Adiverse HRMS';
     wb.created  = new Date();
     wb.modified = new Date();
 

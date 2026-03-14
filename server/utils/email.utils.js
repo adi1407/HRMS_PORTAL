@@ -33,7 +33,7 @@ async function sendMail({ to, subject, html }) {
   }
   try {
     console.log(`[EMAIL] Sending to ${to} | Subject: ${subject}`);
-    await t.sendMail({ from: `"Sangi HRMS" <${process.env.EMAIL_USER}>`, to, subject, html });
+    await t.sendMail({ from: `"Adiverse HRMS" <${process.env.EMAIL_USER}>`, to, subject, html });
     console.log(`[EMAIL] Sent successfully to ${to}`);
   } catch (err) {
     console.error('[EMAIL] Failed to send to', to, '—', err.message);
@@ -69,12 +69,12 @@ function wrap(content) {
 <div class="outer">
   <div class="header">
     <div>
-      <h1>Sangi HRMS</h1>
+      <h1>Adiverse HRMS</h1>
       <div class="sub">Human Resource Management System</div>
     </div>
   </div>
   <div class="body">${content}</div>
-  <div class="footer">This is an automated message from Sangi HRMS. Please do not reply to this email.</div>
+  <div class="footer">This is an automated message from Adiverse HRMS. Please do not reply to this email.</div>
 </div>
 </body></html>`;
 }

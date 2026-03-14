@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="adiverse-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square — clean vector shape -->
+  <rect width="64" height="64" rx="14" fill="url(#adiverse-grad)"/>
+  <!-- Letter "A" — geometric sans-serif style -->
+  <path d="M21 52 L32 18 L43 52 L38 36 L26 36 Z" fill="white" fill-rule="evenodd"/>
+  <!-- Three dots: diversity / people / together -->
+  <circle cx="24" cy="54" r="2.5" fill="white" opacity="0.95"/>
+  <circle cx="32" cy="54" r="2.5" fill="white" opacity="0.95"/>
+  <circle cx="40" cy="54" r="2.5" fill="white" opacity="0.95"/>
+</svg>

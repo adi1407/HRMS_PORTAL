@@ -21,7 +21,7 @@ async function sendAlertEmail({ to, subject, html }) {
   const t = getTransporter();
   if (!t || !to) return false;
   try {
-    await t.sendMail({ from: `"Sangi HRMS" <${process.env.EMAIL_USER}>`, to, subject, html });
+    await t.sendMail({ from: `"Adiverse HRMS" <${process.env.EMAIL_USER}>`, to, subject, html });
     return true;
   } catch (err) {
     console.error('[EmailAlert] Failed:', to, err.message);
@@ -32,7 +32,7 @@ async function sendAlertEmail({ to, subject, html }) {
 function wrap(content) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Arial,sans-serif;color:#111827}.outer{max-width:580px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)}.header{background:#1e3a5f;padding:28px 32px}.header h1{margin:0;color:#fff;font-size:1.3rem;font-weight:700}.header .sub{color:#93c5fd;font-size:.8rem;margin:4px 0 0}.body{padding:28px 32px}.card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin:16px 0}.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:.88rem}.row:last-child{border-bottom:none}.label{color:#6b7280;font-weight:500}.value{color:#111827;font-weight:600;text-align:right}.cta{display:inline-block;margin-top:22px;padding:11px 28px;background:#1e3a5f;color:#fff;text-decoration:none;border-radius:8px;font-size:.9rem;font-weight:600}.footer{padding:18px 32px;background:#f8fafc;font-size:.78rem;color:#9ca3af;border-top:1px solid #f1f5f9}</style></head>
-<body><div class="outer"><div class="header"><div><h1>Sangi HRMS</h1><div class="sub">Human Resource Management System</div></div></div><div class="body">${content}</div><div class="footer">This is an automated message from Sangi HRMS.</div></div></body></html>`;
+<body><div class="outer"><div class="header"><div><h1>Adiverse HRMS</h1><div class="sub">Human Resource Management System</div></div></div><div class="body">${content}</div><div class="footer">This is an automated message from Adiverse HRMS.</div></div></body></html>`;
 }
 
 const CLIENT = () => process.env.CLIENT_URL?.split(',')[0] || '#';
@@ -70,7 +70,7 @@ async function sendBirthdayWishes() {
             <div class="row"><span class="label">Employee ID</span><span class="value">${u.employeeId}</span></div>
             <div class="row"><span class="label">Turning</span><span class="value">${age} years</span></div>
           </div>
-          <p style="font-size:.9rem;color:#374151">Your team at Sangi wishes you all the best! 🎉</p>
+          <p style="font-size:.9rem;color:#374151">Your team at Adiverse wishes you all the best! 🎉</p>
         </div>
       `);
       const ok = await sendAlertEmail({ to: u.email, subject, html });

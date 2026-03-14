@@ -48,8 +48,8 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-left">
         <div className="login-brand">
-          <img src="/logo.png" alt="Sangi" className="login-brand-logo" />
-          <h1 className="login-brand-name">Sangi</h1>
+          <img src="/logo.svg" alt="Adiverse" className="login-brand-logo" />
+          <h1 className="login-brand-name">Adiverse</h1>
           <p className="login-brand-tagline">Human Resource Management System</p>
         </div>
         <div className="login-features">
