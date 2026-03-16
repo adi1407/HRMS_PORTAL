@@ -6,8 +6,14 @@ const Resignation = require('../models/Resignation.model');
 const { generateAllSalaries } = require('../services/salary.service');
 const { runAllAlerts } = require('../services/emailAlerts.service');
 
+function istToday() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 async function runAutoAbsent() {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = istToday();
   const employees = await User.find({ role: { $in: ['EMPLOYEE', 'HR', 'ACCOUNTS'] }, isActive: true });
   let count = 0;
   for (const emp of employees) {
@@ -21,7 +27,7 @@ async function runAutoAbsent() {
 }
 
 async function runHolidayMark() {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = istToday();
   const employees = await User.find({ role: { $in: ['EMPLOYEE', 'HR', 'ACCOUNTS', 'DIRECTOR'] }, isActive: true });
   if (today.getDay() === 0) {
     for (const emp of employees) {
@@ -40,7 +46,7 @@ async function runHolidayMark() {
 }
 
 async function runEodEvaluation() {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = istToday();
   let absentCount = 0, halfCount = 0, fullCount = 0;
 
   const noCheckout = await Attendance.find({

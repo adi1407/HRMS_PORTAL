@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Info, AlertTriangle, XCircle, AlertOctagon } from 'lucide-react';
 import api from '../utils/api';
 
 const SEV_STYLE = {
-  INFO:     { bg: '#dbeafe', color: '#2563eb', icon: 'ℹ️' },
-  WARNING:  { bg: '#fef3c7', color: '#b45309', icon: '⚠️' },
-  ERROR:    { bg: '#fee2e2', color: '#b91c1c', icon: '❌' },
-  CRITICAL: { bg: '#7f1d1d', color: '#fff',    icon: '🔴' },
+  INFO:     { bg: '#dbeafe', color: '#2563eb', Icon: Info },
+  WARNING:  { bg: '#fef3c7', color: '#b45309', Icon: AlertTriangle },
+  ERROR:    { bg: '#fee2e2', color: '#b91c1c', Icon: XCircle },
+  CRITICAL: { bg: '#7f1d1d', color: '#fff',    Icon: AlertOctagon },
 };
 const METHOD_STYLE = {
   POST:   { bg: '#dcfce7', color: '#15803d' },
@@ -271,7 +272,7 @@ export default function AuditLogPage() {
                 <div className="card" style={{ padding: '12px 16px', marginLeft: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.88rem' }}>{sev.icon}</span>
+                      <sev.Icon size={14} strokeWidth={2} />
                       <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#111827' }}>{log.actorName || log.actor?.name || 'System'}</span>
                       {log.actor?.employeeId && <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{log.actor.employeeId}</span>}
                       {log.actorRole && <Badge text={log.actorRole} bg="#f3f4f6" color="#6b7280" />}

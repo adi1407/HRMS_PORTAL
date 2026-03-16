@@ -10,6 +10,12 @@ const { createAuditLog } = require('../utils/auditLog.utils');
 const { generateMonthlySalary } = require('../services/salary.service');
 const { buildAttendanceExcel } = require('../utils/excel.utils');
 
+function istToday() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 router.post('/checkin', authenticate, authorize('EMPLOYEE', 'ACCOUNTS', 'HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
     const { branchId, faceDescriptor, lat, lon, wifiSSID } = req.body;
@@ -125,7 +131,7 @@ router.post('/request', authenticate, authorize('EMPLOYEE', 'ACCOUNTS', 'HR', 'D
   try {
     const { message } = req.body;
     if (!message?.trim()) return next(new ApiError(400, 'Message is required.'));
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = istToday();
     const existing = await AttendanceRequest.findOne({ employee: req.user._id, date: today, status: 'PENDING' });
     if (existing) return next(new ApiError(409, 'You already have a pending request for today.'));
     const request = await AttendanceRequest.create({ employee: req.user._id, date: today, message: message.trim() });

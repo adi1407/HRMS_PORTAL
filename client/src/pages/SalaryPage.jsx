@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RefreshCw, Wallet, CheckCircle2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
 
@@ -68,7 +69,7 @@ function EmployeeSalaryView() {
         <select className="form-select" value={year} onChange={e => setYear(Number(e.target.value))}>
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <button className="btn btn--secondary" onClick={() => fetchSalary()}>🔄 Refresh</button>
+        <button className="btn btn--secondary" onClick={() => fetchSalary()}><span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RefreshCw size={14} strokeWidth={2} /> Refresh</span></button>
       </div>
       {error && <div className="alert alert--error">{error}</div>}
       {showPinModal && (
@@ -102,7 +103,7 @@ function EmployeeSalaryView() {
       {loading && <div className="page-loading">Loading salary slip...</div>}
       {!loading && !salary && !error && !showPinModal && (
         <div className="empty-state">
-          <div className="empty-state-icon">💰</div>
+          <div className="empty-state-icon"><Wallet size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No salary slip found</h3>
           <p>Salary for {MONTHS[month-1]} {year} has not been generated yet.</p>
         </div>
@@ -210,7 +211,7 @@ function AdminSalaryView() {
           </div>
           {selected.status === 'DRAFT' && (
             <button className="btn btn--primary" onClick={() => finalizeSlip(selected._id)} disabled={finalizing === selected._id}>
-              {finalizing === selected._id ? 'Finalizing...' : '✅ Finalize Slip'}
+              {finalizing === selected._id ? 'Finalizing...' : <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} strokeWidth={2} /> Finalize Slip</span>}
             </button>
           )}
         </div>
@@ -236,7 +237,7 @@ function AdminSalaryView() {
         <select className="form-select" value={year} onChange={e => setYear(Number(e.target.value))}>
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <button className="btn btn--secondary" onClick={fetchAll}>🔄 Refresh</button>
+        <button className="btn btn--secondary" onClick={fetchAll}><span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RefreshCw size={14} strokeWidth={2} /> Refresh</span></button>
         <button className="btn btn--secondary" onClick={exportExcel}>⬇ Export Excel</button>
         <button className="btn btn--primary" onClick={generateAll} disabled={generating}>
           {generating ? '⏳ Generating...' : '⚡ Generate All Salaries'}
@@ -247,7 +248,7 @@ function AdminSalaryView() {
 
       {!loading && records.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-icon">💰</div>
+          <div className="empty-state-icon"><Wallet size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No salary records</h3>
           <p>No salaries generated for {MONTHS[month-1]} {year} yet.</p>
           <button className="btn btn--primary" onClick={generateAll} disabled={generating}>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Wifi, Building2, MapPin, Save, Loader2, Trash2, Plus, Zap, MapPinned } from 'lucide-react';
 import api from '../utils/api';
 import useAuthStore from '../store/authStore';
 
@@ -25,11 +26,11 @@ export default function BranchSettingsPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        <button className={`btn ${tab === 'network' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('network')}>
-          📶 WiFi & Location
+        <button className={`btn ${tab === 'network' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('network')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Wifi size={15} strokeWidth={2} /> WiFi & Location
         </button>
-        <button className={`btn ${tab === 'departments' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('departments')}>
-          🏢 Departments
+        <button className={`btn ${tab === 'departments' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('departments')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Building2 size={15} strokeWidth={2} /> Departments
         </button>
       </div>
 
@@ -103,7 +104,7 @@ function NetworkTab({ canEdit }) {
 
       <div className="card" style={{ marginBottom: 24, padding: '16px 20px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e40af' }}>
-          <strong>📶 How WiFi-based check-in works:</strong>
+          <strong><Wifi size={14} strokeWidth={2} style={{ verticalAlign: 'middle', marginRight: 4 }} /> How WiFi-based check-in works:</strong>
         </p>
         <ol style={{ margin: '8px 0 0', paddingLeft: 20, fontSize: '0.85rem', color: '#1e40af', lineHeight: 1.8 }}>
           <li>Add your <strong>office WiFi name(s)</strong> below (e.g. "OfficeWiFi-5G").</li>
@@ -121,7 +122,7 @@ function NetworkTab({ canEdit }) {
       {!loading && branches.map(branch => (
         <div key={branch._id} className="card" style={{ marginBottom: 20, padding: '20px 24px' }}>
           <div style={{ marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>🏢 {branch.name}</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}><Building2 size={16} strokeWidth={2} color="#2563eb" /> {branch.name}</h3>
             <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>
               {branch.address || 'No address set'}
             </p>
@@ -130,14 +131,14 @@ function NetworkTab({ canEdit }) {
           {/* WiFi SSIDs Section */}
           <div style={{ marginBottom: 20 }}>
             <p style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.85rem', color: '#374151' }}>
-              📶 Allowed WiFi Networks ({(branch.wifiSSIDs || []).length})
+              <Wifi size={14} strokeWidth={2} style={{ verticalAlign: 'middle', marginRight: 2 }} /> Allowed WiFi Networks ({(branch.wifiSSIDs || []).length})
               {(branch.wifiSSIDs || []).length === 0 && <span style={{ fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>— No restriction (all networks allowed)</span>}
             </p>
             {(branch.wifiSSIDs || []).length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {branch.wifiSSIDs.map(ssid => (
                   <div key={ssid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0' }}>
-                    <span style={{ fontSize: '1.1rem' }}>📶</span>
+                    <span style={{ display: 'flex', alignItems: 'center' }}><Wifi size={16} strokeWidth={2} color="#16a34a" /></span>
                     <span style={{ fontSize: '0.92rem', flex: 1, fontWeight: 600, color: '#111827' }}>{ssid}</span>
                     {canEdit && (
                       <button onClick={() => removeSSID(branch._id, ssid)} disabled={working === branch._id + ssid}
@@ -232,7 +233,7 @@ function DepartmentsTab({ canEdit }) {
 
       {/* Role mapping info */}
       <div className="card" style={{ marginBottom: 20, padding: '16px 20px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-        <p style={{ margin: '0 0 10px', fontSize: '0.875rem', color: '#166534', fontWeight: 600 }}>🏢 Department → System Role Mapping</p>
+        <p style={{ margin: '0 0 10px', fontSize: '0.875rem', color: '#166534', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><Building2 size={15} strokeWidth={2} color="#166534" /> Department → System Role Mapping</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 8 }}>
           {DEFAULT_DEPARTMENTS.map(d => (
             <div key={d.name} style={{ padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid #d1fae5' }}>
@@ -278,7 +279,7 @@ function DepartmentsTab({ canEdit }) {
 
       {!loading && depts.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-icon">🏢</div>
+          <div className="empty-state-icon"><Building2 size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No departments yet</h3>
           <p>Click below to set up IT, HR, Accounts, Pharmacy &amp; Manager Head departments.</p>
           {canEdit && (
@@ -329,11 +330,11 @@ function GeoFenceForm({ branch, canEdit, onSave, onClear, saving }) {
   const [gpsMsg, setGpsMsg] = useState('');
 
   const useMyLocation = () => {
-    if (!navigator.geolocation) { setGpsMsg('❌ Geolocation not supported.'); return; }
-    setGpsMsg('⏳ Getting location…');
+    if (!navigator.geolocation) { setGpsMsg('Geolocation not supported.'); return; }
+    setGpsMsg('Getting location…');
     navigator.geolocation.getCurrentPosition(
-      pos => { setLat(pos.coords.latitude.toFixed(8)); setLon(pos.coords.longitude.toFixed(8)); setGpsMsg(`📍 Got location (±${Math.round(pos.coords.accuracy)}m accuracy)`); },
-      () => setGpsMsg('❌ Location denied. Enter coordinates manually.'),
+      pos => { setLat(pos.coords.latitude.toFixed(8)); setLon(pos.coords.longitude.toFixed(8)); setGpsMsg(`Got location (±${Math.round(pos.coords.accuracy)}m accuracy)`); },
+      () => setGpsMsg('Location denied. Enter coordinates manually.'),
       { timeout: 10000, enableHighAccuracy: true }
     );
   };
@@ -341,7 +342,7 @@ function GeoFenceForm({ branch, canEdit, onSave, onClear, saving }) {
   return (
     <div>
       <p style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.85rem', color: '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
-        📍 GPS Geo-fence
+        <MapPin size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> GPS Geo-fence
         {hasGeo
           ? <span style={{ fontWeight: 400, fontSize: '0.78rem', color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: 12 }}>Active — {branch.radiusMeters}m radius</span>
           : <span style={{ fontWeight: 400, fontSize: '0.78rem', color: '#6b7280' }}>— Not configured (GPS check disabled)</span>
@@ -367,9 +368,9 @@ function GeoFenceForm({ branch, canEdit, onSave, onClear, saving }) {
               <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: 4 }}>Radius (m)</label>
               <input className="form-input" style={{ width: '100%', maxWidth: 90 }} type="number" min="10" max="500" value={radius} onChange={e => setRadius(e.target.value)} />
             </div>
-            <button className="btn btn--secondary" onClick={useMyLocation} style={{ fontSize: '0.82rem' }}>📍 Use My GPS</button>
-            <button className="btn btn--primary" onClick={() => onSave({ latitude: parseFloat(lat), longitude: parseFloat(lon), radiusMeters: parseInt(radius) })} disabled={!lat || !lon || saving} style={{ fontSize: '0.82rem' }}>
-              {saving ? 'Saving…' : '💾 Save Geo-fence'}
+            <button className="btn btn--secondary" onClick={useMyLocation} style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4 }}><MapPinned size={14} strokeWidth={2} /> Use My GPS</button>
+            <button className="btn btn--primary" onClick={() => onSave({ latitude: parseFloat(lat), longitude: parseFloat(lon), radiusMeters: parseInt(radius) })} disabled={!lat || !lon || saving} style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+              {saving ? <><Loader2 size={14} className="spin" /> Saving…</> : <><Save size={14} strokeWidth={2} /> Save Geo-fence</>}
             </button>
             {hasGeo && <button className="btn btn--danger" onClick={onClear} disabled={saving} style={{ fontSize: '0.82rem' }}>✕ Disable</button>}
           </div>

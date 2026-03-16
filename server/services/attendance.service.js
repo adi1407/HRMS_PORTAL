@@ -25,6 +25,16 @@ const HALFDAY_CHECKIN   = 13 * 60;       // 1:00 PM  — after this = HALF_DAY (
 const EARLY_CHECKOUT    = 16 * 60;       // 4:00 PM  — before this = HALF_DAY (unless 8+ h worked)
 const FULLDAY_HOURS     = 8;             // 8+ hours worked = FULL_DAY regardless of times
 
+const TZ = 'Asia/Kolkata';
+function toIST(date) {
+  return new Date(date.toLocaleString('en-US', { timeZone: TZ }));
+}
+function istToday() {
+  const d = toIST(new Date());
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
 
   // Step 1: WiFi SSID verification (replaces IP-based check)
@@ -62,14 +72,14 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
   }
 
   // Step 4: Duplicate check
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = istToday();
   const existing = await Attendance.findOne({ employee: employeeId, date: todayStart });
   if (existing?.checkIn) throw new ApiError(409, 'Already checked in today.');
 
-  // Step 5: Time-based status at check-in
-  const now       = new Date();
-  const totalMins = now.getHours() * 60 + now.getMinutes();
+  // Step 5: Time-based status at check-in (IST)
+  const now      = new Date();
+  const nowIST   = toIST(now);
+  const totalMins = nowIST.getHours() * 60 + nowIST.getMinutes();
 
   let status        = 'FULL_DAY';
   let isRealHalfDay = false;
@@ -98,7 +108,7 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
   }
 
   // Step 6: Save
-  const checkInTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const checkInTime = `${String(nowIST.getHours()).padStart(2,'0')}:${String(nowIST.getMinutes()).padStart(2,'0')}`;
 
   const attendance = await Attendance.findOneAndUpdate(
     { employee: employeeId, date: todayStart },
@@ -145,17 +155,17 @@ const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon,
   const faceResult = await verifyFace(employeeId, faceDescriptor);
   if (!faceResult.matched) throw new ApiError(401, 'Face not recognized. Check-out denied.');
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = istToday();
 
   const attendance = await Attendance.findOne({ employee: employeeId, date: todayStart });
   if (!attendance?.checkIn) throw new ApiError(400, 'No check-in found for today.');
   if (attendance.checkOut)  throw new ApiError(409, 'Already checked out today.');
 
   const now          = new Date();
-  const checkoutMins = now.getHours() * 60 + now.getMinutes();
+  const nowIST       = toIST(now);
+  const checkoutMins = nowIST.getHours() * 60 + nowIST.getMinutes();
   const workingHours = parseFloat(((now - attendance.checkIn) / (1000 * 60 * 60)).toFixed(2));
-  const checkOutTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const checkOutTime = `${String(nowIST.getHours()).padStart(2,'0')}:${String(nowIST.getMinutes()).padStart(2,'0')}`;
 
   const updateFields = { checkOut: now, checkOutTime, workingHours };
   let outMessage = '';
@@ -195,8 +205,7 @@ const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon,
 };
 
 const getTodayAttendance = async (employeeId) => {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = istToday();
   return Attendance.findOne(
     { employee: employeeId, date: todayStart },
     { status: 0, isRealHalfDay: 0, faceConfidence: 0 } // Safe projection

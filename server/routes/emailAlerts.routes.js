@@ -50,7 +50,8 @@ router.get('/history', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'),
 // ── GET /stats — alert statistics ────────────────────────────
 router.get('/stats', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayStart = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    todayStart.setHours(0, 0, 0, 0);
 
     const [total, sentToday, byType, byStatus] = await Promise.all([
       EmailAlert.countDocuments(),

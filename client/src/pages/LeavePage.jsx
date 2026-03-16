@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
+import { Sun } from 'lucide-react';
 
 const LEAVE_TYPES = ['CASUAL', 'SICK', 'EARNED', 'MATERNITY', 'PATERNITY', 'UNPAID', 'COMP_OFF', 'OTHER'];
 
@@ -483,7 +484,7 @@ function CompOffPanel({ onMsg }) {
 
       {!loading && sundayDates.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-icon">☀️</div>
+          <div className="empty-state-icon"><Sun size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No Sunday workers</h3>
           <p>No employees have attendance records on Sundays in {MONTHS_FULL[month-1]} {year}.</p>
         </div>

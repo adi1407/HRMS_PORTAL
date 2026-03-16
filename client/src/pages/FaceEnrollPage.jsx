@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Loader2, XCircle, CheckCircle2, RefreshCw, Camera } from 'lucide-react';
 import api from '../utils/api';
 
 const MIN_SAMPLES = 3;
@@ -258,7 +259,7 @@ export default function FaceEnrollPage() {
             <div className={`status-indicator status-indicator--${
               modelStatus === 'ready' ? 'success' : modelStatus === 'error' ? 'error' : 'checking'
             }`}>
-              {modelStatus === 'loading' && '⏳ '}{modelStatus === 'error' && '❌ '}{modelStatus === 'ready' && '✅ '}
+              {modelStatus === 'loading' && <Loader2 size={14} className="spin" style={{display:'inline',verticalAlign:'middle',marginRight:4}} />}{modelStatus === 'error' && <XCircle size={14} strokeWidth={2} color="#dc2626" style={{display:'inline',verticalAlign:'middle',marginRight:4}} />}{modelStatus === 'ready' && <CheckCircle2 size={14} strokeWidth={2} color="#16a34a" style={{display:'inline',verticalAlign:'middle',marginRight:4}} />}
               {modelMsg}
             </div>
           )}
@@ -271,7 +272,7 @@ export default function FaceEnrollPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
             {(modelStatus === 'idle' || modelStatus === 'error') && (
               <button className="btn btn--secondary" onClick={loadModels}>
-                {modelStatus === 'error' ? '🔄 Retry' : '📷 Start Camera'}
+                {modelStatus === 'error' ? <><RefreshCw size={14} strokeWidth={2} /> Retry</> : <><Camera size={14} strokeWidth={2} /> Start Camera</>}
               </button>
             )}
             {cameraOn && (
@@ -322,7 +323,7 @@ export default function FaceEnrollPage() {
               onClick={captureDescriptor}
               disabled={!canCapture}
             >
-              {capturing ? '⏳ Detecting...' : `📸 Capture Sample (${descriptors.length}/${MAX_SAMPLES})`}
+              {capturing ? <><Loader2 size={14} className="spin" /> Detecting...</> : <><Camera size={14} strokeWidth={2} /> Capture Sample ({descriptors.length}/{MAX_SAMPLES})</>}
             </button>
 
             {descriptors.length > 0 && (

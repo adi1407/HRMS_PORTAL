@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import useAuthStore from '../store/authStore';
+import { Users } from 'lucide-react';
 
 const PAGE_SIZE = 25;
 
@@ -270,7 +271,7 @@ export default function EmployeesPage() {
 
       {!loading && filtered.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-icon">👥</div>
+          <div className="empty-state-icon"><Users size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No employees found</h3>
           <p>{search ? `No results for "${search}"` : 'No employees added yet.'}</p>
         </div>
@@ -317,8 +318,8 @@ export default function EmployeesPage() {
                     )}
                     {isAccounts && (
                       <td data-label="Bank">
-                        <span style={{ fontSize: '0.8rem', color: emp.bankAccountNumber ? '#16a34a' : '#dc2626' }}>
-                          {emp.bankAccountNumber ? '✅ Set' : '❌ Missing'}
+                        <span style={{ fontSize: '0.8rem', color: emp.bankAccountNumber ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                          {emp.bankAccountNumber ? 'Set' : 'Missing'}
                         </span>
                         <button
                           className="btn-tiny btn-tiny--blue"
@@ -335,7 +336,7 @@ export default function EmployeesPage() {
                           className={`btn-tiny ${emp.faceEnrolled ? 'btn-tiny--green' : 'btn-tiny--red'}`}
                           onClick={() => navigate(`/employees/${emp._id}/enroll-face`)}
                         >
-                          {emp.faceEnrolled ? '✅ Enrolled' : '❌ Enroll'}
+                          <span style={{ color: emp.faceEnrolled ? '#16a34a' : '#dc2626' }}>{emp.faceEnrolled ? 'Enrolled' : 'Enroll'}</span>
                         </button>
                       </td>
                     )}

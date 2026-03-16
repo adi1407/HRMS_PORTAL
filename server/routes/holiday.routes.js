@@ -22,7 +22,7 @@ router.post('/', authenticate, authorize('SUPER_ADMIN', 'DIRECTOR'), async (req,
 
     // If the holiday is for TODAY, the midnight cron won't run again — apply immediately
     const holidayDate = new Date(holiday.date); holidayDate.setHours(0, 0, 0, 0);
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })); today.setHours(0, 0, 0, 0);
     if (holidayDate.getTime() === today.getTime()) {
       const staff = await User.find({ isActive: true, role: { $in: ['EMPLOYEE', 'HR', 'ACCOUNTS', 'DIRECTOR'] } });
       for (const emp of staff) {

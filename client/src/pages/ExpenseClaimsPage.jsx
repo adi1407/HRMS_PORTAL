@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
+import { Receipt } from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'TRAVEL',        label: 'Travel' },
@@ -146,7 +147,7 @@ function MyClaims({ claims, onDeleted }) {
   if (!claims.length) {
     return (
       <div className="empty-state" style={{ paddingTop: 24 }}>
-        <div className="empty-state-icon">🧾</div>
+        <div className="empty-state-icon"><Receipt size={40} strokeWidth={1.5} color="#9ca3af" /></div>
         <h3>No claims yet</h3>
         <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Submit an expense claim using the form above</p>
       </div>
@@ -283,7 +284,7 @@ function ReviewPanel() {
         <div className="page-loading">Loading...</div>
       ) : claims.length === 0 ? (
         <div className="empty-state" style={{ paddingTop: 24 }}>
-          <div className="empty-state-icon">🧾</div>
+          <div className="empty-state-icon"><Receipt size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No {statusFilter || ''} claims</h3>
         </div>
       ) : (

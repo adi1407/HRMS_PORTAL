@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import useAuthStore from '../store/authStore';
+import { Megaphone } from 'lucide-react';
 
 const HOLIDAY_TYPES = ['NATIONAL', 'REGIONAL', 'COMPANY', 'OPTIONAL'];
 const TYPE_COLORS   = { NATIONAL: '#2563eb', REGIONAL: '#7c3aed', COMPANY: '#059669', OPTIONAL: '#d97706' };
@@ -121,7 +122,7 @@ export default function HolidayPage() {
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
                 <div style={{ padding: '10px 14px', fontSize: '0.82rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, color: '#166534', width: '100%' }}>
-                  📢 All employees, HR & Accounts will be auto-marked <strong>present (Holiday)</strong> for this date.
+                  <Megaphone size={14} strokeWidth={2} style={{verticalAlign:'middle', marginRight:4}} /> All employees, HR & Accounts will be auto-marked <strong>present (Holiday)</strong> for this date.
                 </div>
               </div>
             </div>

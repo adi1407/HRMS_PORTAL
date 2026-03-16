@@ -33,9 +33,9 @@ const ROLE_COLOR = { EMPLOYEE: '#2563eb', HR: '#7c3aed', ACCOUNTS: '#0891b2', DI
 
 function getGreeting() {
   const h = new Date().getHours();
-  if (h < 12) return { text: 'Good Morning', icon: Sun, emoji: '☀️' };
-  if (h < 17) return { text: 'Good Afternoon', icon: Sun, emoji: '🌤️' };
-  return { text: 'Good Evening', icon: Moon, emoji: '🌙' };
+  if (h < 12) return { text: 'Good Morning', icon: Sun };
+  if (h < 17) return { text: 'Good Afternoon', icon: Sun };
+  return { text: 'Good Evening', icon: Moon };
 }
 
 function AnnouncementBanner() {
@@ -465,7 +465,7 @@ export default function DashboardPage() {
         <div className="db-hero-content">
           <div className="db-hero-text">
             <h1 className="db-hero-greeting">
-              {greeting.text}, <strong>{user?.name?.split(' ')[0]}</strong> {greeting.emoji}
+              {greeting.text}, <strong>{user?.name?.split(' ')[0]}</strong>
             </h1>
             <p className="db-hero-date">
               {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}

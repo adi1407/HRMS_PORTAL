@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Loader2, BarChart3, ClipboardList, CalendarDays, Wallet, Printer } from 'lucide-react';
 import api from '../utils/api';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -136,7 +137,15 @@ export default function ReportsPage() {
             </select>
           </div>
           <button className="btn btn--primary" onClick={generate} disabled={loading}>
-            {loading ? '⏳ Generating...' : '📊 Generate Report'}
+            {loading ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Loader2 size={14} className="spin" /> Generating...
+            </span>
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <BarChart3 size={14} strokeWidth={2} /> Generate Report
+            </span>
+          )}
           </button>
         </div>
       </div>
@@ -146,7 +155,7 @@ export default function ReportsPage() {
       {/* ── Empty state ── */}
       {!hasData && !loading && (
         <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon"><ClipboardList size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>Select a month and generate</h3>
           <p>Choose month &amp; year above, then click Generate Report to view attendance and salary data for all employees.</p>
         </div>
@@ -161,14 +170,18 @@ export default function ReportsPage() {
               className={`btn ${tab === 'attendance' ? 'btn--primary' : 'btn--secondary'}`}
               onClick={() => setTab('attendance')}
             >
-              📅 Attendance Report
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CalendarDays size={14} strokeWidth={2} /> Attendance Report
+              </span>
               <span style={{ marginLeft: '6px', fontWeight: 400, opacity: 0.8 }}>({attData.length} employees)</span>
             </button>
             <button
               className={`btn ${tab === 'salary' ? 'btn--primary' : 'btn--secondary'}`}
               onClick={() => setTab('salary')}
             >
-              💰 Salary Report
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Wallet size={14} strokeWidth={2} /> Salary Report
+              </span>
               <span style={{ marginLeft: '6px', fontWeight: 400, opacity: 0.8 }}>({salData.length} employees)</span>
             </button>
           </div>
@@ -185,7 +198,11 @@ export default function ReportsPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button className="btn btn--secondary" onClick={exportAttCSV}>⬇ Export CSV</button>
-                  <button className="btn btn--secondary" onClick={() => window.print()}>🖨 Print</button>
+                  <button className="btn btn--secondary" onClick={() => window.print()}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Printer size={14} strokeWidth={2} /> Print
+                    </span>
+                  </button>
                 </div>
               </div>
 
@@ -263,7 +280,11 @@ export default function ReportsPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button className="btn btn--secondary" onClick={exportSalCSV}>⬇ Export CSV</button>
-                  <button className="btn btn--secondary" onClick={() => window.print()}>🖨 Print</button>
+                  <button className="btn btn--secondary" onClick={() => window.print()}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Printer size={14} strokeWidth={2} /> Print
+                    </span>
+                  </button>
                 </div>
               </div>
 

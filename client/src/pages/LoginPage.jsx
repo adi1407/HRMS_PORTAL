@@ -5,11 +5,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
+import { Wifi, ScanFace, Wallet, BarChart3, Mail, Lock, ArrowRight, Shield, Users, Clock } from 'lucide-react';
 
 const schema = z.object({
   email:    z.string().email('Enter a valid email'),
   password: z.string().min(1, 'Password is required'),
 });
+
+const FEATURES = [
+  { Icon: Wifi,     label: 'Office WiFi-Based Attendance',       desc: 'Auto-verify via office network' },
+  { Icon: ScanFace, label: 'Face Recognition Check-In',          desc: 'Secure biometric verification' },
+  { Icon: Wallet,   label: 'Auto Salary Deduction & Payslips',   desc: 'Smart payroll processing' },
+  { Icon: BarChart3,label: 'Real-time Reports & Analytics',      desc: 'Insights at a glance' },
+];
+
+const STATS = [
+  { Icon: Shield, value: '99.9%', label: 'Uptime' },
+  { Icon: Users,  value: '500+',  label: 'Employees' },
+  { Icon: Clock,  value: '24/7',  label: 'Support' },
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -18,7 +32,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [geoCoords, setGeoCoords] = useState(null);
 
-  // Silently capture GPS for audit logging — login is never blocked by location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -53,10 +66,26 @@ export default function LoginPage() {
           <p className="login-brand-tagline">Human Resource Management System</p>
         </div>
         <div className="login-features">
-          <div className="login-feature"><span>📶</span> Office WiFi-Based Attendance</div>
-          <div className="login-feature"><span>👤</span> Face Recognition Check-In</div>
-          <div className="login-feature"><span>💰</span> Auto Salary Deduction &amp; Payslips</div>
-          <div className="login-feature"><span>📊</span> Real-time Reports &amp; Analytics</div>
+          {FEATURES.map(({ Icon, label, desc }) => (
+            <div className="login-feature" key={label}>
+              <span className="login-feature-icon">
+                <Icon size={18} strokeWidth={2} />
+              </span>
+              <div>
+                <span className="login-feature-label">{label}</span>
+                <span className="login-feature-desc">{desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="login-stats">
+          {STATS.map(({ Icon, value, label }) => (
+            <div className="login-stat" key={label}>
+              <Icon size={16} strokeWidth={2} />
+              <span className="login-stat-value">{value}</span>
+              <span className="login-stat-label">{label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -72,30 +101,36 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <div className="form-group">
               <label className="form-label">Email Address</label>
-              <input
-                {...register('email')}
-                type="email"
-                className={`form-input${errors.email ? ' form-input--error' : ''}`}
-                placeholder="admin@hrms.com"
-                autoComplete="email"
-              />
+              <div className="login-input-wrap">
+                <Mail size={16} strokeWidth={2} className="login-input-icon" />
+                <input
+                  {...register('email')}
+                  type="email"
+                  className={`form-input login-input-padded${errors.email ? ' form-input--error' : ''}`}
+                  placeholder="you@company.com"
+                  autoComplete="email"
+                />
+              </div>
               {errors.email && <span className="form-error">{errors.email.message}</span>}
             </div>
 
             <div className="form-group">
               <label className="form-label">Password</label>
-              <input
-                {...register('password')}
-                type="password"
-                className={`form-input${errors.password ? ' form-input--error' : ''}`}
-                placeholder="Enter your password"
-                autoComplete="current-password"
-              />
+              <div className="login-input-wrap">
+                <Lock size={16} strokeWidth={2} className="login-input-icon" />
+                <input
+                  {...register('password')}
+                  type="password"
+                  className={`form-input login-input-padded${errors.password ? ' form-input--error' : ''}`}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                />
+              </div>
               {errors.password && <span className="form-error">{errors.password.message}</span>}
             </div>
 
-            <button type="submit" className="btn btn--primary btn--full" disabled={loading}>
-              {loading ? <span className="btn-spinner"></span> : 'Sign In'}
+            <button type="submit" className="btn btn--primary btn--full login-submit" disabled={loading}>
+              {loading ? <span className="btn-spinner"></span> : (<>Sign In <ArrowRight size={16} strokeWidth={2.5} /></>)}
             </button>
           </form>
 

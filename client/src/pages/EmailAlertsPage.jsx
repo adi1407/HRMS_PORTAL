@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Cake, Trophy, Clock, ClipboardList, AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
 
 const TYPES = ['BIRTHDAY', 'WORK_ANNIVERSARY', 'PROBATION_REMINDER', 'LEAVE_BALANCE', 'SLA_BREACH'];
 const STATUSES = ['SENT', 'FAILED', 'SKIPPED'];
 
 const TYPE_CONFIG = {
-  BIRTHDAY:            { icon: '🎂', label: 'Birthday',          bg: '#fce7f3', color: '#be185d' },
-  WORK_ANNIVERSARY:    { icon: '🏆', label: 'Anniversary',       bg: '#fef3c7', color: '#b45309' },
-  PROBATION_REMINDER:  { icon: '⏰', label: 'Probation',         bg: '#dbeafe', color: '#2563eb' },
-  LEAVE_BALANCE:       { icon: '📋', label: 'Leave Balance',     bg: '#dcfce7', color: '#15803d' },
-  SLA_BREACH:          { icon: '🚨', label: 'SLA Breach',        bg: '#fee2e2', color: '#b91c1c' },
+  BIRTHDAY:            { Icon: Cake, label: 'Birthday',          bg: '#fce7f3', color: '#be185d' },
+  WORK_ANNIVERSARY:    { Icon: Trophy, label: 'Anniversary',       bg: '#fef3c7', color: '#b45309' },
+  PROBATION_REMINDER:  { Icon: Clock, label: 'Probation',         bg: '#dbeafe', color: '#2563eb' },
+  LEAVE_BALANCE:       { Icon: ClipboardList, label: 'Leave Balance',     bg: '#dcfce7', color: '#15803d' },
+  SLA_BREACH:          { Icon: AlertTriangle, label: 'SLA Breach',        bg: '#fee2e2', color: '#b91c1c' },
 };
 const STATUS_STYLE = {
   SENT:    { bg: '#dcfce7', color: '#15803d' },
@@ -110,7 +111,7 @@ export default function EmailAlertsPage() {
           return (
             <div key={t} style={{ padding: '10px 16px', borderRadius: 10, background: tc.bg, minWidth: 70, textAlign: 'center' }}>
               <div style={{ fontSize: '1.2rem', fontWeight: 700, color: tc.color }}>{stats.byType?.[t] ?? 0}</div>
-              <div style={{ fontSize: '0.68rem', color: tc.color, fontWeight: 600 }}>{tc.icon} {tc.label}</div>
+              <div style={{ fontSize: '0.68rem', color: tc.color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}><tc.Icon size={14} strokeWidth={2} /> {tc.label}</div>
             </div>
           );
         })}
@@ -125,7 +126,7 @@ export default function EmailAlertsPage() {
             return (
               <button key={t} className="btn btn--secondary" style={{ fontSize: '0.82rem', padding: '6px 14px' }}
                 onClick={() => trigger(t)} disabled={!!triggering}>
-                {triggering === t ? '...' : `${tc.icon} ${tc.label}`}
+                {triggering === t ? '...' : <><tc.Icon size={14} strokeWidth={2} /> {tc.label}</>}
               </button>
             );
           })}
@@ -135,7 +136,7 @@ export default function EmailAlertsPage() {
       {/* Upcoming events */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
         <div className="card" style={{ padding: 14 }}>
-          <h5 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.88rem', color: '#be185d' }}>🎂 Upcoming Birthdays (30 days)</h5>
+          <h5 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.88rem', color: '#be185d', display: 'flex', alignItems: 'center', gap: 6 }}><Cake size={16} strokeWidth={2} /> Upcoming Birthdays (30 days)</h5>
           {(stats.upcomingBirthdays || []).length === 0
             ? <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>None in the next 30 days</p>
             : (stats.upcomingBirthdays || []).map((u, i) => (
@@ -149,7 +150,7 @@ export default function EmailAlertsPage() {
           }
         </div>
         <div className="card" style={{ padding: 14 }}>
-          <h5 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.88rem', color: '#b45309' }}>🏆 Upcoming Anniversaries (30 days)</h5>
+          <h5 style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.88rem', color: '#b45309', display: 'flex', alignItems: 'center', gap: 6 }}><Trophy size={16} strokeWidth={2} /> Upcoming Anniversaries (30 days)</h5>
           {(stats.upcomingAnniversaries || []).length === 0
             ? <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>None in the next 30 days</p>
             : (stats.upcomingAnniversaries || []).map((u, i) => (
@@ -168,7 +169,7 @@ export default function EmailAlertsPage() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <select className="form-input" value={filters.type} onChange={e => setFilter('type', e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }}>
           <option value="">All Types</option>
-          {TYPES.map(t => <option key={t} value={t}>{TYPE_CONFIG[t].icon} {TYPE_CONFIG[t].label}</option>)}
+          {TYPES.map(t => <option key={t} value={t}>{TYPE_CONFIG[t].label}</option>)}
         </select>
         <select className="form-input" value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ flex: '1 1 100px', minWidth: 0 }}>
           <option value="">All Statuses</option>
@@ -196,7 +197,7 @@ export default function EmailAlertsPage() {
               <div key={a._id} className="card" style={{ padding: '12px 16px', borderLeft: `4px solid ${tc.color}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '1rem' }}>{tc.icon}</span>
+                    <tc.Icon size={14} strokeWidth={2} />
                     <Badge text={tc.label} bg={tc.bg} color={tc.color} />
                     <Badge text={a.status} bg={sc.bg} color={sc.color} />
                     <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827' }}>{a.recipientName || '—'}</span>

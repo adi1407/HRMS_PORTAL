@@ -6,9 +6,15 @@ const User    = require('../models/User.model');
 const Salary  = require('../models/Salary.model');
 const Holiday = require('../models/Holiday.model');
 
+function istToday() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 router.get('/dashboard', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS'), async (req, res, next) => {
   try {
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayStart = istToday();
     const next30     = new Date(todayStart.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const [totalEmployees, todayRecords, roleAgg, upcomingHolidays, isSunday, todayHoliday, expectedEmployeeIds] = await Promise.all([

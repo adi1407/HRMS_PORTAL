@@ -1,19 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import {
+  Bell, CheckCircle2, XCircle, ClipboardList, Ticket, Target, PlusCircle,
+  Megaphone, Rocket, PartyPopper, Laptop, Package, AlertTriangle,
+  Wallet, Ban, FileEdit, Banknote, BellRing,
+} from 'lucide-react';
 import api from '../../utils/api';
 
-const TYPE_ICONS = {
-  LEAVE_APPROVED: '✅', LEAVE_REJECTED: '❌', LEAVE_REQUEST: '📋',
-  TICKET_UPDATE: '🎫', TICKET_ASSIGNED: '🎯', TICKET_NEW: '🆕',
-  ANNOUNCEMENT: '📢',
-  ONBOARDING_ASSIGNED: '🚀', ONBOARDING_COMPLETE: '🎉',
-  ASSET_ASSIGNED: '💻', ASSET_RETURNED: '📦',
-  WARNING_ISSUED: '⚠️',
-  EXPENSE_APPROVED: '💰', EXPENSE_REJECTED: '🚫',
-  RESIGNATION_UPDATE: '📝',
-  SALARY_UPDATE: '💵',
-  GENERAL: '🔔',
+const TYPE_CFG = {
+  LEAVE_APPROVED:      { Icon: CheckCircle2,  color: '#16a34a' },
+  LEAVE_REJECTED:      { Icon: XCircle,       color: '#dc2626' },
+  LEAVE_REQUEST:       { Icon: ClipboardList, color: '#2563eb' },
+  TICKET_UPDATE:       { Icon: Ticket,        color: '#7c3aed' },
+  TICKET_ASSIGNED:     { Icon: Target,        color: '#ea580c' },
+  TICKET_NEW:          { Icon: PlusCircle,    color: '#0891b2' },
+  ANNOUNCEMENT:        { Icon: Megaphone,     color: '#2563eb' },
+  ONBOARDING_ASSIGNED: { Icon: Rocket,        color: '#7c3aed' },
+  ONBOARDING_COMPLETE: { Icon: PartyPopper,   color: '#16a34a' },
+  ASSET_ASSIGNED:      { Icon: Laptop,        color: '#0891b2' },
+  ASSET_RETURNED:      { Icon: Package,       color: '#6b7280' },
+  WARNING_ISSUED:      { Icon: AlertTriangle, color: '#d97706' },
+  EXPENSE_APPROVED:    { Icon: Wallet,        color: '#16a34a' },
+  EXPENSE_REJECTED:    { Icon: Ban,           color: '#dc2626' },
+  RESIGNATION_UPDATE:  { Icon: FileEdit,      color: '#9333ea' },
+  SALARY_UPDATE:       { Icon: Banknote,      color: '#059669' },
+  GENERAL:             { Icon: BellRing,      color: '#6b7280' },
 };
 
 function timeAgo(d) {
@@ -159,7 +170,9 @@ export default function NotificationBell() {
               <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af', fontSize: '0.88rem' }}>Loading...</div>
             ) : notifications.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔔</div>
+                <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
+                  <BellRing size={32} strokeWidth={1.5} color="#d1d5db" />
+                </div>
                 <p style={{ color: '#9ca3af', fontSize: '0.88rem', margin: 0 }}>No notifications yet</p>
               </div>
             ) : (
@@ -179,8 +192,12 @@ export default function NotificationBell() {
                   onMouseEnter={e => { e.currentTarget.style.background = n.isRead ? '#f9fafb' : '#e0effe'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? '#fff' : '#f0f7ff'; }}
                 >
-                  <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: 2 }}>
-                    {TYPE_ICONS[n.type] || '🔔'}
+                  <span style={{
+                    flexShrink: 0, marginTop: 2, width: 32, height: 32, borderRadius: 8,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: (TYPE_CFG[n.type]?.color || '#6b7280') + '14',
+                  }}>
+                    {(() => { const cfg = TYPE_CFG[n.type] || TYPE_CFG.GENERAL; return <cfg.Icon size={16} strokeWidth={2} color={cfg.color} />; })()}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p className="notification-dropdown-item-title" style={{

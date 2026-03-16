@@ -4,22 +4,24 @@ import useAuthStore from '../../store/authStore';
 import api from '../../utils/api';
 import NotificationBell from './NotificationBell';
 import {
-  LayoutDashboard, Fingerprint, CalendarDays, Leaf, CreditCard,
-  Users, Gift, Settings, LogOut, Menu, X, FileText, FolderOpen, Receipt, ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert, Star, ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
+  LayoutDashboard, ScanFace, CalendarDays, CalendarMinus2, Wallet,
+  Users, Sparkles, Settings, LogOut, Menu, X, UserMinus, FolderOpen, Receipt,
+  ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert,
+  Star, ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/dashboard',       label: 'Dashboard',       Icon: LayoutDashboard, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/my-profile',      label: 'My Profile',      Icon: UserCircle,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
-  { path: '/checkin',         label: 'Check In/Out',    Icon: Fingerprint,     roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/checkin',         label: 'Check In/Out',    Icon: ScanFace,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/attendance',      label: 'Attendance',      Icon: CalendarDays,    roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
-  { path: '/leave',           label: 'Leave',           Icon: Leaf,            roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
-  { path: '/salary',          label: 'Salary',          Icon: CreditCard,      roles: ['SUPER_ADMIN','DIRECTOR','ACCOUNTS','EMPLOYEE','HR'] },
+  { path: '/leave',           label: 'Leave',           Icon: CalendarMinus2,  roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/salary',          label: 'Salary',          Icon: Wallet,          roles: ['SUPER_ADMIN','DIRECTOR','ACCOUNTS','EMPLOYEE','HR'] },
   { path: '/employees',       label: 'Employees',       Icon: Users,           roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS'] },
   { path: '/directory',       label: 'Directory',       Icon: UsersRound,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/recruitment',     label: 'Recruitment',     Icon: UserPlus,        roles: ['SUPER_ADMIN','DIRECTOR','HR'] },
-  { path: '/holidays',        label: 'Holidays',        Icon: Gift,            roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
-  { path: '/resignation',     label: 'Resignation',     Icon: FileText,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/holidays',        label: 'Holidays',        Icon: Sparkles,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/resignation',     label: 'Resignation',     Icon: UserMinus,       roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/documents',       label: 'Documents',       Icon: FolderOpen,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/expense-claims',  label: 'Expense Claims',  Icon: Receipt,         roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/daily-tasks',     label: 'Daily Tasks',      Icon: ClipboardList,   roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },

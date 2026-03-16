@@ -1,20 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
+import { FileText, Laptop, ClipboardList, GraduationCap, Pin, CheckCircle2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
 
 const CATEGORIES = [
-  { value: 'DOCUMENTS',       label: 'Documents',       bg: '#dbeafe', color: '#2563eb', icon: '📄' },
-  { value: 'IT_SETUP',        label: 'IT Setup',        bg: '#f3e8ff', color: '#7c3aed', icon: '💻' },
-  { value: 'HR_FORMALITIES',  label: 'HR Formalities',  bg: '#fef3c7', color: '#b45309', icon: '📋' },
-  { value: 'TRAINING',        label: 'Training',        bg: '#dcfce7', color: '#15803d', icon: '🎓' },
-  { value: 'OTHER',           label: 'Other',           bg: '#f3f4f6', color: '#6b7280', icon: '📌' },
+  { value: 'DOCUMENTS',       label: 'Documents',       bg: '#dbeafe', color: '#2563eb', Icon: FileText },
+  { value: 'IT_SETUP',        label: 'IT Setup',        bg: '#f3e8ff', color: '#7c3aed', Icon: Laptop },
+  { value: 'HR_FORMALITIES',  label: 'HR Formalities',  bg: '#fef3c7', color: '#b45309', Icon: ClipboardList },
+  { value: 'TRAINING',        label: 'Training',        bg: '#dcfce7', color: '#15803d', Icon: GraduationCap },
+  { value: 'OTHER',           label: 'Other',           bg: '#f3f4f6', color: '#6b7280', Icon: Pin },
 ];
 
 function CatBadge({ category }) {
   const c = CATEGORIES.find(x => x.value === category) || CATEGORIES[4];
   return (
-    <span style={{ padding: '2px 10px', borderRadius: 12, fontSize: '0.72rem', fontWeight: 600, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>
-      {c.icon} {c.label}
+    <span style={{ padding: '2px 10px', borderRadius: 12, fontSize: '0.72rem', fontWeight: 600, background: c.bg, color: c.color, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <c.Icon size={14} strokeWidth={2} /> {c.label}
     </span>
   );
 }
@@ -95,8 +96,8 @@ function EmployeeOnboarding() {
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
           <div>
-            <span style={{ fontWeight: 700, fontSize: '1rem', color: data.status === 'COMPLETED' ? '#15803d' : '#111827' }}>
-              {data.status === 'COMPLETED' ? '✅ Onboarding Complete!' : 'Onboarding In Progress'}
+            <span style={{ fontWeight: 700, fontSize: '1rem', color: data.status === 'COMPLETED' ? '#15803d' : '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {data.status === 'COMPLETED' ? <><CheckCircle2 size={14} strokeWidth={2} /> Onboarding Complete!</> : 'Onboarding In Progress'}
             </span>
             {isOverdue && <span style={{ marginLeft: 10, fontSize: '0.78rem', fontWeight: 700, color: '#dc2626' }}>OVERDUE</span>}
           </div>
@@ -112,7 +113,7 @@ function EmployeeOnboarding() {
         return (
           <div key={cat} style={{ marginBottom: 20 }}>
             <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: catInfo.color, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>{catInfo.icon}</span> {catInfo.label}
+              <catInfo.Icon size={14} strokeWidth={2} /> {catInfo.label}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {items.map(item => (
@@ -285,8 +286,8 @@ function OnboardingDetail({ record, onBack, onUpdated }) {
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: record.status === 'COMPLETED' ? '#15803d' : '#b45309' }}>
-              {record.status === 'COMPLETED' ? '✅ Completed' : 'In Progress'}
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: record.status === 'COMPLETED' ? '#15803d' : '#b45309', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {record.status === 'COMPLETED' ? <><CheckCircle2 size={14} strokeWidth={2} /> Completed</> : 'In Progress'}
             </span>
             {isOverdue && <span style={{ marginLeft: 8, fontSize: '0.78rem', fontWeight: 700, color: '#dc2626' }}>OVERDUE</span>}
             <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af' }}>Due: {fmt(record.dueDate)}</p>

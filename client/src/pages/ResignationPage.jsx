@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
+import { ClipboardList } from 'lucide-react';
 
 export default function ResignationPage() {
   const { user } = useAuthStore();
@@ -238,7 +239,7 @@ function HRPanel() {
 
       {list.length === 0 ? (
         <div className="empty-state" style={{ paddingTop: 24 }}>
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon"><ClipboardList size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No pending resignations</h3>
         </div>
       ) : (
@@ -372,7 +373,7 @@ function HeadView() {
 
       {displayList.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon"><ClipboardList size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No resignations {tab === 'pending' ? 'pending your approval' : 'found'}</h3>
         </div>
       ) : (

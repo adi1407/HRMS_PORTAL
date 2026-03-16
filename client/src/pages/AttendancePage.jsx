@@ -175,7 +175,7 @@ export default function AttendancePage() {
         <div className="search-bar">
           <input
             className="form-input"
-            placeholder="🔍 Filter by employee name or ID…"
+            placeholder="Filter by employee name or ID…"
             value={empSearch}
             onChange={e => setEmpSearch(e.target.value)}
           />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
+import { Image, FileText, Paperclip, FolderOpen, ArrowLeft } from 'lucide-react';
 
 const DOC_TYPES = [
   { value: 'OFFER_LETTER',  label: 'Offer Letter' },
@@ -47,7 +48,7 @@ function FileIcon({ mimeType }) {
       justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0,
       background: isImage ? '#dbeafe' : isPdf ? '#fee2e2' : '#f3f4f6',
     }}>
-      {isImage ? '🖼' : isPdf ? '📄' : '📎'}
+      {isImage ? <Image size={16} strokeWidth={2} /> : isPdf ? <FileText size={16} strokeWidth={2} /> : <Paperclip size={16} strokeWidth={2} />}
     </div>
   );
 }
@@ -139,7 +140,7 @@ function DocList({ docs, onDeleted, canDelete }) {
   if (docs.length === 0) {
     return (
       <div className="empty-state" style={{ paddingTop: 32 }}>
-        <div className="empty-state-icon">📂</div>
+        <div className="empty-state-icon"><FolderOpen size={40} strokeWidth={1.5} color="#9ca3af" /></div>
         <h3>No documents yet</h3>
         <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Upload documents using the form above</p>
       </div>
@@ -325,7 +326,7 @@ function AdminVaultView() {
           <div>
             {!selectedEmp ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>👈</div>
+                <div style={{ marginBottom: 12 }}><ArrowLeft size={32} strokeWidth={1.5} color="#9ca3af" /></div>
                 <p style={{ margin: 0 }}>Select an employee to view or upload their documents</p>
               </div>
             ) : (
