@@ -12,16 +12,16 @@ const { buildAttendanceExcel } = require('../utils/excel.utils');
 
 router.post('/checkin', authenticate, authorize('EMPLOYEE', 'ACCOUNTS', 'HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
-    const { branchId, faceDescriptor, lat, lon } = req.body;
-    const result = await processCheckIn({ employeeId: req.user._id, branchId, faceDescriptor, lat, lon, req });
+    const { branchId, faceDescriptor, lat, lon, wifiSSID } = req.body;
+    const result = await processCheckIn({ employeeId: req.user._id, branchId, faceDescriptor, lat, lon, wifiSSID, req });
     res.status(200).json({ success: true, data: result });
   } catch (err) { next(err); }
 });
 
 router.post('/checkout', authenticate, authorize('EMPLOYEE', 'ACCOUNTS', 'HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
-    const { branchId, faceDescriptor, lat, lon } = req.body;
-    const result = await processCheckOut({ employeeId: req.user._id, branchId, faceDescriptor, lat, lon, req });
+    const { branchId, faceDescriptor, lat, lon, wifiSSID } = req.body;
+    const result = await processCheckOut({ employeeId: req.user._id, branchId, faceDescriptor, lat, lon, wifiSSID, req });
     res.status(200).json({ success: true, data: result });
   } catch (err) { next(err); }
 });

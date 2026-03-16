@@ -21,6 +21,12 @@ export default function CheckInPage() {
   const [geoStatus,  setGeoStatus]  = useState('getting');
   const [geoMessage, setGeoMessage] = useState('Getting your location...');
 
+  // WiFi state
+  const [wifiSSID,        setWifiSSID]        = useState('');
+  const [wifiStatus,      setWifiStatus]      = useState('pending');
+  const [branchSSIDs,     setBranchSSIDs]     = useState([]);
+  const [isOnWifi,        setIsOnWifi]        = useState(null);
+
   // Attendance request state
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestMsg,      setRequestMsg]      = useState('');
@@ -40,15 +46,19 @@ export default function CheckInPage() {
   // Refs that mirror state — used inside async callbacks to avoid stale closures
   const todayRecordRef = useRef(null);
   const geoCoordsRef   = useRef(null);
+  const wifiSSIDRef    = useRef('');
   const userRef        = useRef(user);
 
   useEffect(() => { todayRecordRef.current = todayRecord; }, [todayRecord]);
   useEffect(() => { geoCoordsRef.current   = geoCoords;   }, [geoCoords]);
+  useEffect(() => { wifiSSIDRef.current    = wifiSSID;    }, [wifiSSID]);
   useEffect(() => { userRef.current        = user;        }, [user]);
 
   useEffect(() => {
     fetchTodayRecord();
     startGeoCheck();
+    loadBranchWifi();
+    detectWifiConnection();
     if (isHR) fetchPendingRequests();
     return () => {
       stopCamera();
@@ -79,6 +89,31 @@ export default function CheckInPage() {
       },
       { timeout: 15000, maximumAge: 30000, enableHighAccuracy: true }
     );
+  };
+
+  const loadBranchWifi = async () => {
+    try {
+      const branchId = user?.branch?._id || user?.branch;
+      if (!branchId) return;
+      const { data } = await api.get('/branches');
+      const branch = (data.data || []).find(b => b._id === branchId);
+      if (branch?.wifiSSIDs?.length > 0) {
+        setBranchSSIDs(branch.wifiSSIDs);
+        if (branch.wifiSSIDs.length === 1) {
+          setWifiSSID(branch.wifiSSIDs[0]);
+          setWifiStatus('selected');
+        }
+      } else {
+        setWifiStatus('none');
+      }
+    } catch {}
+  };
+
+  const detectWifiConnection = () => {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn) {
+      setIsOnWifi(conn.type === 'wifi');
+    }
   };
 
   const fetchTodayRecord = async () => {
@@ -184,6 +219,7 @@ export default function CheckInPage() {
     setSubmitting(true);
     const record   = todayRecordRef.current;
     const coords   = geoCoordsRef.current;
+    const ssid     = wifiSSIDRef.current;
     const currentUser = userRef.current;
     const action   = record?.checkInTime ? 'checkout' : 'checkin';
     const endpoint = action === 'checkin' ? '/attendance/checkin' : '/attendance/checkout';
@@ -193,6 +229,7 @@ export default function CheckInPage() {
         faceDescriptor: descriptor,
         lat: coords?.lat ?? null,
         lon: coords?.lon ?? null,
+        wifiSSID: ssid || undefined,
       });
       setResult({ success: true, message: data.data?.message, action });
       fetchTodayRecord();
@@ -340,21 +377,66 @@ export default function CheckInPage() {
             )}
           </div>
 
-          {/* Step 2: Office Network */}
+          {/* Step 2: Office WiFi */}
           <div className="checkin-step-card">
             <div className="checkin-step-header">
               <div className="checkin-step-num">2</div>
-              <h3>Office Network</h3>
+              <h3>Office WiFi</h3>
             </div>
             <p className="checkin-step-desc">
-              You must be connected to the <strong>office WiFi</strong> to check in.
+              Connect to the <strong>office WiFi</strong> and select the network below.
             </p>
-            <div className="status-indicator status-indicator--success" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <Wifi size={14} /> Make sure your device is on the office WiFi before scanning.
-            </div>
-            <p style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 8 }}>
-              If rejected, switch from mobile data to office WiFi and try again.
-            </p>
+
+            {wifiStatus === 'none' && (
+              <div className="status-indicator status-indicator--success" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <Wifi size={14} /> No WiFi restriction configured — you can check in from any network.
+              </div>
+            )}
+
+            {branchSSIDs.length > 0 && (
+              <>
+                {isOnWifi === false && (
+                  <div className="status-indicator status-indicator--error" style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                    <XCircle size={14} /> You appear to be on mobile data. Switch to the office WiFi.
+                  </div>
+                )}
+
+                {branchSSIDs.length === 1 ? (
+                  <div className="status-indicator status-indicator--success" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Wifi size={14} /> Connect to: <strong>{branchSSIDs[0]}</strong>
+                    {wifiSSID === branchSSIDs[0] && <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#059669', padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>Selected</span>}
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: '0.82rem', color: '#374151', fontWeight: 600, marginBottom: 8 }}>Select the WiFi you're connected to:</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {branchSSIDs.map(ssid => (
+                        <button
+                          key={ssid}
+                          type="button"
+                          onClick={() => { setWifiSSID(ssid); setWifiStatus('selected'); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '10px 14px', borderRadius: 10,
+                            border: wifiSSID === ssid ? '2px solid #059669' : '1px solid #e5e7eb',
+                            background: wifiSSID === ssid ? '#f0fdf4' : '#fff',
+                            cursor: 'pointer', textAlign: 'left', fontSize: '0.88rem', fontWeight: 600,
+                          }}
+                        >
+                          <Wifi size={16} color={wifiSSID === ssid ? '#059669' : '#94a3b8'} />
+                          {ssid}
+                          {wifiSSID === ssid && <span style={{ marginLeft: 'auto', fontSize: '0.75rem', background: '#dcfce7', color: '#059669', padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>Connected</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <p style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 8 }}>
+                  If rejected, switch from mobile data to office WiFi and try again.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Step 3: Face Verification — auto-submit on stable detection */}

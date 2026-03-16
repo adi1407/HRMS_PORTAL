@@ -26,7 +26,7 @@ export default function BranchSettingsPage() {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         <button className={`btn ${tab === 'network' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('network')}>
-          📶 Network / IP Settings
+          📶 WiFi & Location
         </button>
         <button className={`btn ${tab === 'departments' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('departments')}>
           🏢 Departments
@@ -39,51 +39,41 @@ export default function BranchSettingsPage() {
   );
 }
 
-/* ─── Network / IP Tab ──────────────────────────────────────── */
+/* ─── WiFi & Location Tab ──────────────────────────────────── */
 function NetworkTab({ canEdit }) {
-  const [branches,   setBranches]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [myIP,       setMyIP]       = useState(null);
-  const [mySubnet,   setMySubnet]   = useState(null);
-  const [isLoopback, setIsLoopback] = useState(false);
-  const [msg,        setMsg]        = useState('');
-  const [working,    setWorking]    = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [msg,      setMsg]      = useState('');
+  const [working,  setWorking]  = useState(null);
 
-  useEffect(() => { fetchBranches(); fetchMyIP(); }, []);
+  useEffect(() => { fetchBranches(); }, []);
 
   const fetchBranches = async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/branches');
       setBranches(data.data);
-    } catch { setMsg('❌ Failed to load office network settings.'); }
+    } catch { setMsg('❌ Failed to load settings.'); }
     finally { setLoading(false); }
   };
 
-  const fetchMyIP = async () => {
-    try {
-      const { data } = await api.get('/branches/myip');
-      setMyIP(data.ip); setMySubnet(data.subnet); setIsLoopback(data.isLoopback || false);
-    } catch {}
-  };
-
-  const addIP = async (branchId, ip) => {
+  const addSSID = async (branchId, ssid) => {
     setWorking(branchId); setMsg('');
     try {
-      const { data } = await api.post(`/branches/${branchId}/allowip`, { ip });
+      const { data } = await api.post(`/branches/${branchId}/wifi-ssid`, { ssid });
       setBranches(prev => prev.map(b => b._id === branchId ? data.data : b));
-      setMsg(`✅ IP ${ip} added to allowed list.`);
-    } catch (err) { setMsg('❌ ' + (err.response?.data?.message || 'Failed to add IP.')); }
+      setMsg(`✅ WiFi "${ssid}" added.`);
+    } catch (err) { setMsg('❌ ' + (err.response?.data?.message || 'Failed to add WiFi.')); }
     finally { setWorking(null); }
   };
 
-  const removeIP = async (branchId, ip) => {
-    setWorking(branchId + ip); setMsg('');
+  const removeSSID = async (branchId, ssid) => {
+    setWorking(branchId + ssid); setMsg('');
     try {
-      const { data } = await api.delete(`/branches/${branchId}/allowip`, { data: { ip } });
+      const { data } = await api.delete(`/branches/${branchId}/wifi-ssid`, { data: { ssid } });
       setBranches(prev => prev.map(b => b._id === branchId ? data.data : b));
-      setMsg(`✅ IP ${ip} removed.`);
-    } catch (err) { setMsg('❌ ' + (err.response?.data?.message || 'Failed to remove IP.')); }
+      setMsg(`✅ WiFi "${ssid}" removed.`);
+    } catch (err) { setMsg('❌ ' + (err.response?.data?.message || 'Failed to remove WiFi.')); }
     finally { setWorking(null); }
   };
 
@@ -113,69 +103,53 @@ function NetworkTab({ canEdit }) {
 
       <div className="card" style={{ marginBottom: 24, padding: '16px 20px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e40af' }}>
-          <strong>📶 How WiFi-based check-in works:</strong> All devices on your office WiFi share the same local network (e.g.&nbsp;<code>192.168.0.x</code>).
-          Add the <strong>network prefix</strong> (e.g.&nbsp;<code>192.168.0.</code>) to allow all office devices. Leave empty to allow from anywhere.
+          <strong>📶 How WiFi-based check-in works:</strong>
         </p>
-        {myIP && !isLoopback && (
-          <p style={{ margin: '8px 0 0', fontSize: '0.875rem', color: '#1e40af' }}>
-            Your IP: <strong style={{ fontFamily: 'monospace' }}>{myIP}</strong>
-            {mySubnet && <> · Office network prefix: <strong style={{ fontFamily: 'monospace' }}>{mySubnet}</strong></>}
-          </p>
-        )}
-        {isLoopback && (
-          <div style={{ marginTop: 10, padding: '10px 14px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8 }}>
-            <strong style={{ color: '#92400e' }}>⚠️ You are accessing via localhost.</strong>
-            <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#92400e' }}>
-              Use <strong>"+ Add IP Manually"</strong> and type your office network prefix (e.g.&nbsp;<code>192.168.0.</code>) directly.
-            </p>
-          </div>
-        )}
+        <ol style={{ margin: '8px 0 0', paddingLeft: 20, fontSize: '0.85rem', color: '#1e40af', lineHeight: 1.8 }}>
+          <li>Add your <strong>office WiFi name(s)</strong> below (e.g. "OfficeWiFi-5G").</li>
+          <li>When an employee checks in, the app reads their connected WiFi network name.</li>
+          <li>The server verifies it matches one of the allowed WiFi names.</li>
+          <li>If it doesn't match, check-in is denied — they must be on the office WiFi.</li>
+        </ol>
+        <p style={{ margin: '8px 0 0', fontSize: '0.82rem', color: '#1e40af' }}>
+          Leave empty to allow check-in from any network.
+        </p>
       </div>
 
-      {loading && <div className="page-loading">Loading network settings…</div>}
+      {loading && <div className="page-loading">Loading settings…</div>}
 
       {!loading && branches.map(branch => (
         <div key={branch._id} className="card" style={{ marginBottom: 20, padding: '20px 24px' }}>
           <div style={{ marginBottom: 16 }}>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>🏢 {branch.name}</h3>
             <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#6b7280' }}>
-              {branch.address || 'A-62, Sector 2, First Floor'}
+              {branch.address || 'No address set'}
             </p>
           </div>
 
-          {canEdit && mySubnet && (
-            <button
-              className="btn btn--primary"
-              style={{ marginBottom: 16 }}
-              onClick={() => addIP(branch._id, mySubnet)}
-              disabled={working === branch._id || (branch.allowedIPs || []).includes(mySubnet)}
-            >
-              {working === branch._id ? 'Adding…' : (branch.allowedIPs || []).includes(mySubnet) ? '✅ Office network added' : '📶 Add Entire Office Network'}
-            </button>
-          )}
-
-          <div>
+          {/* WiFi SSIDs Section */}
+          <div style={{ marginBottom: 20 }}>
             <p style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.85rem', color: '#374151' }}>
-              Allowed IPs ({(branch.allowedIPs || []).length})
-              {(branch.allowedIPs || []).length === 0 && <span style={{ fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>— No restriction (all IPs allowed)</span>}
+              📶 Allowed WiFi Networks ({(branch.wifiSSIDs || []).length})
+              {(branch.wifiSSIDs || []).length === 0 && <span style={{ fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>— No restriction (all networks allowed)</span>}
             </p>
-            {(branch.allowedIPs || []).length > 0 && (
+            {(branch.wifiSSIDs || []).length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {branch.allowedIPs.map(ip => (
-                  <div key={ip} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', flex: 1, color: '#111827' }}>{ip}</span>
-                    {myIP === ip && <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600, padding: '2px 8px', background: '#dbeafe', borderRadius: 12 }}>My IP</span>}
+                {branch.wifiSSIDs.map(ssid => (
+                  <div key={ssid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0' }}>
+                    <span style={{ fontSize: '1.1rem' }}>📶</span>
+                    <span style={{ fontSize: '0.92rem', flex: 1, fontWeight: 600, color: '#111827' }}>{ssid}</span>
                     {canEdit && (
-                      <button onClick={() => removeIP(branch._id, ip)} disabled={working === branch._id + ip}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '1rem', padding: '2px 6px', lineHeight: 1 }}>✕</button>
+                      <button onClick={() => removeSSID(branch._id, ssid)} disabled={working === branch._id + ssid}
+                        style={{ background: '#fee2e2', border: '1px solid #fca5a5', cursor: 'pointer', color: '#dc2626', fontSize: '0.78rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, lineHeight: 1 }}>Remove</button>
                     )}
                   </div>
                 ))}
               </div>
             )}
-          </div>
 
-          {canEdit && <ManualIPForm branchId={branch._id} onAdd={addIP} working={working} />}
+            {canEdit && <AddSSIDForm branchId={branch._id} onAdd={addSSID} working={working} existingSSIDs={branch.wifiSSIDs || []} />}
+          </div>
 
           <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
           <GeoFenceForm branch={branch} canEdit={canEdit}
@@ -409,34 +383,35 @@ function GeoFenceForm({ branch, canEdit, onSave, onClear, saving }) {
   );
 }
 
-/* ─── Manual IP Form ────────────────────────────────────────── */
-function ManualIPForm({ branchId, onAdd, working }) {
-  const [showForm, setShowForm] = useState(false);
-  const [ipInput,  setIpInput]  = useState('');
+/* ─── Add WiFi SSID Form ───────────────────────────────────── */
+function AddSSIDForm({ branchId, onAdd, working, existingSSIDs }) {
+  const [showForm,  setShowForm]  = useState(false);
+  const [ssidInput, setSsidInput] = useState('');
 
   const handleAdd = () => {
-    const trimmed = ipInput.trim();
+    const trimmed = ssidInput.trim();
     if (!trimmed) return;
+    if (existingSSIDs.some(s => s.toLowerCase() === trimmed.toLowerCase())) return;
     onAdd(branchId, trimmed);
-    setIpInput(''); setShowForm(false);
+    setSsidInput(''); setShowForm(false);
   };
 
   if (!showForm) return (
-    <button className="btn btn--secondary" style={{ marginTop: 12, fontSize: '0.82rem' }} onClick={() => setShowForm(true)}>
-      + Add IP Manually
+    <button className="btn btn--primary" style={{ marginTop: 12, fontSize: '0.82rem' }} onClick={() => setShowForm(true)}>
+      + Add WiFi Network
     </button>
   );
 
   return (
     <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
       <input
-        className="form-input" style={{ fontFamily: 'monospace', maxWidth: 200 }}
-        placeholder="e.g. 192.168.0."
-        value={ipInput} onChange={e => setIpInput(e.target.value)}
+        className="form-input" style={{ maxWidth: 260 }}
+        placeholder="Enter WiFi name (SSID) e.g. OfficeWiFi-5G"
+        value={ssidInput} onChange={e => setSsidInput(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handleAdd()}
       />
-      <button className="btn btn--primary" onClick={handleAdd} disabled={!ipInput.trim() || working === branchId}>Add</button>
-      <button className="btn btn--secondary" onClick={() => { setShowForm(false); setIpInput(''); }}>Cancel</button>
+      <button className="btn btn--primary" onClick={handleAdd} disabled={!ssidInput.trim() || working === branchId}>Add</button>
+      <button className="btn btn--secondary" onClick={() => { setShowForm(false); setSsidInput(''); }}>Cancel</button>
     </div>
   );
 }

@@ -25,22 +25,20 @@ const HALFDAY_CHECKIN   = 13 * 60;       // 1:00 PM  — after this = HALF_DAY (
 const EARLY_CHECKOUT    = 16 * 60;       // 4:00 PM  — before this = HALF_DAY (unless 8+ h worked)
 const FULLDAY_HOURS     = 8;             // 8+ hours worked = FULL_DAY regardless of times
 
-const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, req }) => {
+const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
 
-  // Step 1: Office network (WiFi public IP) check
+  // Step 1: WiFi SSID verification (replaces IP-based check)
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
 
-  if (branch.allowedIPs && branch.allowedIPs.length > 0) {
-    const rawIP    = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '';
-    const clientIP = rawIP.replace(/^::ffff:/, '');
-    const isDev    = process.env.NODE_ENV !== 'production';
-    const isLocal  = isDev && ['127.0.0.1', '::1', 'localhost', ''].includes(clientIP);
-    const isAllowed = branch.allowedIPs.some(entry => clientIP === entry || clientIP.startsWith(entry));
-    console.log(`[IP CHECK] clientIP="${clientIP}" allowedIPs=${JSON.stringify(branch.allowedIPs)} isAllowed=${isAllowed} isDev=${isDev} isLocal=${isLocal}`);
-    if (!isLocal && !isAllowed) {
-      await createAuditLog({ actor: { _id: employeeId }, action: 'CHECK_IN_DENIED_NETWORK', severity: 'WARNING', description: `IP ${clientIP} not in allowed list for branch "${branch.name}"`, req });
-      throw new ApiError(403, 'Please connect to the office WiFi network to check in.');
+  if (branch.wifiSSIDs && branch.wifiSSIDs.length > 0) {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const ssid  = (wifiSSID || '').trim();
+    const isAllowed = branch.wifiSSIDs.some(s => s.toLowerCase() === ssid.toLowerCase());
+    console.log(`[WIFI CHECK] ssid="${ssid}" allowedSSIDs=${JSON.stringify(branch.wifiSSIDs)} isAllowed=${isAllowed} isDev=${isDev}`);
+    if (!isDev && !isAllowed) {
+      await createAuditLog({ actor: { _id: employeeId }, action: 'CHECK_IN_DENIED_NETWORK', severity: 'WARNING', description: `WiFi "${ssid}" not in allowed list for branch "${branch.name}"`, req });
+      throw new ApiError(403, `Please connect to the office WiFi (${branch.wifiSSIDs.join(' or ')}) to check in.`);
     }
   }
 
@@ -119,19 +117,17 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
   return { checkInTime, displayStatus, message };
 };
 
-const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon, req }) => {
+const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
 
-  // Office network check
-  if (branch.allowedIPs && branch.allowedIPs.length > 0) {
-    const rawIP    = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '';
-    const clientIP = rawIP.replace(/^::ffff:/, '');
-    const isDev    = process.env.NODE_ENV !== 'production';
-    const isLocal  = isDev && ['127.0.0.1', '::1', 'localhost', ''].includes(clientIP);
-    const isAllowed = branch.allowedIPs.some(entry => clientIP === entry || clientIP.startsWith(entry));
-    if (!isLocal && !isAllowed) {
-      throw new ApiError(403, 'Please connect to the office WiFi network to check out.');
+  // WiFi SSID verification
+  if (branch.wifiSSIDs && branch.wifiSSIDs.length > 0) {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const ssid  = (wifiSSID || '').trim();
+    const isAllowed = branch.wifiSSIDs.some(s => s.toLowerCase() === ssid.toLowerCase());
+    if (!isDev && !isAllowed) {
+      throw new ApiError(403, `Please connect to the office WiFi (${branch.wifiSSIDs.join(' or ')}) to check out.`);
     }
   }
 

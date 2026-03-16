@@ -54,4 +54,25 @@ router.delete('/:id/allowip', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_A
   } catch (err) { next(err); }
 });
 
+// Add a WiFi SSID to a branch
+router.post('/:id/wifi-ssid', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const { ssid } = req.body;
+    if (!ssid || !ssid.trim()) return res.status(400).json({ success: false, message: 'SSID is required.' });
+    const branch = await Branch.findByIdAndUpdate(req.params.id, { $addToSet: { wifiSSIDs: ssid.trim() } }, { new: true });
+    if (!branch) return res.status(404).json({ success: false, message: 'Branch not found.' });
+    res.json({ success: true, data: branch });
+  } catch (err) { next(err); }
+});
+
+// Remove a WiFi SSID from a branch
+router.delete('/:id/wifi-ssid', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const { ssid } = req.body;
+    const branch = await Branch.findByIdAndUpdate(req.params.id, { $pull: { wifiSSIDs: ssid } }, { new: true });
+    if (!branch) return res.status(404).json({ success: false, message: 'Branch not found.' });
+    res.json({ success: true, data: branch });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
