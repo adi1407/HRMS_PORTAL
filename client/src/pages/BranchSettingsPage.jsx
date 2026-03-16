@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, Building2, MapPin, Save, Loader2, Trash2, Plus, Zap, MapPinned } from 'lucide-react';
+import { Wifi, Building2, MapPin, Save, Loader2, Trash2, Plus, Zap, MapPinned, Globe, Shield } from 'lucide-react';
 import api from '../utils/api';
 import useAuthStore from '../store/authStore';
 
@@ -98,22 +98,48 @@ function NetworkTab({ canEdit }) {
     finally { setWorking(null); }
   };
 
+  const addIP = async (branchId, ip) => {
+    setWorking('ip-' + branchId); setMsg('');
+    try {
+      const { data } = await api.post(`/branches/${branchId}/allowip`, { ip: ip.trim() });
+      setBranches(prev => prev.map(b => b._id === branchId ? data.data : b));
+      setMsg(`✅ IP "${ip.trim()}" added. Check-in now restricted to office network.`);
+    } catch (err) { setMsg('❌ ' + (err.response?.data?.message || 'Failed to add IP.')); }
+    finally { setWorking(null); }
+  };
+
+  const removeIP = async (branchId, ip) => {
+    setWorking('ip-' + branchId + ip); setMsg('');
+    try {
+      const { data } = await api.delete(`/branches/${branchId}/allowip`, { data: { ip } });
+      setBranches(prev => prev.map(b => b._id === branchId ? data.data : b));
+      setMsg(`✅ IP "${ip}" removed.`);
+    } catch (err) { setMsg('❌ ' + (err.response?.data?.message || 'Failed to remove IP.')); }
+    finally { setWorking(null); }
+  };
+
+  const fetchMyIP = async () => {
+    try {
+      const { data } = await api.get('/branches/myip');
+      return data?.ip || null;
+    } catch { return null; }
+  };
+
   return (
     <>
       {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`}>{msg}</div>}
 
       <div className="card" style={{ marginBottom: 24, padding: '16px 20px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e40af' }}>
-          <strong><Wifi size={14} strokeWidth={2} style={{ verticalAlign: 'middle', marginRight: 4 }} /> How WiFi-based check-in works:</strong>
+          <strong><Wifi size={14} strokeWidth={2} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Network verification for check-in:</strong>
         </p>
         <ol style={{ margin: '8px 0 0', paddingLeft: 20, fontSize: '0.85rem', color: '#1e40af', lineHeight: 1.8 }}>
-          <li>Add your <strong>office WiFi name(s)</strong> below (e.g. "OfficeWiFi-5G").</li>
-          <li>When an employee checks in, the app reads their connected WiFi network name.</li>
-          <li>The server verifies it matches one of the allowed WiFi names.</li>
-          <li>If it doesn't match, check-in is denied — they must be on the office WiFi.</li>
+          <li><strong>Allowed IPs</strong> (recommended): Add your office public IP below. The server verifies the request comes from that IP — this is reliable and blocks check-in from home/other WiFi.</li>
+          <li><strong>WiFi names</strong>: Add office WiFi SSIDs. Browsers cannot read the real WiFi name, so this is a soft check. Use <strong>Allowed IPs</strong> for real enforcement.</li>
+          <li>Get your office IP by clicking &quot;Add My Current IP&quot; while connected to office WiFi.</li>
         </ol>
         <p style={{ margin: '8px 0 0', fontSize: '0.82rem', color: '#1e40af' }}>
-          Leave empty to allow check-in from any network.
+          Leave both empty to allow check-in from any network.
         </p>
       </div>
 
@@ -150,6 +176,30 @@ function NetworkTab({ canEdit }) {
             )}
 
             {canEdit && <AddSSIDForm branchId={branch._id} onAdd={addSSID} working={working} existingSSIDs={branch.wifiSSIDs || []} />}
+          </div>
+
+          {/* Allowed IPs Section — server-side verification */}
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ margin: '0 0 10px', fontWeight: 600, fontSize: '0.85rem', color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Globe size={14} strokeWidth={2} color="#059669" /> Allowed IPs ({(branch.allowedIPs || []).length})
+              {(branch.allowedIPs || []).length > 0 && <span style={{ fontWeight: 400, fontSize: '0.78rem', color: '#059669', background: '#dcfce7', padding: '2px 8px', borderRadius: 8 }}>Enforced — blocks check-in from other networks</span>}
+              {(branch.allowedIPs || []).length === 0 && <span style={{ fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>— Add office IP for reliable verification</span>}
+            </p>
+            {(branch.allowedIPs || []).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(branch.allowedIPs || []).map(ip => (
+                  <div key={ip} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#ecfdf5', borderRadius: 10, border: '1px solid #a7f3d0' }}>
+                    <Shield size={16} strokeWidth={2} color="#059669" />
+                    <span style={{ fontSize: '0.92rem', flex: 1, fontWeight: 600, fontFamily: 'monospace', color: '#111827' }}>{ip}</span>
+                    {canEdit && (
+                      <button onClick={() => removeIP(branch._id, ip)} disabled={working === 'ip-' + branch._id + ip}
+                        style={{ background: '#fee2e2', border: '1px solid #fca5a5', cursor: 'pointer', color: '#dc2626', fontSize: '0.78rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, lineHeight: 1 }}>Remove</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {canEdit && <AddIPForm branchId={branch._id} onAdd={addIP} onFetchMyIP={fetchMyIP} working={working} existingIPs={branch.allowedIPs || []} />}
           </div>
 
           <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
@@ -413,6 +463,58 @@ function AddSSIDForm({ branchId, onAdd, working, existingSSIDs }) {
       />
       <button className="btn btn--primary" onClick={handleAdd} disabled={!ssidInput.trim() || working === branchId}>Add</button>
       <button className="btn btn--secondary" onClick={() => { setShowForm(false); setSsidInput(''); }}>Cancel</button>
+    </div>
+  );
+}
+
+/* ─── Add IP Form ───────────────────────────────────────────── */
+function AddIPForm({ branchId, onAdd, onFetchMyIP, working, existingIPs }) {
+  const [showForm, setShowForm] = useState(false);
+  const [ipInput, setIpInput] = useState('');
+  const [fetching, setFetching] = useState(false);
+
+  const handleAddMyIP = async () => {
+    setFetching(true);
+    try {
+      const ip = await onFetchMyIP();
+      if (ip && !existingIPs.includes(ip)) {
+        onAdd(branchId, ip);
+        setShowForm(false);
+      } else if (ip && existingIPs.includes(ip)) {
+        alert('This IP is already in the list.');
+      } else {
+        alert('Could not fetch your IP.');
+      }
+    } finally { setFetching(false); }
+  };
+
+  const handleAdd = () => {
+    const trimmed = ipInput.trim();
+    if (!trimmed) return;
+    if (existingIPs.includes(trimmed)) return;
+    onAdd(branchId, trimmed);
+    setIpInput(''); setShowForm(false);
+  };
+
+  if (!showForm) return (
+    <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+      <button className="btn btn--primary" style={{ fontSize: '0.82rem' }} onClick={handleAddMyIP} disabled={fetching}>
+        {fetching ? <><Loader2 size={14} className="spin" /> Getting IP…</> : <><Globe size={14} strokeWidth={2} /> Add My Current IP</>}
+      </button>
+      <button className="btn btn--secondary" style={{ fontSize: '0.82rem' }} onClick={() => setShowForm(true)}>+ Add IP manually</button>
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <input
+        className="form-input" style={{ maxWidth: 180, fontFamily: 'monospace' }}
+        placeholder="e.g. 203.0.113.45"
+        value={ipInput} onChange={e => setIpInput(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleAdd()}
+      />
+      <button className="btn btn--primary" onClick={handleAdd} disabled={!ipInput.trim() || working === 'ip-' + branchId}>Add</button>
+      <button className="btn btn--secondary" onClick={() => { setShowForm(false); setIpInput(''); }}>Cancel</button>
     </div>
   );
 }

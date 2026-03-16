@@ -35,12 +35,39 @@ function istToday() {
   return d;
 }
 
+function getClientIP(req) {
+  const raw = req?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || req?.ip || req?.connection?.remoteAddress || '';
+  return raw.replace(/^::ffff:/, '') || '';
+}
+
+function ipMatchesAllowed(clientIP, allowedIPs) {
+  if (!clientIP || !allowedIPs?.length) return false;
+  return allowedIPs.some(allowed => {
+    if (allowed.endsWith('.')) {
+      return clientIP.startsWith(allowed);
+    }
+    return clientIP === allowed;
+  });
+}
+
 const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
 
-  // Step 1: WiFi SSID verification (replaces IP-based check)
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
 
+  // Step 1a: IP verification (server-side, reliable) — when admin has configured allowed IPs
+  if (branch.allowedIPs && branch.allowedIPs.length > 0) {
+    const clientIP = getClientIP(req);
+    const isDev = process.env.NODE_ENV !== 'production';
+    const ipOk = ipMatchesAllowed(clientIP, branch.allowedIPs);
+    console.log(`[IP CHECK] clientIP="${clientIP}" allowedIPs=${JSON.stringify(branch.allowedIPs)} ipOk=${ipOk} isDev=${isDev}`);
+    if (!isDev && !ipOk) {
+      await createAuditLog({ actor: { _id: employeeId }, action: 'CHECK_IN_DENIED_NETWORK', severity: 'WARNING', description: `IP ${clientIP} not in allowed list for branch "${branch.name}"`, req });
+      throw new ApiError(403, 'Check-in only allowed from the office network. Connect to office WiFi and try again.');
+    }
+  }
+
+  // Step 1b: WiFi SSID (client claim — browsers cannot read real SSID; use allowedIPs for enforcement)
   if (branch.wifiSSIDs && branch.wifiSSIDs.length > 0) {
     const isDev = process.env.NODE_ENV !== 'production';
     const ssid  = (wifiSSID || '').trim();
@@ -130,6 +157,15 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
 const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
+
+  // IP verification (when configured)
+  if (branch.allowedIPs && branch.allowedIPs.length > 0) {
+    const clientIP = getClientIP(req);
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (!isDev && !ipMatchesAllowed(clientIP, branch.allowedIPs)) {
+      throw new ApiError(403, 'Check-out only allowed from the office network. Connect to office WiFi and try again.');
+    }
+  }
 
   // WiFi SSID verification
   if (branch.wifiSSIDs && branch.wifiSSIDs.length > 0) {

@@ -99,10 +99,8 @@ export default function CheckInPage() {
       const branch = (data.data || []).find(b => b._id === branchId);
       if (branch?.wifiSSIDs?.length > 0) {
         setBranchSSIDs(branch.wifiSSIDs);
-        if (branch.wifiSSIDs.length === 1) {
-          setWifiSSID(branch.wifiSSIDs[0]);
-          setWifiStatus('selected');
-        }
+        // Do NOT auto-fill — user must explicitly select (browsers can't verify real SSID)
+        setWifiStatus(branch.wifiSSIDs.length === 1 ? 'choose' : 'choose');
       } else {
         setWifiStatus('none');
       }
@@ -402,9 +400,22 @@ export default function CheckInPage() {
                 )}
 
                 {branchSSIDs.length === 1 ? (
-                  <div className="status-indicator status-indicator--success" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <Wifi size={14} /> Connect to: <strong>{branchSSIDs[0]}</strong>
-                    {wifiSSID === branchSSIDs[0] && <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#059669', padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>Selected</span>}
+                  <div>
+                    <p style={{ fontSize: '0.82rem', color: '#374151', marginBottom: 8 }}>Connect to office WiFi, then tap below:</p>
+                    <button
+                      type="button"
+                      onClick={() => { setWifiSSID(branchSSIDs[0]); setWifiStatus('selected'); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10,
+                        border: wifiSSID === branchSSIDs[0] ? '2px solid #059669' : '1px solid #e5e7eb',
+                        background: wifiSSID === branchSSIDs[0] ? '#f0fdf4' : '#fff',
+                        cursor: 'pointer', textAlign: 'left', fontSize: '0.88rem', fontWeight: 600, width: '100%',
+                      }}
+                    >
+                      <Wifi size={18} color={wifiSSID === branchSSIDs[0] ? '#059669' : '#94a3b8'} />
+                      {branchSSIDs[0]}
+                      {wifiSSID === branchSSIDs[0] && <span style={{ marginLeft: 'auto', fontSize: '0.75rem', background: '#dcfce7', color: '#059669', padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>Selected</span>}
+                    </button>
                   </div>
                 ) : (
                   <div>
@@ -478,10 +489,21 @@ export default function CheckInPage() {
             </div>
 
             {(faceStatus === 'idle') && (
-              <button className="btn btn--primary" onClick={loadFaceModels}>
-                <ScanFace size={15} strokeWidth={2} />
-                {alreadyCheckedIn ? 'Start Face Scan to Check Out' : 'Start Face Scan to Check In'}
-              </button>
+              <>
+                {branchSSIDs.length > 0 && !wifiSSID && (
+                  <p className="checkin-warning" style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+                    <AlertTriangle size={13} strokeWidth={2.5} /> Select your office WiFi above before checking in.
+                  </p>
+                )}
+                <button
+                  className="btn btn--primary"
+                  onClick={loadFaceModels}
+                  disabled={branchSSIDs.length > 0 && !wifiSSID}
+                >
+                  <ScanFace size={15} strokeWidth={2} />
+                  {alreadyCheckedIn ? 'Start Face Scan to Check Out' : 'Start Face Scan to Check In'}
+                </button>
+              </>
             )}
             {faceStatus === 'error' && (
               <button className="btn btn--secondary" onClick={loadFaceModels}>
