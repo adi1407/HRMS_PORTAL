@@ -14,19 +14,32 @@ export async function encodeFaceDescriptorFromUri(uri: string): Promise<number[]
     name: 'face.jpg',
   } as unknown as Blob);
 
-  const { data } = await axios.post<{ success: boolean; data?: { descriptor: number[] }; message?: string }>(
-    `${API_URL}/face/encode`,
-    form,
-    {
+  const request = () =>
+    axios.post<{ success: boolean; data?: { descriptor: number[] }; message?: string }>(`${API_URL}/face/encode`, form, {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
         'X-Client': 'mobile',
       },
       timeout: 120000,
+    });
+
+  try {
+    const { data } = await request();
+    if (!data.success || !data.data?.descriptor?.length) {
+      throw new Error(data.message ?? 'Could not encode face.');
     }
-  );
-  if (!data.success || !data.data?.descriptor?.length) {
-    throw new Error(data.message ?? 'Could not encode face.');
+    return data.data.descriptor;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 502 || status === 503 || status === 504) {
+      // Render cold starts can briefly return gateway/service-unavailable; retry once.
+      await new Promise((r) => setTimeout(r, 1800));
+      const { data } = await request();
+      if (!data.success || !data.data?.descriptor?.length) {
+        throw new Error(data.message ?? 'Could not encode face.');
+      }
+      return data.data.descriptor;
+    }
+    throw err;
   }
-  return data.data.descriptor;
 }

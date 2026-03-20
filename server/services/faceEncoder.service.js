@@ -14,16 +14,22 @@ let faceapi = null;
 async function ensureFaceApi() {
   if (loadPromise) return loadPromise;
   loadPromise = (async () => {
-    require('@tensorflow/tfjs');
-    const canvas = require('canvas');
-    faceapi = require('face-api.js');
-    const { Canvas, Image, ImageData } = canvas;
-    faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
-    await Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromDisk(MODELS_DIR),
-      faceapi.nets.faceLandmark68Net.loadFromDisk(MODELS_DIR),
-      faceapi.nets.faceRecognitionNet.loadFromDisk(MODELS_DIR),
-    ]);
+    try {
+      require('@tensorflow/tfjs');
+      const canvas = require('canvas');
+      faceapi = require('face-api.js');
+      const { Canvas, Image, ImageData } = canvas;
+      faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+      await Promise.all([
+        faceapi.nets.ssdMobilenetv1.loadFromDisk(MODELS_DIR),
+        faceapi.nets.faceLandmark68Net.loadFromDisk(MODELS_DIR),
+        faceapi.nets.faceRecognitionNet.loadFromDisk(MODELS_DIR),
+      ]);
+    } catch (err) {
+      // Allow next request to retry model loading instead of permanently caching a rejected promise.
+      loadPromise = null;
+      throw err;
+    }
   })();
   return loadPromise;
 }

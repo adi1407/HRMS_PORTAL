@@ -28,7 +28,23 @@ router.post('/encode', authenticate, upload.single('image'), async (req, res, ne
     }
     const descriptor = await encodeFaceDescriptorFromBuffer(req.file.buffer);
     res.status(200).json({ success: true, data: { descriptor } });
-  } catch (err) { next(err); }
+  } catch (err) {
+    const raw = `${err?.message || ''}`.toLowerCase();
+    const missingModels =
+      err?.code === 'ENOENT' ||
+      raw.includes('loadfromdisk') ||
+      raw.includes('weights_manifest') ||
+      raw.includes('no such file or directory');
+    if (missingModels) {
+      return next(
+        new ApiError(
+          503,
+          'Face model files are not available on the server. Configure FACE_MODELS_DIR or deploy client/public/models.'
+        )
+      );
+    }
+    next(err);
+  }
 });
 
 router.post('/enroll/:employeeId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
