@@ -4,6 +4,7 @@
 const Attendance = require('../models/Attendance.model');
 const Branch     = require('../models/Branch.model');
 const Salary     = require('../models/Salary.model');
+const User       = require('../models/User.model');
 const { isWithinGeoFence }    = require('../utils/geo.utils');
 const { verifyFace }          = require('./face.service');
 const { createAuditLog }      = require('../utils/auditLog.utils');
@@ -50,13 +51,18 @@ function ipMatchesAllowed(clientIP, allowedIPs) {
   });
 }
 
+function isMobileClient(req) {
+  return (req?.headers?.['x-client'] || '').toLowerCase() === 'mobile';
+}
+
 const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
 
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
 
-  // Step 1a: IP verification (server-side, reliable) — when admin has configured allowed IPs
-  if (branch.allowedIPs && branch.allowedIPs.length > 0) {
+  // Step 1a: IP verification — skip for mobile app; mobile uses GPS + optional WiFi selection instead
+  const fromMobile = isMobileClient(req);
+  if (!fromMobile && branch.allowedIPs && branch.allowedIPs.length > 0) {
     const clientIP = getClientIP(req);
     const isDev = process.env.NODE_ENV !== 'production';
     const ipOk = ipMatchesAllowed(clientIP, branch.allowedIPs);
@@ -67,12 +73,12 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
     }
   }
 
-  // Step 1b: WiFi SSID (client claim — browsers cannot read real SSID; use allowedIPs for enforcement)
+  // Step 1b: WiFi SSID — mobile app sends user-selected SSID from branch list; skip in dev
   if (branch.wifiSSIDs && branch.wifiSSIDs.length > 0) {
     const isDev = process.env.NODE_ENV !== 'production';
     const ssid  = (wifiSSID || '').trim();
     const isAllowed = branch.wifiSSIDs.some(s => s.toLowerCase() === ssid.toLowerCase());
-    console.log(`[WIFI CHECK] ssid="${ssid}" allowedSSIDs=${JSON.stringify(branch.wifiSSIDs)} isAllowed=${isAllowed} isDev=${isDev}`);
+    console.log(`[WIFI CHECK] ssid="${ssid}" allowedSSIDs=${JSON.stringify(branch.wifiSSIDs)} isAllowed=${isAllowed} isDev=${isDev} fromMobile=${fromMobile}`);
     if (!isDev && !isAllowed) {
       await createAuditLog({ actor: { _id: employeeId }, action: 'CHECK_IN_DENIED_NETWORK', severity: 'WARNING', description: `WiFi "${ssid}" not in allowed list for branch "${branch.name}"`, req });
       throw new ApiError(403, `Please connect to the office WiFi (${branch.wifiSSIDs.join(' or ')}) to check in.`);
@@ -91,11 +97,21 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
     }
   }
 
-  // Step 3: Face recognition
-  const faceResult = await verifyFace(employeeId, faceDescriptor);
-  if (!faceResult.matched) {
-    await createAuditLog({ actor: { _id: employeeId }, action: 'CHECK_IN_DENIED_FACE', severity: 'WARNING', description: `Distance: ${faceResult.distance}`, req });
-    throw new ApiError(401, 'Face not recognized. Please ensure good lighting and try again.');
+  // Step 3: Face — if enrolled, a valid 128-D descriptor is required (web + mobile app).
+  const hasValidDescriptor = Array.isArray(faceDescriptor) && faceDescriptor.length === 128;
+  const empFace = await User.findById(employeeId).select('faceEnrolled');
+  if (empFace?.faceEnrolled && !hasValidDescriptor) {
+    throw new ApiError(400, 'Face verification required. Use the in-app face capture or web check-in with camera.');
+  }
+  let faceResult;
+  if (hasValidDescriptor) {
+    faceResult = await verifyFace(employeeId, faceDescriptor);
+    if (!faceResult.matched) {
+      await createAuditLog({ actor: { _id: employeeId }, action: 'CHECK_IN_DENIED_FACE', severity: 'WARNING', description: `Distance: ${faceResult.distance}`, req });
+      throw new ApiError(401, 'Face not recognized. Please ensure good lighting and try again.');
+    }
+  } else {
+    faceResult = { matched: true, confidence: 0 };
   }
 
   // Step 4: Duplicate check
@@ -158,8 +174,8 @@ const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon,
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
 
-  // IP verification (when configured)
-  if (branch.allowedIPs && branch.allowedIPs.length > 0) {
+  const fromMobile = isMobileClient(req);
+  if (!fromMobile && branch.allowedIPs && branch.allowedIPs.length > 0) {
     const clientIP = getClientIP(req);
     const isDev = process.env.NODE_ENV !== 'production';
     if (!isDev && !ipMatchesAllowed(clientIP, branch.allowedIPs)) {
@@ -188,8 +204,15 @@ const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon,
     }
   }
 
-  const faceResult = await verifyFace(employeeId, faceDescriptor);
-  if (!faceResult.matched) throw new ApiError(401, 'Face not recognized. Check-out denied.');
+  const hasValidDescriptor = Array.isArray(faceDescriptor) && faceDescriptor.length === 128;
+  const empFace = await User.findById(employeeId).select('faceEnrolled');
+  if (empFace?.faceEnrolled && !hasValidDescriptor) {
+    throw new ApiError(400, 'Face verification required. Use the in-app face capture or web check-out with camera.');
+  }
+  if (hasValidDescriptor) {
+    const faceResult = await verifyFace(employeeId, faceDescriptor);
+    if (!faceResult.matched) throw new ApiError(401, 'Face not recognized. Check-out denied.');
+  }
 
   const todayStart = istToday();
 

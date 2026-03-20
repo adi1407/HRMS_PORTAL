@@ -326,6 +326,21 @@ On Render free tier the server can sleep, so **in-process cron (e.g. 11:59 PM au
 
 ---
 
+## 🚀 API on Render & mobile face encoding
+
+The backend exposes `POST /api/face/encode` (multipart field `image`). It loads TensorFlow face weights from disk — **the same files** as the web app uses under `client/public/models/`.
+
+- **Monorepo deploy (recommended):** Point your Render service at this repo root and set the **start command** / root so the running process can read `client/public/models/` (e.g. repo includes both `server/` and `client/`). No extra env is needed.
+- **API-only layout:** If `client/` is not on the server, copy that `models` folder onto the instance and set:
+
+  `FACE_MODELS_DIR=/absolute/path/to/models`
+
+  (folder must contain the `*_model-weights_manifest.json` files and shards).
+
+The **`canvas`** npm package is a native addon; Render’s Node **Linux** environment usually installs it via prebuilds. If the build fails, check Render build logs for missing system libraries (rare on current stacks).
+
+---
+
 ## 🗂️ .env Reference
 
 ```
@@ -339,6 +354,7 @@ JWT_ACCESS_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
 BCRYPT_ROUNDS=12
 CRON_SECRET=...          ← optional; for /api/cron/trigger when using external cron (e.g. Render)
+FACE_MODELS_DIR=         ← optional; absolute path to face-api models if client/public/models is not present
 ```
 
 ---

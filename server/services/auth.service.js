@@ -37,11 +37,13 @@ const login = async ({ email, password, lat, lon, req, res }) => {
   const locationNote = (lat != null && lon != null) ? ` | GPS: ${parseFloat(lat).toFixed(5)}, ${parseFloat(lon).toFixed(5)}` : '';
   await createAuditLog({ actor: user, action: 'LOGIN_SUCCESS', description: `Login from IP ${req.ip}${locationNote}`, req });
 
-  return { accessToken, user: user.toSafeObject() };
+  const out = { accessToken, user: user.toSafeObject() };
+  if (req.headers['x-client'] === 'mobile') out.refreshToken = refreshToken;
+  return out;
 };
 
 const refreshAccessToken = async ({ req }) => {
-  const incomingToken = req.cookies?.refreshToken;
+  const incomingToken = req.cookies?.refreshToken || req.body?.refreshToken;
   if (!incomingToken) throw new ApiError(401, 'Refresh token not found. Please login.');
 
   let decoded;
@@ -60,7 +62,7 @@ const refreshAccessToken = async ({ req }) => {
 };
 
 const logout = async ({ req, res }) => {
-  const incomingToken = req.cookies?.refreshToken;
+  const incomingToken = req.cookies?.refreshToken || req.body?.refreshToken;
   if (incomingToken) {
     try {
       const decoded = jwt.verify(incomingToken, process.env.JWT_REFRESH_SECRET);

@@ -1,9 +1,35 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { enrollFace, deleteFaceEnrollment } = require('../services/face.service');
+const { encodeFaceDescriptorFromBuffer } = require('../services/faceEncoder.service');
 const { createAuditLog } = require('../utils/auditLog.utils');
+const { ApiError } = require('../utils/api.utils');
 const User = require('../models/User.model');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 6 * 1024 * 1024 },
+});
+
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+/**
+ * Extract a 128-D face descriptor from a JPEG/PNG (same pipeline as web face-api.js).
+ * Used by the React Native app; web continues to compute descriptors in the browser.
+ */
+router.post('/encode', authenticate, upload.single('image'), async (req, res, next) => {
+  try {
+    if (!req.file?.buffer) return next(new ApiError(400, 'Image file is required (field name: image).'));
+    const mime = (req.file.mimetype || '').toLowerCase();
+    if (!ALLOWED_IMAGE_MIME.has(mime)) {
+      return next(new ApiError(400, 'Unsupported image type. Use JPEG or PNG.'));
+    }
+    const descriptor = await encodeFaceDescriptorFromBuffer(req.file.buffer);
+    res.status(200).json({ success: true, data: { descriptor } });
+  } catch (err) { next(err); }
+});
 
 router.post('/enroll/:employeeId', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN'), async (req, res, next) => {
   try {
