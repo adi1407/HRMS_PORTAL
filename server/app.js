@@ -38,6 +38,7 @@ const policyDocumentRoutes  = require("./routes/policyDocument.routes");
 const employeeProfileRoutes = require("./routes/employeeProfile.routes");
 const atsRoutes             = require("./routes/ats.routes");
 const cronRoutes            = require("./routes/cron.routes");
+const { getFaceModelsDebugInfo } = require("./services/faceEncoder.service");
 
 const { errorHandler } = require("./middleware/error.middleware");
 const { auditLogMiddleware } = require("./middleware/auditLog.middleware");
@@ -154,11 +155,17 @@ app.get("/api/test-email", async (req, res) => {
 
 /** Health check */
 app.get("/api/health", (req, res) => {
+  const faceModels = getFaceModelsDebugInfo();
   res.json({
     success: true,
     message: "HRMS API is running ✅",
     env: process.env.NODE_ENV || "development",
     timestamp: new Date().toISOString(),
+    faceModels: {
+      ready: faceModels.modelFilesPresent,
+      modelsDir: faceModels.modelsDir,
+      missingFiles: faceModels.missingModelFiles,
+    },
   });
 });
 
