@@ -30,6 +30,7 @@ export default function EmployeesPage() {
   // Salary & bank details modal (ACCOUNTS only)
   const [bankModal,  setBankModal]  = useState(null);
   const [bankSaving, setBankSaving] = useState(false);
+  const [bioSaving, setBioSaving] = useState({});
 
   useEffect(() => { fetchEmployees(); fetchDepartments(); }, []);
   useEffect(() => { setPage(1); }, [search]);
@@ -97,6 +98,23 @@ export default function EmployeesPage() {
       fetchEmployees();
     } catch (err) {
       setMsg('❌ ' + (err.response?.data?.message || 'Failed to remove employee.'));
+    }
+  };
+
+  const toggleBiometricAttendance = async (emp) => {
+    setBioSaving((s) => ({ ...s, [emp._id]: true }));
+    setMsg('');
+    try {
+      const next = !emp.biometricAttendanceEnabled;
+      await api.patch(`/users/${emp._id}`, { biometricAttendanceEnabled: next });
+      setEmployees((prev) =>
+        prev.map((e) => (e._id === emp._id ? { ...e, biometricAttendanceEnabled: next } : e))
+      );
+      setMsg(next ? `✅ Biometric attendance required for ${emp.name}. They must enroll on app / web.` : `✅ Biometric attendance off for ${emp.name}.`);
+    } catch (err) {
+      setMsg('❌ ' + (err.response?.data?.message || 'Failed to update biometric setting.'));
+    } finally {
+      setBioSaving((s) => ({ ...s, [emp._id]: false }));
     }
   };
 
@@ -289,7 +307,7 @@ export default function EmployeesPage() {
                   <th>Department</th>
                   {isAccounts && <th>Salary</th>}
                   {isAccounts && <th>Bank Details</th>}
-                  {canManage  && <th>Face</th>}
+                  {canManage  && <th>Biometric</th>}
                   {canManage  && <th>Action</th>}
                 </tr>
               </thead>
@@ -329,8 +347,18 @@ export default function EmployeesPage() {
                       </td>
                     )}
                     {canManage && (
-                      <td data-label="Face">
-                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600 }}>Disabled</span>
+                      <td data-label="Biometric">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: bioSaving[emp._id] ? 'wait' : 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!emp.biometricAttendanceEnabled}
+                            disabled={!!bioSaving[emp._id]}
+                            onChange={() => toggleBiometricAttendance(emp)}
+                          />
+                          <span style={{ fontSize: '0.82rem', color: emp.biometricAttendanceEnabled ? '#059669' : '#6b7280', fontWeight: 600 }}>
+                            {emp.biometricAttendanceEnabled ? 'Required' : 'Off'}
+                          </span>
+                        </label>
                       </td>
                     )}
                     {canManage && (

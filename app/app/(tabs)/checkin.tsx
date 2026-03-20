@@ -72,6 +72,11 @@ export default function CheckInScreen() {
   const [requestSending, setRequestSending] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
+  /** HR enables in Employees; employee completes on this device. */
+  const [biometricAttendanceEnabled, setBiometricAttendanceEnabled] = useState(false);
+  const [biometricMobileEnrolled, setBiometricMobileEnrolled] = useState(false);
+  const [enrollingBio, setEnrollingBio] = useState(false);
+
   const userBranchId = (user?.branch as { _id?: string })?._id ?? (user?.branch as string) ?? null;
   const userBranch = branches.find((b) => b._id === userBranchId) ?? branches.find((b) => b.name === (user?.branch as { name?: string })?.name) ?? branches[0];
   const branchId = userBranch?._id ?? userBranchId ?? branches[0]?._id;
@@ -83,18 +88,31 @@ export default function CheckInScreen() {
     setLoadingData(true);
     setResult(null);
     try {
-      const [todayRes, branchesRes] = await Promise.all([
+      const [todayRes, branchesRes, meRes] = await Promise.all([
         api.get<{ data: TodayRecord }>('/attendance/today'),
         api.get<{ data: Branch[] }>('/branches'),
+        api
+          .get<{
+            data?: {
+              biometricAttendanceEnabled?: boolean;
+              biometricMobileEnrolledAt?: string | null;
+            };
+          }>('/auth/me')
+          .catch(() => ({ data: { data: {} } })),
       ]);
       setTodayRecord(todayRes.data.data ?? null);
       const blist = branchesRes.data.data ?? [];
       setBranches(blist);
+      const me = meRes.data.data ?? {};
+      setBiometricAttendanceEnabled(!!me.biometricAttendanceEnabled);
+      setBiometricMobileEnrolled(!!me.biometricMobileEnrolledAt);
       const b = blist.find((x) => x._id === userBranchId) ?? blist.find((x) => x.name === (user?.branch as { name?: string })?.name) ?? blist[0];
       if (b?.wifiSSIDs?.length) setBranchSSIDs(b.wifiSSIDs);
       else setBranchSSIDs([]);
     } catch {
       setBranches([]);
+      setBiometricAttendanceEnabled(false);
+      setBiometricMobileEnrolled(false);
     } finally {
       setLoadingData(false);
     }
@@ -140,6 +158,36 @@ export default function CheckInScreen() {
     else setBranchSSIDs([]);
   }, [branchId, branches]);
 
+  const completeMobileBiometricEnrollment = async () => {
+    if (!biometricAttendanceEnabled) return;
+    setEnrollingBio(true);
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert('Setup required', `Set up ${biometricLabel} in your phone settings first.`);
+        return;
+      }
+      const auth = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Register fingerprint / device lock for attendance',
+        fallbackLabel: 'Use device passcode',
+      });
+      if (!auth.success) {
+        Alert.alert('Cancelled', 'Enrollment was not completed.');
+        return;
+      }
+      await api.post('/auth/biometric-attendance/mobile-enroll', {});
+      setBiometricMobileEnrolled(true);
+      Alert.alert('Done', 'This device is registered for biometric attendance.');
+      await loadData();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Enrollment failed.';
+      Alert.alert('Error', msg);
+    } finally {
+      setEnrollingBio(false);
+    }
+  };
+
   const handleCheckInOut = async () => {
     const isCheckOut = !!todayRecord?.checkIn && !todayRecord?.checkOut;
     if (!branchId) {
@@ -154,26 +202,34 @@ export default function CheckInScreen() {
       Alert.alert('Location required', 'Please allow location and wait for it to be obtained, then retry.');
       return;
     }
+    if (biometricAttendanceEnabled && !biometricMobileEnrolled) {
+      Alert.alert('Enrollment required', 'Complete fingerprint enrollment on this phone first (see step below).');
+      return;
+    }
 
     setSubmitting(true);
     setResult(null);
     try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
-      if (!hasHardware || !isEnrolled) {
-        Alert.alert(
-          'Biometric setup required',
-          `Set up ${biometricLabel} on your phone to continue check in/out.`
-        );
-        return;
-      }
-      const auth = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Confirm attendance with biometric',
-        fallbackLabel: 'Use device passcode',
-      });
-      if (!auth.success) {
-        Alert.alert('Authentication failed', 'Biometric verification was cancelled or failed.');
-        return;
+      if (biometricAttendanceEnabled) {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
+        if (!hasHardware || !isEnrolled) {
+          Alert.alert(
+            'Biometric setup required',
+            `Set up ${biometricLabel} on your phone to continue check in/out.`
+          );
+          setSubmitting(false);
+          return;
+        }
+        const auth = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Confirm attendance with fingerprint',
+          fallbackLabel: 'Use device passcode',
+        });
+        if (!auth.success) {
+          Alert.alert('Authentication failed', 'Biometric verification was cancelled or failed.');
+          setSubmitting(false);
+          return;
+        }
       }
 
       const endpoint = isCheckOut ? '/attendance/checkout' : '/attendance/checkin';
@@ -216,8 +272,9 @@ export default function CheckInScreen() {
   const canCheckIn = !alreadyCheckedIn;
   const canCheckOut = alreadyCheckedIn && !alreadyCheckedOut;
   const doneForToday = alreadyCheckedIn && alreadyCheckedOut;
+  const bioGateOk = !biometricAttendanceEnabled || biometricMobileEnrolled;
   const canSubmit =
-    (canCheckIn || canCheckOut) && geoStatus === 'success' && wifiOk && !submitting;
+    (canCheckIn || canCheckOut) && geoStatus === 'success' && wifiOk && !submitting && bioGateOk;
 
   if (loadingData) {
     return (
@@ -353,18 +410,57 @@ export default function CheckInScreen() {
             )}
           </View>
 
+          {/* Step 3: HR-enabled biometric — enroll this phone once */}
+          {biometricAttendanceEnabled && !biometricMobileEnrolled && (
+            <View style={styles.card}>
+              <View style={styles.stepHeader}>
+                <View style={styles.stepNum}>
+                  <Text style={styles.stepNumText}>3</Text>
+                </View>
+                <Text style={styles.stepTitle}>Register fingerprint</Text>
+              </View>
+              <Text style={styles.stepDesc}>
+                HR has enabled biometric attendance. Register this device once using your fingerprint or device lock.
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.secondaryBtn,
+                  { borderColor: COLORS.tint, flexDirection: 'row', gap: 8 },
+                  enrollingBio && { opacity: 0.6 },
+                ]}
+                onPress={completeMobileBiometricEnrollment}
+                disabled={enrollingBio}
+              >
+                {enrollingBio ? (
+                  <ActivityIndicator color={COLORS.tint} />
+                ) : (
+                  <>
+                    <MaterialIcons name="fingerprint" size={20} color={COLORS.tint} />
+                    <Text style={[styles.secondaryBtnText, { color: COLORS.tint }]}>Enroll this device</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Check In / Out */}
           <View style={styles.card}>
             <View style={styles.stepHeader}>
               <View style={styles.stepNum}>
-                <Text style={styles.stepNumText}>3</Text>
+                <Text style={styles.stepNumText}>
+                  {biometricAttendanceEnabled && !biometricMobileEnrolled ? '4' : '3'}
+                </Text>
               </View>
               <Text style={styles.stepTitle}>{canCheckOut ? 'Check Out' : 'Check In'}</Text>
             </View>
             <Text style={styles.stepDesc}>
-              {canCheckOut
-                ? `Confirm ${biometricLabel} and tap below when you leave the office.`
-                : `Ensure location and WiFi are set, then confirm ${biometricLabel} to check in.`}
+              {biometricAttendanceEnabled
+                ? canCheckOut
+                  ? 'Confirm fingerprint / device lock and tap below to check out.'
+                  : 'After WiFi, GPS, and enrollment, confirm fingerprint to check in.'
+                : canCheckOut
+                  ? 'Tap below when you leave the office.'
+                  : 'Ensure location and WiFi are set, then tap to check in.'}
             </Text>
             {wifiRequired && !wifiSSID.trim() && (
               <View style={[styles.statusChip, styles.statusError]}>

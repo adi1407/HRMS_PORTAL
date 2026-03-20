@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import {
   MapPin, Wifi, CheckCircle2, XCircle, RotateCcw,
   Loader2, AlertTriangle, Timer, LogIn, LogOut,
@@ -36,6 +37,13 @@ export default function CheckInPage() {
   const [overrideForm,    setOverrideForm]    = useState({});
   const [resolving,       setResolving]       = useState({});
 
+  /** From GET /auth/me — HR enables biometric; employee registers passkey on this browser. */
+  const [meProfile, setMeProfile] = useState({
+    biometricAttendanceEnabled: false,
+    hasWebAuthnCredential: false,
+  });
+  const [registeringPasskey, setRegisteringPasskey] = useState(false);
+
   // Refs that mirror state — used inside async callbacks to avoid stale closures
   const todayRecordRef = useRef(null);
   const geoCoordsRef   = useRef(null);
@@ -47,8 +55,22 @@ export default function CheckInPage() {
   useEffect(() => { wifiSSIDRef.current    = wifiSSID;    }, [wifiSSID]);
   useEffect(() => { userRef.current        = user;        }, [user]);
 
+  const fetchMeProfile = async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+      const u = data.data || {};
+      setMeProfile({
+        biometricAttendanceEnabled: !!u.biometricAttendanceEnabled,
+        hasWebAuthnCredential: !!u.hasWebAuthnCredential,
+      });
+    } catch {
+      setMeProfile({ biometricAttendanceEnabled: false, hasWebAuthnCredential: false });
+    }
+  };
+
   useEffect(() => {
     fetchTodayRecord();
+    fetchMeProfile();
     startGeoCheck();
     loadBranchWifi();
     detectWifiConnection();
@@ -152,6 +174,24 @@ export default function CheckInPage() {
     } catch {}
   };
 
+  const handleRegisterPasskey = async () => {
+    setRegisteringPasskey(true);
+    setResult(null);
+    try {
+      const { data: optRes } = await api.post('/webauthn/register-options');
+      const optionsJSON = optRes.data;
+      const attResp = await startRegistration({ optionsJSON });
+      await api.post('/webauthn/register-verify', attResp);
+      setResult({ success: true, message: 'Passkey registered. You can check in with fingerprint / device PIN on this browser.' });
+      await fetchMeProfile();
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Passkey registration failed.';
+      setResult({ success: false, message: msg });
+    } finally {
+      setRegisteringPasskey(false);
+    }
+  };
+
   const handleSubmitAttendance = async () => {
     setSubmitting(true);
     const record   = todayRecordRef.current;
@@ -161,12 +201,23 @@ export default function CheckInPage() {
     const action   = record?.checkInTime ? 'checkout' : 'checkin';
     const endpoint = action === 'checkin' ? '/attendance/checkin' : '/attendance/checkout';
     try {
-      const { data } = await api.post(endpoint, {
+      const payload = {
         branchId:       currentUser?.branch?._id || currentUser?.branch,
         lat: coords?.lat ?? null,
         lon: coords?.lon ?? null,
         wifiSSID: ssid || undefined,
-      });
+      };
+      if (meProfile.biometricAttendanceEnabled) {
+        if (!meProfile.hasWebAuthnCredential) {
+          setResult({ success: false, message: 'Register a passkey on this browser first (button below).' });
+          setSubmitting(false);
+          return;
+        }
+        const { data: authOpt } = await api.post('/webauthn/attendance-auth-options');
+        const assertion = await startAuthentication({ optionsJSON: authOpt.data });
+        payload.webAuthn = assertion;
+      }
+      const { data } = await api.post(endpoint, payload);
       setResult({ success: true, message: data.data?.message, action });
       fetchTodayRecord();
     } catch (err) {
@@ -185,10 +236,10 @@ export default function CheckInPage() {
         <h1 className="page-title">Attendance Check In / Out</h1>
         <p className="page-subtitle">
           {alreadyCheckedIn && !alreadyCheckedOut
-            ? 'Look at the camera to check out'
+            ? 'Confirm WiFi, GPS, then biometric to check out'
             : alreadyCheckedIn && alreadyCheckedOut
               ? 'Attendance complete for today'
-              : 'Look at the camera to check in'}
+              : 'Confirm WiFi, GPS, then biometric to check in'}
         </p>
       </div>
 
@@ -336,8 +387,32 @@ export default function CheckInPage() {
               <h3>Confirm Attendance</h3>
             </div>
             <p className="checkin-step-desc">
-              Face recognition is disabled. Attendance is now verified using office WiFi and GPS.
+              {meProfile.biometricAttendanceEnabled
+                ? 'HR has enabled biometric attendance. Use your passkey / fingerprint / Windows Hello when prompted after tapping Check In / Out.'
+                : 'Attendance is verified using office WiFi and GPS. If HR enables biometric attendance for you, register a passkey here first.'}
             </p>
+            {meProfile.biometricAttendanceEnabled && !meProfile.hasWebAuthnCredential && (
+              <div style={{ marginBottom: 12, padding: 12, background: '#fffbeb', borderRadius: 8, border: '1px solid #fcd34d' }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400e' }}>
+                  Register this browser once so you can confirm check-in with fingerprint or device PIN.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  style={{ marginTop: 10 }}
+                  onClick={handleRegisterPasskey}
+                  disabled={registeringPasskey}
+                >
+                  {registeringPasskey ? <Loader2 size={14} className="spin-icon" /> : null}
+                  Register passkey for web check-in
+                </button>
+              </div>
+            )}
+            {meProfile.biometricAttendanceEnabled && meProfile.hasWebAuthnCredential && (
+              <p style={{ fontSize: '0.82rem', color: '#059669', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={14} /> Passkey registered for this browser
+              </p>
+            )}
             {branchSSIDs.length > 0 && !wifiSSID && (
               <p className="checkin-warning" style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
                 <AlertTriangle size={13} strokeWidth={2.5} /> Select your office WiFi above before checking in.
@@ -351,7 +426,12 @@ export default function CheckInPage() {
             <button
               className="btn btn--primary"
               onClick={handleSubmitAttendance}
-              disabled={submitting || (branchSSIDs.length > 0 && !wifiSSID) || geoStatus !== 'success'}
+              disabled={
+                submitting
+                || (branchSSIDs.length > 0 && !wifiSSID)
+                || geoStatus !== 'success'
+                || (meProfile.biometricAttendanceEnabled && !meProfile.hasWebAuthnCredential)
+              }
             >
               {submitting ? <Loader2 size={15} className="spin-icon" /> : null}
               {alreadyCheckedIn ? 'Check Out Now' : 'Check In Now'}

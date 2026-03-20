@@ -341,6 +341,25 @@ The **`canvas`** npm package is a native addon; Render’s Node **Linux** enviro
 
 ---
 
+## Biometric attendance (HR + WebAuthn + mobile)
+
+HR/Director/Super Admin enables **biometric attendance** per employee (Employees page). The employee then:
+
+- **Mobile app:** taps **Enroll this device** once (uses device fingerprint / Face ID / PIN via `expo-local-authentication`), then checks in with the same.
+- **Website:** registers a **passkey** once on the Check In page (browser uses Windows Hello / Touch ID / security key), then each check-in/out runs a WebAuthn assertion.
+
+Set these on the **API** (Render) and ensure `CLIENT_URL` includes your Vercel origin:
+
+```
+WEBAUTHN_RP_NAME=Adiverse HRMS
+WEBAUTHN_RP_ID=your-app.vercel.app
+WEBAUTHN_ORIGIN=https://your-app.vercel.app,http://localhost:3000
+```
+
+`WEBAUTHN_RP_ID` must be the **hostname only** (no `https://`), matching the site where users open the portal.
+
+---
+
 ## 🗂️ .env Reference
 
 ```
@@ -355,6 +374,9 @@ JWT_REFRESH_EXPIRY=7d
 BCRYPT_ROUNDS=12
 CRON_SECRET=...          ← optional; for /api/cron/trigger when using external cron (e.g. Render)
 FACE_MODELS_DIR=         ← optional; absolute path to face-api models if client/public/models is not present
+WEBAUTHN_RP_NAME=        ← optional; passkey display name
+WEBAUTHN_RP_ID=          ← required for web passkeys; hostname only (e.g. localhost or your Vercel domain)
+WEBAUTHN_ORIGIN=         ← comma-separated allowed origins for WebAuthn (must include your Vercel URL)
 ```
 
 ---

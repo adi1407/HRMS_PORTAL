@@ -4,10 +4,12 @@
 const Attendance = require('../models/Attendance.model');
 const Branch     = require('../models/Branch.model');
 const Salary     = require('../models/Salary.model');
+const User       = require('../models/User.model');
 const { isWithinGeoFence }    = require('../utils/geo.utils');
 const { createAuditLog }      = require('../utils/auditLog.utils');
 const { ApiError }            = require('../utils/api.utils');
 const { generateMonthlySalary } = require('./salary.service');
+const { verifyAuthenticationForAttendance } = require('./webauthn.service');
 
 // ─── Attendance Time Rules ───────────────────────────────────────────────────
 // Full Day   : worked 8+ hours total (regardless of arrival time — overrides everything)
@@ -53,6 +55,35 @@ function isMobileClient(req) {
   return (req?.headers?.['x-client'] || '').toLowerCase() === 'mobile';
 }
 
+/**
+ * When HR enables biometric attendance: mobile must complete in-app enrollment;
+ * web must send a verified WebAuthn assertion (passkey / fingerprint / device PIN).
+ */
+async function ensureBiometricForAttendance(employeeId, req) {
+  const fromMobile = isMobileClient(req);
+  const emp = await User.findById(employeeId).select('+webAuthnCredentials');
+  if (!emp) throw new ApiError(404, 'Employee not found.');
+  if (!emp.biometricAttendanceEnabled) return;
+  if (fromMobile) {
+    if (!emp.biometricMobileEnrolledAt) {
+      throw new ApiError(400, 'Complete biometric enrollment in the mobile app after HR has enabled it.');
+    }
+    return;
+  }
+  const webAuthn = req.body?.webAuthn;
+  if (!(emp.webAuthnCredentials || []).length) {
+    throw new ApiError(400, 'Register a browser passkey on the Check In page first.');
+  }
+  if (!webAuthn) {
+    throw new ApiError(400, 'Biometric confirmation required on web. Confirm with passkey / fingerprint when prompted.');
+  }
+  try {
+    await verifyAuthenticationForAttendance(emp, webAuthn);
+  } catch (e) {
+    throw new ApiError(401, e.message || 'Biometric verification failed.');
+  }
+}
+
 const processCheckIn = async ({ employeeId, branchId, lat, lon, wifiSSID, req }) => {
 
   const branch = await Branch.findById(branchId);
@@ -94,6 +125,8 @@ const processCheckIn = async ({ employeeId, branchId, lat, lon, wifiSSID, req })
       throw new ApiError(403, `You are ${geo.distance}m from the office. Must be within ${geo.radiusMeters}m to check in.`);
     }
   }
+
+  await ensureBiometricForAttendance(employeeId, req);
 
   // Step 3: Duplicate check
   const todayStart = istToday();
@@ -184,6 +217,8 @@ const processCheckOut = async ({ employeeId, branchId, lat, lon, wifiSSID, req }
       throw new ApiError(403, `You are ${geo.distance}m from the office. Must be within ${geo.radiusMeters}m to check out.`);
     }
   }
+
+  await ensureBiometricForAttendance(employeeId, req);
 
   const todayStart = istToday();
 

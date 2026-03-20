@@ -26,6 +26,21 @@ const UserSchema = new Schema({
   faceEnrolled:    { type: Boolean, default: false },
   faceEnrolledAt:  { type: Date },
   faceEnrolledBy:  { type: Schema.Types.ObjectId, ref: 'User' },
+  /** HR enables biometric attendance; employee then enrolls on their phone (app) and/or browser (WebAuthn). */
+  biometricAttendanceEnabled: { type: Boolean, default: false },
+  biometricMobileEnrolledAt:  { type: Date },
+  biometricAttendanceSetAt:   { type: Date },
+  biometricAttendanceSetBy:   { type: Schema.Types.ObjectId, ref: 'User' },
+  webAuthnCredentials: {
+    type: [{
+      credentialID: { type: String, required: true },
+      credentialPublicKey: { type: Buffer, required: true },
+      counter: { type: Number, default: 0 },
+      transports: [{ type: String }],
+    }],
+    select: false,
+    default: [],
+  },
   refreshToken:    { type: String, select: false },
   payslipPin:      { type: String, select: false, default: '' },
   createdBy:       { type: Schema.Types.ObjectId, ref: 'User' },
@@ -67,6 +82,7 @@ UserSchema.methods.toSafeObject = function () {
   delete obj.refreshToken;
   delete obj.faceDescriptors;
   delete obj.payslipPin;
+  delete obj.webAuthnCredentials;
   return obj;
 };
 

@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@simplewebauthn/browser": "^13.3.0",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "face-api.js": "^0.20.0",

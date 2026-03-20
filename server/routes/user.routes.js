@@ -145,7 +145,16 @@ router.get('/:id', authenticate, selfOrAdmin, async (req, res, next) => {
 
 router.patch('/:id', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS'), async (req, res, next) => {
   try {
-    const { password, role, bankAccountNumber, ifscCode, grossSalary, isManagingHead, ...updates } = req.body;
+    const {
+      password,
+      role,
+      bankAccountNumber,
+      ifscCode,
+      grossSalary,
+      isManagingHead,
+      biometricAttendanceEnabled,
+      ...updates
+    } = req.body;
     if (role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') return next(new ApiError(403, 'Insufficient permissions.'));
     if (role) updates.role = role;
     // Only ACCOUNTS / SUPER_ADMIN may update salary, bank details, and managing head flag
@@ -156,6 +165,19 @@ router.patch('/:id', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'A
       if (grossSalary       !== undefined) updates.grossSalary       = grossSalary;
       if (isManagingHead    !== undefined) updates.isManagingHead    = isManagingHead;
     }
+
+    if (biometricAttendanceEnabled !== undefined) {
+      if (!['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(req.user.role)) {
+        return next(new ApiError(403, 'Only HR, Director, or Super Admin can manage biometric attendance.'));
+      }
+      updates.biometricAttendanceEnabled = !!biometricAttendanceEnabled;
+      updates.biometricAttendanceSetAt = new Date();
+      updates.biometricAttendanceSetBy = req.user._id;
+      // Force re-enrollment when toggling
+      updates.biometricMobileEnrolledAt = null;
+      updates.webAuthnCredentials = [];
+    }
+
     const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     if (!user) return next(new ApiError(404, 'Employee not found.'));
     await createAuditLog({ actor: req.user, action: 'EMPLOYEE_UPDATED', entity: 'User', entityId: user._id, description: `${user.name} updated by ${req.user.name}`, req });
