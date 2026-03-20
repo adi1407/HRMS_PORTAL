@@ -8,7 +8,6 @@ import DashboardPage from './pages/DashboardPage';
 import CheckInPage   from './pages/CheckInPage';
 import SalaryPage    from './pages/SalaryPage';
 import EmployeesPage  from './pages/EmployeesPage';
-import FaceEnrollPage from './pages/FaceEnrollPage';
 import LeavePage      from './pages/LeavePage';
 import AttendancePage      from './pages/AttendancePage';
 import BranchSettingsPage  from './pages/BranchSettingsPage';
@@ -71,7 +70,6 @@ export default function App() {
           <Route path="checkin"    element={<CheckInPage />} />
           <Route path="salary"     element={<SalaryPage />} />
           <Route path="employees"  element={<ProtectedRoute roles={['HR','DIRECTOR','SUPER_ADMIN','ACCOUNTS']}><EmployeesPage /></ProtectedRoute>} />
-          <Route path="employees/:empId/enroll-face" element={<ProtectedRoute roles={['HR','DIRECTOR','SUPER_ADMIN']}><FaceEnrollPage /></ProtectedRoute>} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="leave"      element={<LeavePage />} />
           <Route path="holidays"   element={<HolidayPage />} />

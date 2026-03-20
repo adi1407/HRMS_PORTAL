@@ -4,9 +4,7 @@
 const Attendance = require('../models/Attendance.model');
 const Branch     = require('../models/Branch.model');
 const Salary     = require('../models/Salary.model');
-const User       = require('../models/User.model');
 const { isWithinGeoFence }    = require('../utils/geo.utils');
-const { verifyFace }          = require('./face.service');
 const { createAuditLog }      = require('../utils/auditLog.utils');
 const { ApiError }            = require('../utils/api.utils');
 const { generateMonthlySalary } = require('./salary.service');
@@ -55,7 +53,7 @@ function isMobileClient(req) {
   return (req?.headers?.['x-client'] || '').toLowerCase() === 'mobile';
 }
 
-const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
+const processCheckIn = async ({ employeeId, branchId, lat, lon, wifiSSID, req }) => {
 
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
@@ -97,29 +95,12 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
     }
   }
 
-  // Step 3: Face — if enrolled, a valid 128-D descriptor is required (web + mobile app).
-  const hasValidDescriptor = Array.isArray(faceDescriptor) && faceDescriptor.length === 128;
-  const empFace = await User.findById(employeeId).select('faceEnrolled');
-  if (empFace?.faceEnrolled && !hasValidDescriptor) {
-    throw new ApiError(400, 'Face verification required. Use the in-app face capture or web check-in with camera.');
-  }
-  let faceResult;
-  if (hasValidDescriptor) {
-    faceResult = await verifyFace(employeeId, faceDescriptor);
-    if (!faceResult.matched) {
-      await createAuditLog({ actor: { _id: employeeId }, action: 'CHECK_IN_DENIED_FACE', severity: 'WARNING', description: `Distance: ${faceResult.distance}`, req });
-      throw new ApiError(401, 'Face not recognized. Please ensure good lighting and try again.');
-    }
-  } else {
-    faceResult = { matched: true, confidence: 0 };
-  }
-
-  // Step 4: Duplicate check
+  // Step 3: Duplicate check
   const todayStart = istToday();
   const existing = await Attendance.findOne({ employee: employeeId, date: todayStart });
   if (existing?.checkIn) throw new ApiError(409, 'Already checked in today.');
 
-  // Step 5: Time-based status at check-in (IST)
+  // Step 4: Time-based status at check-in (IST)
   const now      = new Date();
   const nowIST   = toIST(now);
   const totalMins = nowIST.getHours() * 60 + nowIST.getMinutes();
@@ -150,7 +131,7 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
     message = 'Checked in on time. Have a productive day!';
   }
 
-  // Step 6: Save
+  // Step 5: Save
   const checkInTime = `${String(nowIST.getHours()).padStart(2,'0')}:${String(nowIST.getMinutes()).padStart(2,'0')}`;
 
   const attendance = await Attendance.findOneAndUpdate(
@@ -158,7 +139,7 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
     {
       checkIn: now, checkInTime,
       status, displayStatus, isRealHalfDay,
-      faceConfidence: faceResult.confidence,
+      faceConfidence: 0,
       markedBy: 'SYSTEM',
       notes: checkInNote,
     },
@@ -170,7 +151,7 @@ const processCheckIn = async ({ employeeId, branchId, faceDescriptor, lat, lon, 
   return { checkInTime, displayStatus, message };
 };
 
-const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon, wifiSSID, req }) => {
+const processCheckOut = async ({ employeeId, branchId, lat, lon, wifiSSID, req }) => {
   const branch = await Branch.findById(branchId);
   if (!branch || !branch.isActive) throw new ApiError(404, 'Branch not found.');
 
@@ -202,16 +183,6 @@ const processCheckOut = async ({ employeeId, branchId, faceDescriptor, lat, lon,
     if (!geo.allowed) {
       throw new ApiError(403, `You are ${geo.distance}m from the office. Must be within ${geo.radiusMeters}m to check out.`);
     }
-  }
-
-  const hasValidDescriptor = Array.isArray(faceDescriptor) && faceDescriptor.length === 128;
-  const empFace = await User.findById(employeeId).select('faceEnrolled');
-  if (empFace?.faceEnrolled && !hasValidDescriptor) {
-    throw new ApiError(400, 'Face verification required. Use the in-app face capture or web check-out with camera.');
-  }
-  if (hasValidDescriptor) {
-    const faceResult = await verifyFace(employeeId, faceDescriptor);
-    if (!faceResult.matched) throw new ApiError(401, 'Face not recognized. Check-out denied.');
   }
 
   const todayStart = istToday();

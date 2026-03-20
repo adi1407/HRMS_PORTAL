@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,12 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  Linking,
 } from 'react-native';
 import * as Location from 'expo-location';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as LocalAuthentication from 'expo-local-authentication';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import api from '@/lib/api';
-import { encodeFaceDescriptorFromUri } from '@/lib/faceEncode';
 import { useAuthStore } from '@/store/authStore';
 
 // Match splash + login: light-only, premium Apple-style
@@ -53,8 +51,6 @@ type Branch = { _id: string; name: string; wifiSSIDs?: string[] };
 
 export default function CheckInScreen() {
   const user = useAuthStore((s) => s.user);
-  const getRole = useAuthStore((s) => s.getRole);
-  const role = getRole();
   const [todayRecord, setTodayRecord] = useState<TodayRecord | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -76,51 +72,29 @@ export default function CheckInScreen() {
   const [requestSending, setRequestSending] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
-  const [faceEnrolled, setFaceEnrolled] = useState(false);
-  const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
-  const [faceCapturing, setFaceCapturing] = useState(false);
-  const [faceMsg, setFaceMsg] = useState('');
-  const faceCameraRef = useRef<CameraView>(null);
-  const [facePermission, requestFacePermission] = useCameraPermissions();
-  const [faceCamReady, setFaceCamReady] = useState(false);
-
   const userBranchId = (user?.branch as { _id?: string })?._id ?? (user?.branch as string) ?? null;
   const userBranch = branches.find((b) => b._id === userBranchId) ?? branches.find((b) => b.name === (user?.branch as { name?: string })?.name) ?? branches[0];
   const branchId = userBranch?._id ?? userBranchId ?? branches[0]?._id;
   const wifiRequired = (userBranch?.wifiSSIDs?.length ?? 0) > 0;
   const wifiOk = !wifiRequired || (wifiSSID.trim().length > 0);
-  const canManageFace = ['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(role);
-  const clientUrl =
-    typeof process !== 'undefined'
-      ? (process as unknown as { env?: { EXPO_PUBLIC_CLIENT_URL?: string } }).env?.EXPO_PUBLIC_CLIENT_URL
-      : '';
+  const biometricLabel = Platform.OS === 'android' ? 'fingerprint or device lock' : 'Touch ID / Face ID / device lock';
 
   const loadData = async () => {
     setLoadingData(true);
     setResult(null);
     try {
-      const uid = useAuthStore.getState().user?._id;
-      const [todayRes, branchesRes, faceRes] = await Promise.all([
+      const [todayRes, branchesRes] = await Promise.all([
         api.get<{ data: TodayRecord }>('/attendance/today'),
         api.get<{ data: Branch[] }>('/branches'),
-        uid
-          ? api.get<{ data: { faceEnrolled?: boolean } }>(`/face/status/${uid}`).catch(() => ({ data: { data: {} } }))
-          : Promise.resolve({ data: { data: {} } }),
       ]);
       setTodayRecord(todayRes.data.data ?? null);
       const blist = branchesRes.data.data ?? [];
       setBranches(blist);
-      setFaceEnrolled(!!faceRes.data.data?.faceEnrolled);
-      if (!faceRes.data.data?.faceEnrolled) {
-        setFaceDescriptor(null);
-        setFaceMsg('');
-      }
       const b = blist.find((x) => x._id === userBranchId) ?? blist.find((x) => x.name === (user?.branch as { name?: string })?.name) ?? blist[0];
       if (b?.wifiSSIDs?.length) setBranchSSIDs(b.wifiSSIDs);
       else setBranchSSIDs([]);
     } catch {
       setBranches([]);
-      setFaceEnrolled(false);
     } finally {
       setLoadingData(false);
     }
@@ -184,13 +158,30 @@ export default function CheckInScreen() {
     setSubmitting(true);
     setResult(null);
     try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert(
+          'Biometric setup required',
+          `Set up ${biometricLabel} on your phone to continue check in/out.`
+        );
+        return;
+      }
+      const auth = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirm attendance with biometric',
+        fallbackLabel: 'Use device passcode',
+      });
+      if (!auth.success) {
+        Alert.alert('Authentication failed', 'Biometric verification was cancelled or failed.');
+        return;
+      }
+
       const endpoint = isCheckOut ? '/attendance/checkout' : '/attendance/checkin';
       const { data } = await api.post(endpoint, {
         branchId,
         lat: geoCoords.lat,
         lon: geoCoords.lon,
         wifiSSID: wifiSSID.trim() || undefined,
-        ...(faceDescriptor?.length === 128 ? { faceDescriptor } : {}),
       });
       const payload = data.data as { message?: string };
       setResult({
@@ -198,8 +189,6 @@ export default function CheckInScreen() {
         message: payload?.message ?? (isCheckOut ? 'Checked out successfully.' : 'Checked in successfully.'),
       });
       await loadData();
-      setFaceDescriptor(null);
-      setFaceMsg('');
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? (isCheckOut ? 'Check-out failed.' : 'Check-in failed.');
       setResult({ success: false, message: msg });
@@ -222,61 +211,13 @@ export default function CheckInScreen() {
     }
   };
 
-  const openWebFaceCheckIn = async () => {
-    if (!clientUrl) {
-      Alert.alert('Web URL missing', 'Set EXPO_PUBLIC_CLIENT_URL in app .env to use web face camera flow.');
-      return;
-    }
-    const url = `${clientUrl.replace(/\/$/, '')}/checkin`;
-    try {
-      const ok = await Linking.canOpenURL(url);
-      if (ok) await Linking.openURL(url);
-      else Alert.alert('Open failed', 'Could not open the web check-in page.');
-    } catch {
-      Alert.alert('Open failed', 'Could not open the web check-in page.');
-    }
-  };
-
   const alreadyCheckedIn = !!todayRecord?.checkInTime;
   const alreadyCheckedOut = !!todayRecord?.checkOutTime;
   const canCheckIn = !alreadyCheckedIn;
   const canCheckOut = alreadyCheckedIn && !alreadyCheckedOut;
   const doneForToday = alreadyCheckedIn && alreadyCheckedOut;
-  const faceGateOk = !faceEnrolled || (faceDescriptor !== null && faceDescriptor.length === 128);
   const canSubmit =
-    (canCheckIn || canCheckOut) && geoStatus === 'success' && wifiOk && !submitting && faceGateOk;
-
-  const captureFaceForAttendance = async () => {
-    if (!faceCameraRef.current || faceCapturing) return;
-    setFaceCapturing(true);
-    setFaceMsg('Taking photo…');
-    try {
-      const photo = await faceCameraRef.current.takePictureAsync({
-        quality: 0.85,
-        skipProcessing: Platform.OS === 'ios',
-      });
-      if (!photo?.uri) throw new Error('No photo');
-      setFaceMsg('Verifying face…');
-      const d = await encodeFaceDescriptorFromUri(photo.uri);
-      setFaceDescriptor(d);
-      setFaceMsg('Face captured. You can check in or out.');
-    } catch (e: unknown) {
-      const m =
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        (e instanceof Error ? e.message : 'Face capture failed.');
-      setFaceMsg(m);
-      if (m.includes('temporarily unavailable') || m.includes('(503)')) {
-        Alert.alert('Face service unavailable', `${m}\n\nUse web face check-in for now.`, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Web Check-In', onPress: openWebFaceCheckIn },
-        ]);
-      } else {
-        Alert.alert('Face capture failed', m);
-      }
-    } finally {
-      setFaceCapturing(false);
-    }
-  };
+    (canCheckIn || canCheckOut) && geoStatus === 'success' && wifiOk && !submitting;
 
   if (loadingData) {
     return (
@@ -412,90 +353,24 @@ export default function CheckInScreen() {
             )}
           </View>
 
-          {/* Face (required when enrolled) */}
-          {faceEnrolled && (
-            <View style={styles.card}>
-              <View style={styles.stepHeader}>
-                <View style={styles.stepNum}>
-                  <Text style={styles.stepNumText}>3</Text>
-                </View>
-                <Text style={styles.stepTitle}>Face verification</Text>
-              </View>
-              <Text style={styles.stepDesc}>
-                Your account uses face check-in. Capture once before tapping Check In / Out.
-              </Text>
-              {!facePermission?.granted ? (
-                <TouchableOpacity style={styles.secondaryBtn} onPress={requestFacePermission}>
-                  <Text style={styles.secondaryBtnText}>Allow camera</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.faceCameraBox}>
-                  <View style={styles.faceCameraInner}>
-                    <CameraView
-                      ref={faceCameraRef}
-                      style={styles.faceCamera}
-                      facing="front"
-                      onCameraReady={() => setFaceCamReady(true)}
-                    />
-                    {!faceCamReady ? (
-                      <View style={styles.faceCameraLoading}>
-                        <ActivityIndicator color={COLORS.tint} />
-                      </View>
-                    ) : null}
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.faceCaptureBtn, { backgroundColor: COLORS.tint }, faceCapturing && { opacity: 0.6 }]}
-                    onPress={captureFaceForAttendance}
-                    disabled={faceCapturing}
-                  >
-                    {faceCapturing ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <>
-                        <MaterialIcons name="camera-alt" size={20} color="#fff" />
-                        <Text style={styles.primaryBtnText}>Capture face</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
-              {faceDescriptor && (
-                <View style={styles.faceOkRow}>
-                  <MaterialIcons name="check-circle" size={18} color={COLORS.success} />
-                  <Text style={[styles.muted, { color: COLORS.success, flex: 1 }]}>Face ready for this session</Text>
-                  <TouchableOpacity onPress={() => { setFaceDescriptor(null); setFaceMsg(''); }}>
-                    <Text style={{ color: COLORS.tint, fontWeight: '600' }}>Retake</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {faceMsg ? <Text style={[styles.muted, { marginTop: Spacing.sm }]}>{faceMsg}</Text> : null}
-            </View>
-          )}
-
           {/* Check In / Out */}
           <View style={styles.card}>
             <View style={styles.stepHeader}>
               <View style={styles.stepNum}>
-                <Text style={styles.stepNumText}>{faceEnrolled ? '4' : '3'}</Text>
+                <Text style={styles.stepNumText}>3</Text>
               </View>
               <Text style={styles.stepTitle}>{canCheckOut ? 'Check Out' : 'Check In'}</Text>
             </View>
             <Text style={styles.stepDesc}>
-              {canCheckOut ? 'Tap the button below when you leave the office.' : 'Ensure location and WiFi are set, then tap to check in.'}
+              {canCheckOut
+                ? `Confirm ${biometricLabel} and tap below when you leave the office.`
+                : `Ensure location and WiFi are set, then confirm ${biometricLabel} to check in.`}
             </Text>
             {wifiRequired && !wifiSSID.trim() && (
               <View style={[styles.statusChip, styles.statusError]}>
                 <MaterialIcons name="info" size={16} color={COLORS.danger} />
                 <Text style={[styles.statusChipText, { color: COLORS.danger }]}>
                   Select your office WiFi above before checking in.
-                </Text>
-              </View>
-            )}
-            {faceEnrolled && !faceDescriptor && (
-              <View style={[styles.statusChip, styles.statusError]}>
-                <MaterialIcons name="face" size={16} color={COLORS.danger} />
-                <Text style={[styles.statusChipText, { color: COLORS.danger }]}>
-                  Capture your face in step 3 before checking in or out.
                 </Text>
               </View>
             )}
@@ -514,16 +389,6 @@ export default function CheckInScreen() {
                 </>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryBtn} onPress={openWebFaceCheckIn}>
-              <MaterialIcons name="face" size={18} color={COLORS.tint} />
-              <Text style={styles.secondaryBtnText}>Use Face Camera Check-In (Web)</Text>
-            </TouchableOpacity>
-            {canManageFace && (
-              <TouchableOpacity style={styles.secondaryBtn} onPress={() => Alert.alert('Face Enroll', 'Open More → Face Enroll to enroll or manage employee face data.')}>
-                <MaterialIcons name="manage-accounts" size={18} color={COLORS.tint} />
-                <Text style={styles.secondaryBtnText}>Manage Face Enrollments</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </>
       )}

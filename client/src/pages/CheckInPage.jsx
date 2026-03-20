@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
 import {
-  MapPin, Wifi, ScanFace, CheckCircle2, XCircle, RotateCcw,
+  MapPin, Wifi, CheckCircle2, XCircle, RotateCcw,
   Loader2, AlertTriangle, Timer, LogIn, LogOut,
 } from 'lucide-react';
 
@@ -11,8 +11,6 @@ export default function CheckInPage() {
   const isHR = ['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
 
   const [todayRecord, setTodayRecord] = useState(null);
-  const [faceStatus,  setFaceStatus]  = useState('idle');
-  const [faceMessage, setFaceMessage] = useState('');
   const [submitting,  setSubmitting]  = useState(false);
   const [result,      setResult]      = useState(null);
 
@@ -38,11 +36,6 @@ export default function CheckInPage() {
   const [overrideForm,    setOverrideForm]    = useState({});
   const [resolving,       setResolving]       = useState({});
 
-  const videoRef    = useRef(null);
-  const canvasRef   = useRef(null);
-  const streamRef   = useRef(null);
-  const intervalRef = useRef(null);
-
   // Refs that mirror state — used inside async callbacks to avoid stale closures
   const todayRecordRef = useRef(null);
   const geoCoordsRef   = useRef(null);
@@ -60,10 +53,6 @@ export default function CheckInPage() {
     loadBranchWifi();
     detectWifiConnection();
     if (isHR) fetchPendingRequests();
-    return () => {
-      stopCamera();
-      if (intervalRef.current) clearTimeout(intervalRef.current);
-    };
   }, []);
 
   /* ── GPS ──────────────────────────────────────────────────── */
@@ -163,57 +152,7 @@ export default function CheckInPage() {
     } catch {}
   };
 
-  /* ── Camera ──────────────────────────────────────────────── */
-  const loadFaceModels = async () => {
-    try {
-      setFaceStatus('loading');
-      setFaceMessage('Loading face recognition models...');
-      const faceapi = window.faceapi;
-      if (!faceapi) throw new Error('face-api.js script not loaded');
-      await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-        faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-      ]);
-      setFaceMessage('Models loaded. Starting camera...');
-      startCamera(faceapi);
-    } catch (err) {
-      setFaceStatus('error');
-      setFaceMessage(`Could not load face models: ${err?.message || err}`);
-    }
-  };
-
-  const startCamera = async (faceapi) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240, facingMode: 'user' },
-      });
-      streamRef.current = stream;
-      setFaceStatus('scanning');
-      setFaceMessage('Look at the camera and hold still...');
-      await new Promise(r => setTimeout(r, 50));
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
-      await new Promise(r => setTimeout(r, 500));
-      startFaceDetection(faceapi);
-    } catch {
-      setFaceStatus('error');
-      setFaceMessage('Camera access denied. Please allow camera permission.');
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-  };
-
-  /* ── Auto-submit once face is stably recognised ─────────── */
-  // Called directly from the detection loop with a fresh descriptor (no stale state)
-  const handleAutoSubmit = async (descriptor) => {
+  const handleSubmitAttendance = async () => {
     setSubmitting(true);
     const record   = todayRecordRef.current;
     const coords   = geoCoordsRef.current;
@@ -224,7 +163,6 @@ export default function CheckInPage() {
     try {
       const { data } = await api.post(endpoint, {
         branchId:       currentUser?.branch?._id || currentUser?.branch,
-        faceDescriptor: descriptor,
         lat: coords?.lat ?? null,
         lon: coords?.lon ?? null,
         wifiSSID: ssid || undefined,
@@ -233,68 +171,9 @@ export default function CheckInPage() {
       fetchTodayRecord();
     } catch (err) {
       setResult({ success: false, message: err.response?.data?.message || 'Request failed.' });
-      // Reset so employee can try again
-      setFaceStatus('idle');
-      setFaceMessage('');
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const startFaceDetection = (faceapi) => {
-    const REQUIRED_FRAMES = 5;  // 5 consecutive detections (~750 ms) before auto-submit
-    let submitted    = false;
-    let stableFrames = 0;
-    let lastMsg      = '';
-    let lastDescriptor = null;
-
-    const detect = async () => {
-      if (submitted || !videoRef.current || !canvasRef.current) return;
-      try {
-        const detection = await faceapi
-          .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
-          .withFaceLandmarks()
-          .withFaceDescriptor();
-
-        const canvas = canvasRef.current;
-        const ctx    = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (!detection) {
-          stableFrames = 0;
-          const msg = 'No face detected. Center your face in the frame.';
-          if (lastMsg !== msg) { setFaceMessage(msg); lastMsg = msg; }
-        } else {
-          const { x, y, width, height } = detection.detection.box;
-          ctx.strokeStyle = '#3b82f6';
-          ctx.lineWidth   = 2;
-          ctx.strokeRect(x, y, width, height);
-
-          lastDescriptor = Array.from(detection.descriptor);
-          stableFrames++;
-
-          if (stableFrames >= REQUIRED_FRAMES) {
-            // ✅ Face stably detected — auto-submit
-            submitted = true;
-            stopCamera();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            setFaceStatus('success');
-            setFaceMessage('Face recognised! Submitting attendance...');
-            handleAutoSubmit(lastDescriptor);
-            return;
-          }
-
-          const msg = stableFrames < 2
-            ? 'Face detected. Hold still...'
-            : 'Recognising face...';
-          if (lastMsg !== msg) { setFaceMessage(msg); lastMsg = msg; }
-        }
-      } catch (err) {
-        console.error('[FaceDetect]', err);
-      }
-      if (!submitted) intervalRef.current = setTimeout(detect, 150);
-    };
-    intervalRef.current = setTimeout(detect, 200);
   };
 
   const alreadyCheckedIn  = todayRecord?.checkInTime;
@@ -450,71 +329,33 @@ export default function CheckInPage() {
             )}
           </div>
 
-          {/* Step 3: Face Verification — auto-submit on stable detection */}
+          {/* Step 3: Confirm attendance */}
           <div className="checkin-step-card">
             <div className="checkin-step-header">
               <div className="checkin-step-num">3</div>
-              <h3>Face Verification</h3>
+              <h3>Confirm Attendance</h3>
             </div>
             <p className="checkin-step-desc">
-              Look at the camera and <strong>hold still</strong> — attendance is marked automatically.
+              Face recognition is disabled. Attendance is now verified using office WiFi and GPS.
             </p>
-
-            <div className="face-widget">
-              <div className="face-video-wrapper" style={{ display: faceStatus === 'scanning' ? 'block' : 'none' }}>
-                <video ref={videoRef} className="face-video" muted playsInline />
-                <canvas ref={canvasRef} className="face-canvas" width={320} height={240} />
-              </div>
-
-              {faceStatus !== 'scanning' && (
-                <div
-                  className={`status-indicator status-indicator--${
-                    faceStatus === 'success' ? 'success' : faceStatus === 'error' ? 'error' : 'idle'
-                  }`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 7 }}
-                >
-                  {faceStatus === 'idle'    && <><ScanFace size={14} /> Face scan not started</>}
-                  {faceStatus === 'loading' && <><Loader2 size={14} className="spin-icon" /> Loading models...</>}
-                  {faceStatus === 'success' && submitting && <><Loader2 size={14} className="spin-icon" /> Submitting attendance...</>}
-                  {faceStatus === 'success' && !submitting && <><CheckCircle2 size={14} strokeWidth={2.5} /> {faceMessage}</>}
-                  {faceStatus === 'error'   && <><XCircle size={14} strokeWidth={2.5} /> {faceMessage}</>}
-                </div>
-              )}
-
-              {faceStatus === 'scanning' && (
-                <div className="status-indicator status-indicator--checking" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <Loader2 size={14} className="spin-icon" /> {faceMessage}
-                </div>
-              )}
-            </div>
-
-            {(faceStatus === 'idle') && (
-              <>
-                {branchSSIDs.length > 0 && !wifiSSID && (
-                  <p className="checkin-warning" style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-                    <AlertTriangle size={13} strokeWidth={2.5} /> Select your office WiFi above before checking in.
-                  </p>
-                )}
-                <button
-                  className="btn btn--primary"
-                  onClick={loadFaceModels}
-                  disabled={branchSSIDs.length > 0 && !wifiSSID}
-                >
-                  <ScanFace size={15} strokeWidth={2} />
-                  {alreadyCheckedIn ? 'Start Face Scan to Check Out' : 'Start Face Scan to Check In'}
-                </button>
-              </>
-            )}
-            {faceStatus === 'error' && (
-              <button className="btn btn--secondary" onClick={loadFaceModels}>
-                <RotateCcw size={15} strokeWidth={2} /> Retry Face Scan
-              </button>
-            )}
-            {!user?.faceEnrolled && (
-              <p className="checkin-warning" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <AlertTriangle size={13} strokeWidth={2.5} /> Face not enrolled. Contact HR to enroll your face.
+            {branchSSIDs.length > 0 && !wifiSSID && (
+              <p className="checkin-warning" style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+                <AlertTriangle size={13} strokeWidth={2.5} /> Select your office WiFi above before checking in.
               </p>
             )}
+            {geoStatus !== 'success' && (
+              <p className="checkin-warning" style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+                <AlertTriangle size={13} strokeWidth={2.5} /> Enable GPS and retry location before checking in.
+              </p>
+            )}
+            <button
+              className="btn btn--primary"
+              onClick={handleSubmitAttendance}
+              disabled={submitting || (branchSSIDs.length > 0 && !wifiSSID) || geoStatus !== 'success'}
+            >
+              {submitting ? <Loader2 size={15} className="spin-icon" /> : null}
+              {alreadyCheckedIn ? 'Check Out Now' : 'Check In Now'}
+            </button>
           </div>
         </div>
       )}

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import useAuthStore from '../store/authStore';
 import { Users } from 'lucide-react';
@@ -7,10 +6,9 @@ import { Users } from 'lucide-react';
 const PAGE_SIZE = 25;
 
 export default function EmployeesPage() {
-  const navigate  = useNavigate();
   const { user: me } = useAuthStore();
   const isAccounts = ['ACCOUNTS', 'SUPER_ADMIN'].includes(me?.role);
-  // canManage: HR/DIRECTOR/SUPER_ADMIN — delete employees, face enroll
+  // canManage: HR/DIRECTOR/SUPER_ADMIN — delete employees
   const canManage  = ['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(me?.role);
   // canCreate: ACCOUNTS can also add employees (to set salary/bank from the start)
   const canCreate  = canManage || me?.role === 'ACCOUNTS';
@@ -332,12 +330,7 @@ export default function EmployeesPage() {
                     )}
                     {canManage && (
                       <td data-label="Face">
-                        <button
-                          className={`btn-tiny ${emp.faceEnrolled ? 'btn-tiny--green' : 'btn-tiny--red'}`}
-                          onClick={() => navigate(`/employees/${emp._id}/enroll-face`)}
-                        >
-                          <span style={{ color: emp.faceEnrolled ? '#16a34a' : '#dc2626' }}>{emp.faceEnrolled ? 'Enrolled' : 'Enroll'}</span>
-                        </button>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600 }}>Disabled</span>
                       </td>
                     )}
                     {canManage && (

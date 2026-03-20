@@ -4,7 +4,7 @@ import useAuthStore from '../../store/authStore';
 import api from '../../utils/api';
 import NotificationBell from './NotificationBell';
 import {
-  LayoutDashboard, ScanFace, CalendarDays, CalendarMinus2, Wallet,
+  LayoutDashboard, MapPinCheckInside, CalendarDays, CalendarMinus2, Wallet,
   Users, Sparkles, Settings, LogOut, Menu, X, UserMinus, FolderOpen, Receipt,
   ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert,
   Star, ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
@@ -13,7 +13,7 @@ import {
 const NAV_ITEMS = [
   { path: '/dashboard',       label: 'Dashboard',       Icon: LayoutDashboard, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/my-profile',      label: 'My Profile',      Icon: UserCircle,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
-  { path: '/checkin',         label: 'Check In/Out',    Icon: ScanFace,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/checkin',         label: 'Check In/Out',    Icon: MapPinCheckInside, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/attendance',      label: 'Attendance',      Icon: CalendarDays,    roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/leave',           label: 'Leave',           Icon: CalendarMinus2,  roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/salary',          label: 'Salary',          Icon: Wallet,          roles: ['SUPER_ADMIN','DIRECTOR','ACCOUNTS','EMPLOYEE','HR'] },

@@ -61,7 +61,6 @@ const MENU_ITEMS: MenuItem[] = [
   { route: '/warnings', label: 'Warnings', icon: 'warning', section: 'Company', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/appraisals', label: 'Appraisals', icon: 'star', section: 'Company', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/employees', label: 'Employees', icon: 'people', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS'] },
-  { route: '/face-enroll', label: 'Face Enroll', icon: 'face', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR'] },
   { route: '/recruitment', label: 'Recruitment', icon: 'person-add', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR'] },
   { route: '/task-reports', label: 'Task Reports', icon: 'assessment', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR'] },
   { route: '/email-alerts', label: 'Email Alerts', icon: 'email', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR'] },
