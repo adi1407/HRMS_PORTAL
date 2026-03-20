@@ -23,23 +23,24 @@ export async function encodeFaceDescriptorFromUri(uri: string): Promise<number[]
       timeout: 120000,
     });
 
-  try {
-    const { data } = await request();
-    if (!data.success || !data.data?.descriptor?.length) {
-      throw new Error(data.message ?? 'Could not encode face.');
-    }
-    return data.data.descriptor;
-  } catch (err) {
-    const status = (err as { response?: { status?: number } })?.response?.status;
-    if (status === 502 || status === 503 || status === 504) {
-      // Render cold starts can briefly return gateway/service-unavailable; retry once.
-      await new Promise((r) => setTimeout(r, 1800));
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const retryable = new Set([502, 503, 504]);
+  const delays = [0, 2000, 4000, 7000];
+
+  let lastErr: unknown = null;
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i] > 0) await sleep(delays[i]);
+    try {
       const { data } = await request();
       if (!data.success || !data.data?.descriptor?.length) {
         throw new Error(data.message ?? 'Could not encode face.');
       }
       return data.data.descriptor;
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (!retryable.has(status ?? 0)) throw err;
     }
-    throw err;
   }
+  throw lastErr;
 }

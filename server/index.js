@@ -2,6 +2,7 @@ require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./config/db');
 const { initCronJobs } = require('./cron');
+const { ensureFaceApi } = require('./services/faceEncoder.service');
 
 const PORT = process.env.PORT || 5000;
 
@@ -12,5 +13,9 @@ connectDB().then(() => {
     console.log(`🌐 Frontend URL: ${process.env.CLIENT_URL}`);
     initCronJobs();
     console.log('⏰ Cron jobs initialized\n');
+    // Warm face models in background so first mobile face encode/check-in is faster on cold boot.
+    ensureFaceApi()
+      .then(() => console.log('🙂 Face models preloaded'))
+      .catch((err) => console.error('[Face Preload] failed:', err?.message || err));
   });
 });
