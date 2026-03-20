@@ -17,6 +17,7 @@ import { Spacing, BorderRadius } from '@/constants/theme';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useAppColors } from '@/hooks/use-app-theme';
+import { API_BASE_URL } from '@/config/env';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -138,6 +139,12 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <Text style={[styles.footer, { color: colors.textSecondary }]}>Secure sign-in to your HRMS account</Text>
+          {__DEV__ ? (
+            <Text style={[styles.devApiHint, { color: colors.textSecondary }]} selectable>
+              API: {API_BASE_URL}
+              {'\n'}Set EXPO_PUBLIC_API_URL in app/.env (LAN IP or Render), then restart Expo.
+            </Text>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -232,6 +239,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     marginTop: Spacing.xxl,
+  },
+  devApiHint: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    lineHeight: 16,
+    opacity: 0.85,
   },
 });
 

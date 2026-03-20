@@ -14,7 +14,8 @@ import Animated, {
 import { AdiverseLogo } from '@/components/adiverse-logo';
 
 const DURATION_EXIT = 480;
-const MIN_VISIBLE_MS = 1500;
+/** Min time custom splash is visible after boot is ready (UX polish; keep modest to avoid feeling slow) */
+const MIN_VISIBLE_MS = 1000;
 const SPRING_CONFIG = { damping: 18, stiffness: 120 };
 
 type Props = {

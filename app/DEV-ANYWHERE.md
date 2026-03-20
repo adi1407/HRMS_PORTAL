@@ -78,6 +78,15 @@ Copy from `.env.example`, restart Expo after changing `.env`.
 
 ---
 
+## Slow splash → login, or “server taking too long” on sign-in
+
+1. **Wrong API URL** — `localhost` only works on emulator/web on the same PC; a **physical phone** needs your laptop **LAN IP** (`npm run dev:ip`) or your **Render** `https://…` URL.  
+2. **`.env` not applied** — Expo reads `EXPO_PUBLIC_*` at **start**. After editing `app/.env`, stop Metro (`Ctrl+C`) and run `npm run start` again.  
+3. **Render cold start** — first request after idle can take 30–60s; retry once. For daily dev, prefer a local API on LAN or keep Render “warm”.  
+4. **Dev builds** — On the login screen, **development** builds show the resolved **API:** line so you can confirm the base URL.
+
+---
+
 ## Files
 
 - **`.env.example`** — template for `EXPO_PUBLIC_API_URL`  

@@ -15,6 +15,10 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import api from '@/lib/api';
+import {
+  getAttendanceBiometricOptions,
+  getBiometricAttendanceReadinessError,
+} from '@/lib/attendanceBiometric';
 import { useAuthStore } from '@/store/authStore';
 
 // Match splash + login: light-only, premium Apple-style
@@ -82,7 +86,8 @@ export default function CheckInScreen() {
   const branchId = userBranch?._id ?? userBranchId ?? branches[0]?._id;
   const wifiRequired = (userBranch?.wifiSSIDs?.length ?? 0) > 0;
   const wifiOk = !wifiRequired || (wifiSSID.trim().length > 0);
-  const biometricLabel = Platform.OS === 'android' ? 'fingerprint or device lock' : 'Touch ID / Face ID / device lock';
+  /** Strong policy: real biometrics only; device PIN/passcode alone is not accepted */
+  const biometricLabel = Platform.OS === 'android' ? 'fingerprint or Face unlock (strong)' : 'Touch ID or Face ID';
 
   const loadData = async () => {
     setLoadingData(true);
@@ -162,16 +167,14 @@ export default function CheckInScreen() {
     if (!biometricAttendanceEnabled) return;
     setEnrollingBio(true);
     try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
-      if (!hasHardware || !isEnrolled) {
-        Alert.alert('Setup required', `Set up ${biometricLabel} in your phone settings first.`);
+      const readiness = await getBiometricAttendanceReadinessError();
+      if (readiness) {
+        Alert.alert('Biometric required', readiness);
         return;
       }
-      const auth = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Register fingerprint / device lock for attendance',
-        fallbackLabel: 'Use device passcode',
-      });
+      const auth = await LocalAuthentication.authenticateAsync(
+        getAttendanceBiometricOptions('Register fingerprint or Face ID for attendance')
+      );
       if (!auth.success) {
         Alert.alert('Cancelled', 'Enrollment was not completed.');
         return;
@@ -211,20 +214,17 @@ export default function CheckInScreen() {
     setResult(null);
     try {
       if (biometricAttendanceEnabled) {
-        const hasHardware = await LocalAuthentication.hasHardwareAsync();
-        const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
-        if (!hasHardware || !isEnrolled) {
-          Alert.alert(
-            'Biometric setup required',
-            `Set up ${biometricLabel} on your phone to continue check in/out.`
-          );
+        const readiness = await getBiometricAttendanceReadinessError();
+        if (readiness) {
+          Alert.alert('Biometric required', readiness);
           setSubmitting(false);
           return;
         }
-        const auth = await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Confirm attendance with fingerprint',
-          fallbackLabel: 'Use device passcode',
-        });
+        const auth = await LocalAuthentication.authenticateAsync(
+          getAttendanceBiometricOptions(
+            canCheckOut ? 'Confirm check-out with fingerprint or Face ID' : 'Confirm check-in with fingerprint or Face ID'
+          )
+        );
         if (!auth.success) {
           Alert.alert('Authentication failed', 'Biometric verification was cancelled or failed.');
           setSubmitting(false);
@@ -420,7 +420,7 @@ export default function CheckInScreen() {
                 <Text style={styles.stepTitle}>Register fingerprint</Text>
               </View>
               <Text style={styles.stepDesc}>
-                HR has enabled biometric attendance. Register this device once using your fingerprint or device lock.
+                HR has enabled biometric attendance. Register once using fingerprint or Face ID — screen PIN alone is not accepted.
               </Text>
               <TouchableOpacity
                 style={[
@@ -456,8 +456,8 @@ export default function CheckInScreen() {
             <Text style={styles.stepDesc}>
               {biometricAttendanceEnabled
                 ? canCheckOut
-                  ? 'Confirm fingerprint / device lock and tap below to check out.'
-                  : 'After WiFi, GPS, and enrollment, confirm fingerprint to check in.'
+                  ? 'Confirm with fingerprint or Face ID (not screen PIN alone), then tap below to check out.'
+                  : 'After WiFi, GPS, and enrollment, confirm with fingerprint or Face ID to check in.'
                 : canCheckOut
                   ? 'Tap below when you leave the office.'
                   : 'Ensure location and WiFi are set, then tap to check in.'}
