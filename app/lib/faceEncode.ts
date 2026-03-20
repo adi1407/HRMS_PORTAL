@@ -42,5 +42,9 @@ export async function encodeFaceDescriptorFromUri(uri: string): Promise<number[]
       if (!retryable.has(status ?? 0)) throw err;
     }
   }
+  const status = (lastErr as { response?: { status?: number } })?.response?.status;
+  if (retryable.has(status ?? 0)) {
+    throw new Error('Face service is temporarily unavailable (503). Please use web face check-in/enrollment for now.');
+  }
   throw lastErr;
 }

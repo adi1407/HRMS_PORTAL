@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -48,6 +49,25 @@ export default function FaceEnrollEmployeeScreen() {
 
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
+  const clientUrl =
+    typeof process !== 'undefined'
+      ? (process as unknown as { env?: { EXPO_PUBLIC_CLIENT_URL?: string } }).env?.EXPO_PUBLIC_CLIENT_URL
+      : '';
+
+  const openWebEnroll = async () => {
+    if (!clientUrl || !empId) {
+      Alert.alert('Web URL missing', 'Set EXPO_PUBLIC_CLIENT_URL in app .env to open web face enrollment.');
+      return;
+    }
+    const url = `${clientUrl.replace(/\/$/, '')}/employees/${empId}/enroll-face`;
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (ok) await Linking.openURL(url);
+      else Alert.alert('Open failed', 'Could not open web face enrollment page.');
+    } catch {
+      Alert.alert('Open failed', 'Could not open web face enrollment page.');
+    }
+  };
 
   const loadEmployee = useCallback(async () => {
     if (!empId) return;
@@ -94,7 +114,14 @@ export default function FaceEnrollEmployeeScreen() {
         (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         (e instanceof Error ? e.message : 'Capture failed.');
       setMsg(m);
-      Alert.alert('Capture failed', m);
+      if (m.includes('temporarily unavailable') || m.includes('(503)')) {
+        Alert.alert('Face service unavailable', `${m}\n\nUse web enrollment for now.`, [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Web Enrollment', onPress: openWebEnroll },
+        ]);
+      } else {
+        Alert.alert('Capture failed', m);
+      }
     } finally {
       setCapturing(false);
     }
@@ -275,6 +302,12 @@ export default function FaceEnrollEmployeeScreen() {
           ) : (
             <Text style={styles.primaryBtnText}>Save enrollment ({descriptors.length} samples)</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={openWebEnroll}>
+          <Text style={{ color: colors.tint, textAlign: 'center', marginTop: Spacing.md, fontWeight: '600' }}>
+            Open web enrollment
+          </Text>
         </TouchableOpacity>
 
         {descriptors.length > 0 ? (

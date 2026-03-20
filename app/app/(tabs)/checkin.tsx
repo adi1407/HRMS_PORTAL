@@ -265,7 +265,14 @@ export default function CheckInScreen() {
         (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         (e instanceof Error ? e.message : 'Face capture failed.');
       setFaceMsg(m);
-      Alert.alert('Face capture failed', m);
+      if (m.includes('temporarily unavailable') || m.includes('(503)')) {
+        Alert.alert('Face service unavailable', `${m}\n\nUse web face check-in for now.`, [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Web Check-In', onPress: openWebFaceCheckIn },
+        ]);
+      } else {
+        Alert.alert('Face capture failed', m);
+      }
     } finally {
       setFaceCapturing(false);
     }
