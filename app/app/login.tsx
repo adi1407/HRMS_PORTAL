@@ -42,7 +42,11 @@ export default function LoginScreen() {
         refreshToken?: string;
         user?: Parameters<typeof setAuth>[0];
         data?: { user?: Parameters<typeof setAuth>[0]; accessToken?: string; refreshToken?: string };
-      }>('/auth/login', { email: e, password: p });
+      }>(
+        '/auth/login',
+        { email: e, password: p },
+        { timeout: 120000 }
+      );
       const user = data.user ?? data.data?.user;
       const accessToken = data.accessToken ?? data.data?.accessToken;
       const refreshToken = data.refreshToken ?? data.data?.refreshToken ?? null;
@@ -53,8 +57,12 @@ export default function LoginScreen() {
       const e = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
       const msg =
         e?.response?.data?.message ||
-        (e?.code === 'ECONNABORTED' ? 'Server timed out. Please try again in a few seconds.' : '') ||
-        (e?.message?.includes('Network Error') ? 'Network error. Check internet and API URL, then try again.' : '') ||
+        (e?.code === 'ECONNABORTED'
+          ? 'Server took too long to respond (cold start or slow network). Try again, or check EXPO_PUBLIC_API_URL matches your LAN IP / Render URL.'
+          : '') ||
+        (e?.message?.includes('Network Error')
+          ? 'Network error. Check WiFi, firewall, and EXPO_PUBLIC_API_URL in app .env (same network as your PC if using local API).'
+          : '') ||
         'Login failed. Please try again.';
       setError(msg);
     } finally {
