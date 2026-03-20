@@ -1,12 +1,9 @@
-import axios from 'axios';
-import { API_URL } from '@/config/env';
-import { useAuthStore } from '@/store/authStore';
+import api from '@/lib/api';
 
 /**
  * Upload a JPEG from the device camera; server runs the same face-api.js pipeline as the web app.
  */
 export async function encodeFaceDescriptorFromUri(uri: string): Promise<number[]> {
-  const token = useAuthStore.getState().accessToken;
   const form = new FormData();
   form.append('image', {
     uri,
@@ -15,9 +12,8 @@ export async function encodeFaceDescriptorFromUri(uri: string): Promise<number[]
   } as unknown as Blob);
 
   const request = () =>
-    axios.post<{ success: boolean; data?: { descriptor: number[] }; message?: string }>(`${API_URL}/face/encode`, form, {
+    api.post<{ success: boolean; data?: { descriptor: number[] }; message?: string }>('/face/encode', form, {
       headers: {
-        Authorization: token ? `Bearer ${token}` : '',
         'X-Client': 'mobile',
       },
       timeout: 120000,
