@@ -4,12 +4,43 @@ const { getToolsForRole } = require('./assistantTools/toolDefinitions');
 const { executeTool } = require('./assistantTools/execute');
 
 const MAX_TOOL_ROUNDS = 5;
-const DEFAULT_MODEL = 'gpt-4o-mini';
+const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
+/** Groq uses OpenAI-compatible API; keys start with gsk_ */
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
 
+function isGroqKey(key) {
+  return typeof key === 'string' && key.trim().startsWith('gsk_');
+}
+
+/**
+ * Groq and OpenAI keys must not be mixed on the wrong base URL.
+ * Prefer GROQ_API_KEY when using Groq; OPENAI_API_KEY may also hold a gsk_ key.
+ */
 function getClient() {
-  const key = process.env.OPENAI_API_KEY;
+  const groqExplicit = process.env.GROQ_API_KEY?.trim();
+  const openaiEnv = process.env.OPENAI_API_KEY?.trim();
+  const key = groqExplicit || openaiEnv;
   if (!key) return null;
-  return new OpenAI({ apiKey: key });
+
+  if (groqExplicit || isGroqKey(openaiEnv)) {
+    return new OpenAI({
+      apiKey: groqExplicit || openaiEnv,
+      baseURL: GROQ_BASE_URL,
+    });
+  }
+
+  return new OpenAI({ apiKey });
+}
+
+function resolveModel() {
+  const explicit = process.env.OPENAI_MODEL?.trim() || process.env.GROQ_MODEL?.trim();
+  if (explicit) return explicit;
+
+  const groqExplicit = process.env.GROQ_API_KEY?.trim();
+  const openaiEnv = process.env.OPENAI_API_KEY?.trim();
+  if (groqExplicit || isGroqKey(openaiEnv)) return DEFAULT_GROQ_MODEL;
+  return DEFAULT_OPENAI_MODEL;
 }
 
 function buildSystemPrompt(user) {
@@ -30,10 +61,13 @@ function buildSystemPrompt(user) {
 async function runAssistantChat(user, messages) {
   const client = getClient();
   if (!client) {
-    throw new ApiError(503, 'AI assistant is not configured. Set OPENAI_API_KEY on the server.');
+    throw new ApiError(
+      503,
+      'AI assistant is not configured. Set OPENAI_API_KEY (OpenAI, sk-…) or GROQ_API_KEY / OPENAI_API_KEY with a Groq key (gsk_…) on the server.'
+    );
   }
 
-  const model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
+  const model = resolveModel();
   const tools = getToolsForRole(user.role);
 
   const openaiMessages = [

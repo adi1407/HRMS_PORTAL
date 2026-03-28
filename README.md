@@ -377,8 +377,10 @@ FACE_MODELS_DIR=         ← optional; absolute path to face-api models if clien
 WEBAUTHN_RP_NAME=        ← optional; passkey display name
 WEBAUTHN_RP_ID=          ← required for web passkeys; hostname only (e.g. localhost or your Vercel domain)
 WEBAUTHN_ORIGIN=         ← comma-separated allowed origins for WebAuthn (must include your Vercel URL)
-OPENAI_API_KEY=          ← required for HRMS AI assistant (`/api/assistant/chat`); server-side only, never in Expo/Vercel public env
-OPENAI_MODEL=gpt-4o-mini ← optional; default model for assistant
+OPENAI_API_KEY=          ← OpenAI key (sk-…) for assistant, OR a Groq key (gsk_…) — Groq uses the correct API automatically
+GROQ_API_KEY=             ← optional; if set, assistant uses Groq instead of OpenAI
+OPENAI_MODEL=gpt-4o-mini ← optional; OpenAI default. For Groq, default is llama-3.3-70b-versatile (override with OPENAI_MODEL or GROQ_MODEL)
+GROQ_MODEL=               ← optional; Groq model name when using Groq
 ```
 
 ---

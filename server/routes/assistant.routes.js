@@ -39,11 +39,13 @@ const assistantLimiter = rateLimit({
  * Body: { messages: { role: 'user'|'assistant', content: string }[] }
  */
 router.get('/meta', authenticate, (req, res) => {
+  const hasOpenAi = !!process.env.OPENAI_API_KEY?.trim();
+  const hasGroq = !!process.env.GROQ_API_KEY?.trim();
   res.json({
     success: true,
     data: {
       suggestedPrompts: suggestedPromptsForRole(req.user.role),
-      aiConfigured: !!process.env.OPENAI_API_KEY,
+      aiConfigured: hasOpenAi || hasGroq,
     },
   });
 });
