@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { getAppColors } from '@/constants/theme';
@@ -12,8 +13,11 @@ export function useAppTheme(): ResolvedTheme {
   return theme;
 }
 
-/** Theme-aware app colors. Use in screens to react to light/dark changes. */
+/**
+ * Theme-aware app colors. Palette reference is stable per theme so child memo/components
+ * don’t re-render on every parent render when only unrelated state changes.
+ */
 export function useAppColors() {
   const mode = useAppTheme();
-  return getAppColors(mode);
+  return useMemo(() => getAppColors(mode), [mode]);
 }

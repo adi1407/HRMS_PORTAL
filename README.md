@@ -377,6 +377,8 @@ FACE_MODELS_DIR=         ← optional; absolute path to face-api models if clien
 WEBAUTHN_RP_NAME=        ← optional; passkey display name
 WEBAUTHN_RP_ID=          ← required for web passkeys; hostname only (e.g. localhost or your Vercel domain)
 WEBAUTHN_ORIGIN=         ← comma-separated allowed origins for WebAuthn (must include your Vercel URL)
+OPENAI_API_KEY=          ← required for HRMS AI assistant (`/api/assistant/chat`); server-side only, never in Expo/Vercel public env
+OPENAI_MODEL=gpt-4o-mini ← optional; default model for assistant
 ```
 
 ---

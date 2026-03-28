@@ -12,10 +12,13 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.aditya.hrms",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "HRMS uses Face ID to confirm attendance enrollment and check-in on this device."
       }
     },
     "android": {
+      "usesCleartextTraffic": true,
+      "package": "com.aditya.hrms",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -31,6 +34,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "HRMS uses Face ID to confirm attendance enrollment and check-in on this device."
+        }
+      ],
       [
         "expo-camera",
         {

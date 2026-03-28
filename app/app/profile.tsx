@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   ScrollView,
   View,
@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors, Colors } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 
@@ -60,11 +61,23 @@ const ROLE_LABELS: Record<string, string> = {
   EMPLOYEE: 'Employee',
 };
 
-function Section({ title, icon, children }: { title: string; icon: keyof typeof MaterialIcons.glyphMap; children: React.ReactNode }) {
+function Section({
+  styles,
+  tint,
+  title,
+  icon,
+  children,
+}: {
+  styles: ReturnType<typeof createProfileStyles>;
+  tint: string;
+  title: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <MaterialIcons name={icon} size={18} color={AppColors.tint} />
+        <MaterialIcons name={icon} size={18} color={tint} />
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       <View style={styles.sectionCard}>{children}</View>
@@ -72,7 +85,15 @@ function Section({ title, icon, children }: { title: string; icon: keyof typeof 
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
+function InfoRow({
+  styles,
+  label,
+  value,
+}: {
+  styles: ReturnType<typeof createProfileStyles>;
+  label: string;
+  value?: string | null;
+}) {
   if (value == null || value === '') return null;
   return (
     <View style={styles.infoRow}>
@@ -83,6 +104,10 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default function ProfileScreen() {
+  const theme = useAppTheme();
+  const colors = useMemo(() => getAppColors(theme), [theme]);
+  const styles = useMemo(() => createProfileStyles(colors, theme), [theme]);
+
   const router = useRouter();
   const params = useLocalSearchParams<{ empId?: string }>();
   const targetEmpId = params.empId;
@@ -157,14 +182,14 @@ export default function ProfileScreen() {
   const displayUser = (profile?.employee && !isViewingOwn) ? profile.employee : currentUser;
   const initials = (displayUser?.name ?? displayUser?.email ?? '?').slice(0, 2).toUpperCase();
   const completion = profile?.completionPercent ?? 0;
-  const completionColor = completion >= 80 ? AppColors.success : completion >= 40 ? '#d97706' : AppColors.danger;
+  const completionColor = completion >= 80 ? colors.success : completion >= 40 ? '#d97706' : colors.danger;
 
   return (
-    <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeTop}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
+            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {isViewingOwn ? 'My Profile' : (displayUser?.name ?? 'Profile')}
@@ -176,7 +201,7 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={AppColors.tint} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.tint} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero card */}
@@ -205,28 +230,28 @@ export default function ProfileScreen() {
           <Text style={styles.muted}>Loading…</Text>
         ) : (
           <>
-            <Section title="Work" icon="work">
-              <InfoRow label="Employee ID" value={displayUser?.employeeId} />
-              <InfoRow label="Email" value={displayUser?.email} />
-              <InfoRow label="Designation" value={displayUser?.designation} />
-              <InfoRow label="Department" value={displayUser?.department?.name} />
-              <InfoRow label="Branch" value={displayUser?.branch?.name} />
+            <Section styles={styles} tint={colors.tint} title="Work" icon="work">
+              <InfoRow styles={styles} label="Employee ID" value={displayUser?.employeeId} />
+              <InfoRow styles={styles} label="Email" value={displayUser?.email} />
+              <InfoRow styles={styles} label="Designation" value={displayUser?.designation} />
+              <InfoRow styles={styles} label="Department" value={displayUser?.department?.name} />
+              <InfoRow styles={styles} label="Branch" value={displayUser?.branch?.name} />
             </Section>
 
-            <Section title="Personal" icon="person">
-              <InfoRow label="Phone" value={profile?.personalPhone} />
-              <InfoRow label="Personal email" value={profile?.personalEmail} />
-              <InfoRow label="Date of birth" value={profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : undefined} />
-              <InfoRow label="Gender" value={profile?.gender?.replace(/_/g, ' ')} />
-              <InfoRow label="Blood group" value={profile?.bloodGroup} />
-              <InfoRow label="Current address" value={profile?.currentAddress} />
-              <InfoRow label="Permanent address" value={profile?.permanentAddress} />
+            <Section styles={styles} tint={colors.tint} title="Personal" icon="person">
+              <InfoRow styles={styles} label="Phone" value={profile?.personalPhone} />
+              <InfoRow styles={styles} label="Personal email" value={profile?.personalEmail} />
+              <InfoRow styles={styles} label="Date of birth" value={profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : undefined} />
+              <InfoRow styles={styles} label="Gender" value={profile?.gender?.replace(/_/g, ' ')} />
+              <InfoRow styles={styles} label="Blood group" value={profile?.bloodGroup} />
+              <InfoRow styles={styles} label="Current address" value={profile?.currentAddress} />
+              <InfoRow styles={styles} label="Permanent address" value={profile?.permanentAddress} />
             </Section>
 
-            <Section title="Emergency contact" icon="contact-emergency">
-              <InfoRow label="Name" value={profile?.emergencyContactName} />
-              <InfoRow label="Relation" value={profile?.emergencyContactRelation} />
-              <InfoRow label="Phone" value={profile?.emergencyContactPhone} />
+            <Section styles={styles} tint={colors.tint} title="Emergency contact" icon="contact-emergency">
+              <InfoRow styles={styles} label="Name" value={profile?.emergencyContactName} />
+              <InfoRow styles={styles} label="Relation" value={profile?.emergencyContactRelation} />
+              <InfoRow styles={styles} label="Phone" value={profile?.emergencyContactPhone} />
             </Section>
 
             {!isViewingOwn && canViewEditOthers && (
@@ -238,9 +263,9 @@ export default function ProfileScreen() {
 
             {isViewingOwn && canViewEditOthers && (
               <TouchableOpacity style={styles.teamProfilesLink} onPress={() => router.push('/employees')}>
-                <MaterialIcons name="people" size={20} color={AppColors.tint} />
+                <MaterialIcons name="people" size={20} color={colors.tint} />
                 <Text style={styles.teamProfilesLinkText}>View & edit team profiles</Text>
-                <MaterialIcons name="chevron-right" size={22} color={AppColors.tint} />
+                <MaterialIcons name="chevron-right" size={22} color={colors.tint} />
               </TouchableOpacity>
             )}
 
@@ -252,9 +277,9 @@ export default function ProfileScreen() {
                 else Alert.alert('Edit profile', 'Open the company web portal in a browser to edit your full profile, education, experience, and documents.');
               }}
             >
-              <MaterialIcons name="edit" size={20} color={AppColors.tint} />
+              <MaterialIcons name="edit" size={20} color={colors.tint} />
               <Text style={styles.webLinkText}>Edit full profile on web portal</Text>
-              <MaterialIcons name="open-in-new" size={18} color={AppColors.tint} />
+              <MaterialIcons name="open-in-new" size={18} color={colors.tint} />
             </TouchableOpacity>
           </>
         )}
@@ -268,30 +293,30 @@ export default function ProfileScreen() {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Edit details</Text>
               <Text style={styles.inputLabel}>Personal phone</Text>
-              <TextInput style={styles.input} value={editForm.personalPhone ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, personalPhone: v }))} placeholder="Phone" placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={editForm.personalPhone ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, personalPhone: v }))} placeholder="Phone" placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Personal email</Text>
-              <TextInput style={styles.input} value={editForm.personalEmail ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, personalEmail: v }))} placeholder="Email" placeholderTextColor={AppColors.textSecondary} keyboardType="email-address" />
+              <TextInput style={styles.input} value={editForm.personalEmail ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, personalEmail: v }))} placeholder="Email" placeholderTextColor={colors.textSecondary} keyboardType="email-address" />
               <Text style={styles.inputLabel}>Date of birth (YYYY-MM-DD)</Text>
-              <TextInput style={styles.input} value={editForm.dateOfBirth ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, dateOfBirth: v }))} placeholder="1990-01-15" placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={editForm.dateOfBirth ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, dateOfBirth: v }))} placeholder="1990-01-15" placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Gender</Text>
-              <TextInput style={styles.input} value={editForm.gender ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, gender: v }))} placeholder="MALE / FEMALE / OTHER" placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={editForm.gender ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, gender: v }))} placeholder="MALE / FEMALE / OTHER" placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Blood group</Text>
-              <TextInput style={styles.input} value={editForm.bloodGroup ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, bloodGroup: v }))} placeholder="e.g. O+" placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={editForm.bloodGroup ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, bloodGroup: v }))} placeholder="e.g. O+" placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Father / Mother name</Text>
-              <TextInput style={styles.input} value={editForm.fatherName ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, fatherName: v }))} placeholder="Father" placeholderTextColor={AppColors.textSecondary} />
-              <TextInput style={[styles.input, { marginTop: 8 }]} value={editForm.motherName ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, motherName: v }))} placeholder="Mother" placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={editForm.fatherName ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, fatherName: v }))} placeholder="Father" placeholderTextColor={colors.textSecondary} />
+              <TextInput style={[styles.input, { marginTop: 8 }]} value={editForm.motherName ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, motherName: v }))} placeholder="Mother" placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Marital status</Text>
-              <TextInput style={styles.input} value={editForm.maritalStatus ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, maritalStatus: v }))} placeholder="SINGLE / MARRIED / etc." placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={editForm.maritalStatus ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, maritalStatus: v }))} placeholder="SINGLE / MARRIED / etc." placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Nationality</Text>
-              <TextInput style={styles.input} value={editForm.nationality ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, nationality: v }))} placeholder="Indian" placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={editForm.nationality ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, nationality: v }))} placeholder="Indian" placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Current address</Text>
-              <TextInput style={[styles.input, styles.inputArea]} value={editForm.currentAddress ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, currentAddress: v }))} placeholder="Address" placeholderTextColor={AppColors.textSecondary} multiline />
+              <TextInput style={[styles.input, styles.inputArea]} value={editForm.currentAddress ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, currentAddress: v }))} placeholder="Address" placeholderTextColor={colors.textSecondary} multiline />
               <Text style={styles.inputLabel}>Permanent address</Text>
-              <TextInput style={[styles.input, styles.inputArea]} value={editForm.permanentAddress ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, permanentAddress: v }))} placeholder="Address" placeholderTextColor={AppColors.textSecondary} multiline />
+              <TextInput style={[styles.input, styles.inputArea]} value={editForm.permanentAddress ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, permanentAddress: v }))} placeholder="Address" placeholderTextColor={colors.textSecondary} multiline />
               <Text style={styles.inputLabel}>Emergency contact</Text>
-              <TextInput style={styles.input} value={editForm.emergencyContactName ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, emergencyContactName: v }))} placeholder="Name" placeholderTextColor={AppColors.textSecondary} />
-              <TextInput style={[styles.input, { marginTop: 8 }]} value={editForm.emergencyContactRelation ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, emergencyContactRelation: v }))} placeholder="Relation" placeholderTextColor={AppColors.textSecondary} />
-              <TextInput style={[styles.input, { marginTop: 8 }]} value={editForm.emergencyContactPhone ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, emergencyContactPhone: v }))} placeholder="Phone" placeholderTextColor={AppColors.textSecondary} keyboardType="phone-pad" />
+              <TextInput style={styles.input} value={editForm.emergencyContactName ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, emergencyContactName: v }))} placeholder="Name" placeholderTextColor={colors.textSecondary} />
+              <TextInput style={[styles.input, { marginTop: 8 }]} value={editForm.emergencyContactRelation ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, emergencyContactRelation: v }))} placeholder="Relation" placeholderTextColor={colors.textSecondary} />
+              <TextInput style={[styles.input, { marginTop: 8 }]} value={editForm.emergencyContactPhone ?? ''} onChangeText={(v) => setEditForm((f) => ({ ...f, emergencyContactPhone: v }))} placeholder="Phone" placeholderTextColor={colors.textSecondary} keyboardType="phone-pad" />
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModalVisible(false)}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -308,9 +333,23 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createProfileStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
+  const cardShadow = Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
+      shadowRadius: 8,
+    },
+    android: { elevation: theme === 'dark' ? 4 : 2 },
+    default: {},
+  });
+  const sep = Colors[theme].separator;
+  const borderInput = theme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(118,118,128,0.2)';
+
+  return StyleSheet.create({
   screen: { flex: 1 },
-  safeTop: { backgroundColor: AppColors.background },
+  safeTop: { backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -318,33 +357,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60,60,67,0.12)',
+    borderBottomColor: sep,
   },
   backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: AppColors.text },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   scroll: { flex: 1 },
   content: { padding: Spacing.xl, paddingBottom: Spacing.section },
   heroCard: {
     alignItems: 'center',
     paddingVertical: Spacing.xxl,
     marginBottom: Spacing.xl,
-    backgroundColor: AppColors.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
-    ...CardShadow,
+    ...cardShadow,
   },
   avatarWrap: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: `${AppColors.tint}20`,
+    backgroundColor: `${colors.tint}20`,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  avatarText: { fontSize: 28, fontWeight: '700', color: AppColors.tint },
-  heroName: { fontSize: 22, fontWeight: '700', color: AppColors.text, marginBottom: 2 },
-  heroRole: { fontSize: 15, color: AppColors.textSecondary, marginBottom: 2 },
-  heroMeta: { fontSize: 14, color: AppColors.tint, fontWeight: '600', marginBottom: Spacing.lg },
+  avatarText: { fontSize: 28, fontWeight: '700', color: colors.tint },
+  heroName: { fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 2 },
+  heroRole: { fontSize: 15, color: colors.textSecondary, marginBottom: 2 },
+  heroMeta: { fontSize: 14, color: colors.tint, fontWeight: '600', marginBottom: Spacing.lg },
   completionWrap: { width: '100%', paddingHorizontal: Spacing.xl, alignItems: 'center' },
   completionTrack: {
     height: 6,
@@ -355,32 +394,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   completionFill: { height: '100%', borderRadius: 3 },
-  completionText: { fontSize: 12, fontWeight: '600', color: AppColors.textSecondary, marginTop: 6 },
-  muted: { fontSize: 15, color: AppColors.textSecondary },
+  completionText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginTop: 6 },
+  muted: { fontSize: 15, color: colors.textSecondary },
   section: { marginBottom: Spacing.lg },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.sm },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: AppColors.text },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   sectionCard: {
-    backgroundColor: AppColors.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
-    ...CardShadow,
+    ...cardShadow,
   },
-  infoRow: { paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(60,60,67,0.12)' },
-  infoLabel: { fontSize: 13, color: AppColors.textSecondary, marginBottom: 2 },
-  infoValue: { fontSize: 16, fontWeight: '500', color: AppColors.text },
+  infoRow: { paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sep },
+  infoLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 2 },
+  infoValue: { fontSize: 16, fontWeight: '500', color: colors.text },
   webLinkCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     padding: Spacing.lg,
-    backgroundColor: `${AppColors.tint}12`,
+    backgroundColor: `${colors.tint}12`,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: `${AppColors.tint}30`,
+    borderColor: `${colors.tint}30`,
   },
-  webLinkText: { fontSize: 15, fontWeight: '600', color: AppColors.tint },
+  webLinkText: { fontSize: 15, fontWeight: '600', color: colors.tint },
   editDetailsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -388,7 +427,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     height: 52,
     borderRadius: BorderRadius.md,
-    backgroundColor: AppColors.tint,
+    backgroundColor: colors.tint,
     marginBottom: Spacing.lg,
   },
   editDetailsBtnText: { fontSize: 16, fontWeight: '600', color: '#fff' },
@@ -396,27 +435,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    backgroundColor: AppColors.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: `${AppColors.tint}30`,
-    ...CardShadow,
+    borderColor: `${colors.tint}30`,
+    ...cardShadow,
   },
-  teamProfilesLinkText: { flex: 1, fontSize: 16, fontWeight: '600', color: AppColors.tint },
+  teamProfilesLinkText: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.tint },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalScroll: { maxHeight: '90%' },
   modalScrollContent: { paddingBottom: Spacing.section },
-  modalContent: { backgroundColor: AppColors.card, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.xl },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: AppColors.text, marginBottom: Spacing.lg },
-  inputLabel: { fontSize: 13, color: AppColors.textSecondary, marginBottom: 6, fontWeight: '500' },
-  input: { borderWidth: 1, borderColor: 'rgba(118,118,128,0.2)', borderRadius: BorderRadius.md, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, fontSize: 16, color: AppColors.text, marginBottom: Spacing.lg },
+  modalContent: { backgroundColor: colors.card, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.xl },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: Spacing.lg },
+  inputLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 6, fontWeight: '500' },
+  input: { borderWidth: 1, borderColor: borderInput, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, fontSize: 16, color: colors.text, marginBottom: Spacing.lg },
   inputArea: { minHeight: 72, textAlignVertical: 'top' },
   modalActions: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
   cancelBtn: { flex: 1, height: 48, borderRadius: BorderRadius.md, backgroundColor: 'rgba(118,118,128,0.12)', justifyContent: 'center', alignItems: 'center' },
-  cancelBtnText: { fontSize: 16, fontWeight: '600', color: AppColors.tint },
-  saveBtn: { flex: 1, height: 48, borderRadius: BorderRadius.md, backgroundColor: AppColors.tint, justifyContent: 'center', alignItems: 'center' },
+  cancelBtnText: { fontSize: 16, fontWeight: '600', color: colors.tint },
+  saveBtn: { flex: 1, height: 48, borderRadius: BorderRadius.md, backgroundColor: colors.tint, justifyContent: 'center', alignItems: 'center' },
   saveBtnText: { fontSize: 16, fontWeight: '600', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
   bottomPad: { height: Spacing.section },
-});
+  });
+}

@@ -4,10 +4,14 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 const SalaryUpdateRequest = require('../models/SalaryUpdateRequest.model');
 const User   = require('../models/User.model');
 const { ApiError } = require('../utils/api.utils');
+const {
+  isSalaryBankLockedForAccounts,
+  markSalaryBankInitialCaptureIfNeeded,
+} = require('../utils/salaryBank.utils');
 
 // ACCOUNTS: submit a salary/bank update request
-// If employee has no salary set yet → apply directly
-// If salary already set → create approval request for DIRECTOR/SUPER_ADMIN
+// If initial capture not done yet → apply directly (first-time setup by Accounts)
+// If already captured → create approval request for DIRECTOR / SUPER_ADMIN
 router.post('/', authenticate, authorize('ACCOUNTS'), async (req, res, next) => {
   try {
     const { employeeId, newGrossSalary, newBankAccount, newIfscCode, reason } = req.body;
@@ -16,14 +20,15 @@ router.post('/', authenticate, authorize('ACCOUNTS'), async (req, res, next) => 
     const employee = await User.findById(employeeId);
     if (!employee) return next(new ApiError(404, 'Employee not found.'));
 
-    const isFirstTime = !employee.grossSalary || employee.grossSalary === 0;
+    const isFirstTime = !isSalaryBankLockedForAccounts(employee);
 
     if (isFirstTime) {
       // Apply directly — no approval needed for first-time salary setup
-      const updates = {};
-      if (newGrossSalary !== undefined) updates.grossSalary      = Number(newGrossSalary);
-      if (newBankAccount  !== undefined) updates.bankAccountNumber = newBankAccount;
-      if (newIfscCode     !== undefined) updates.ifscCode          = newIfscCode;
+      let updates = {};
+      if (newGrossSalary !== undefined) updates.grossSalary = Number(newGrossSalary);
+      if (newBankAccount !== undefined) updates.bankAccountNumber = newBankAccount;
+      if (newIfscCode !== undefined) updates.ifscCode = newIfscCode;
+      updates = markSalaryBankInitialCaptureIfNeeded(updates, employee);
       await User.findByIdAndUpdate(employeeId, updates);
       return res.status(200).json({ success: true, message: 'Salary and bank details set successfully.', requiresApproval: false });
     }

@@ -7,8 +7,21 @@
 3. **Strong biometrics (when HR enables “biometric attendance”)**  
    - **Fingerprint / Face ID (or equivalent strong biometrics)** — not **device screen PIN/passcode alone**.  
    - **iOS:** Biometric policy without device passcode fallback (`disableDeviceFallback`).  
-   - **Android:** **Strong** biometric class only (`biometricsSecurityLevel: 'strong'`), not weak 2D face unlock.  
+   - **Android:** Class 2/3 biometrics via `biometricsSecurityLevel: 'weak'` (compatible with most devices).  
 4. **Per-employee opt-in** — HR enables biometric attendance per user; each user enrolls on **their own** device.
+
+## iOS: “missing usage description” / enrollment incomplete
+
+Apple requires **`NSFaceIDUsageDescription`** in the **native** app. This project sets it via `app.json` + the **`expo-local-authentication`** config plugin (applied on **EAS / prebuild**).
+
+**Expo Go on iPhone** does not use your project’s plist, so Face ID can fail. The app **detects Expo Go on iOS** and:
+
+- Allows **device passcode** as a fallback (so you can still enroll in dev), and  
+- Shows a **short** error if biometrics still fail.
+
+For **production-style** testing (Face ID only, no passcode fallback), use an **EAS build** or **expo-dev-client** — those are not Expo Go (`appOwnership !== 'expo'`).
+
+After changing `app.json` plugins, run a **new EAS build** or `npx expo prebuild` before Xcode.
 
 ## Other strong measures (process + infrastructure)
 

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AdiverseLogo } from '@/components/adiverse-logo';
@@ -19,6 +20,16 @@ import { useAuthStore } from '@/store/authStore';
 import { useAppColors } from '@/hooks/use-app-theme';
 import { API_BASE_URL } from '@/config/env';
 
+/** Wake Render / slow LAN before login; same timeout as a single slow cold start */
+const WAKE_MS = 120000;
+const LOGIN_MS = 120000;
+const LOGIN_ATTEMPTS = 3;
+const RETRY_GAP_MS = 2500;
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 export default function LoginScreen() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
@@ -27,47 +38,91 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [statusLine, setStatusLine] = useState('');
 
   const handleLogin = async () => {
-    const e = email.trim();
+    const e = email.trim().toLowerCase();
     const p = password;
     if (!e || !p) {
       setError('Please enter email and password.');
       return;
     }
     setError('');
+    setStatusLine('');
     setLoading(true);
     try {
-      const { data } = await api.post<{
-        accessToken?: string;
-        refreshToken?: string;
-        user?: Parameters<typeof setAuth>[0];
-        data?: { user?: Parameters<typeof setAuth>[0]; accessToken?: string; refreshToken?: string };
-      }>(
-        '/auth/login',
-        { email: e, password: p },
-        { timeout: 120000 }
-      );
-      const user = data.user ?? data.data?.user;
-      const accessToken = data.accessToken ?? data.data?.accessToken;
-      const refreshToken = data.refreshToken ?? data.data?.refreshToken ?? null;
-      if (!user || !accessToken) throw new Error('Invalid login response');
-      await setAuth(user, accessToken, refreshToken);
-      router.replace('/(tabs)');
+      // 1) Warm up cold Render / verify LAN path (ignore failure — some stacks block GET)
+      setStatusLine('Connecting to server…');
+      try {
+        await api.get('/health', { timeout: WAKE_MS });
+      } catch {
+        /* still try login */
+      }
+
+      setStatusLine('Signing in…');
+
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= LOGIN_ATTEMPTS; attempt++) {
+        try {
+          const { data } = await api.post<{
+            accessToken?: string;
+            refreshToken?: string;
+            user?: Parameters<typeof setAuth>[0];
+            data?: { user?: Parameters<typeof setAuth>[0]; accessToken?: string; refreshToken?: string };
+          }>('/auth/login', { email: e, password: p }, { timeout: LOGIN_MS });
+
+          const user = data.user ?? data.data?.user;
+          const accessToken = data.accessToken ?? data.data?.accessToken;
+          const refreshToken = data.refreshToken ?? data.data?.refreshToken ?? null;
+          if (!user || !accessToken) throw new Error('Invalid login response');
+          await setAuth(user, accessToken, refreshToken);
+          router.replace('/(tabs)');
+          return;
+        } catch (err: unknown) {
+          lastErr = err;
+          const ax = axios.isAxiosError(err) ? err : null;
+          const hasResponse = !!(ax?.response);
+          const timedOut =
+            ax && (ax.code === 'ECONNABORTED' || /timeout/i.test(ax.message || ''));
+          const networkNoResponse =
+            ax && !hasResponse && (ax.message?.includes('Network Error') || ax.code === 'ERR_NETWORK');
+          const canRetry =
+            !hasResponse && (timedOut || networkNoResponse) && attempt < LOGIN_ATTEMPTS;
+          if (canRetry) {
+            setStatusLine(`Still connecting… try ${attempt + 1}/${LOGIN_ATTEMPTS}`);
+            await sleep(RETRY_GAP_MS);
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw lastErr;
     } catch (err: unknown) {
+      const ax = axios.isAxiosError(err) ? err : null;
+      const status = ax?.response?.status;
+      const data = ax?.response?.data as { message?: string } | undefined;
+      const serverMsg = typeof data?.message === 'string' ? data.message : '';
       const e = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
-      const msg =
-        e?.response?.data?.message ||
-        (e?.code === 'ECONNABORTED'
-          ? 'Server took too long to respond (cold start or slow network). Try again, or check EXPO_PUBLIC_API_URL matches your LAN IP / Render URL.'
-          : '') ||
-        (e?.message?.includes('Network Error')
-          ? 'Network error. Check WiFi, firewall, and EXPO_PUBLIC_API_URL in app .env (same network as your PC if using local API).'
-          : '') ||
-        'Login failed. Please try again.';
+      const baseFromServer = serverMsg || e?.response?.data?.message || '';
+      const invalidCreds = status === 401 && /invalid email or password/i.test(baseFromServer);
+      const credHint = invalidCreds
+        ? '\n\nIf sign-in works on the web app but not here, your phone may be calling a different API than the site. Check the Server line below (local IP vs cloud) and match your backend.'
+        : '';
+
+      let msg: string;
+      if (baseFromServer) {
+        msg = `${baseFromServer}${credHint}`;
+      } else if (e?.code === 'ECONNABORTED' || /timeout/i.test(e?.message || '')) {
+        msg = `Still timed out after ${LOGIN_ATTEMPTS} tries. Check Server line below; local: PC IP + server running; Render: open ${API_BASE_URL}/api/health in browser first.`;
+      } else if (e?.message?.includes('Network Error')) {
+        msg = `Can't reach API at ${API_BASE_URL}. Open ${API_BASE_URL}/api/health in your phone browser — if it won't load, fix the URL or firewall.`;
+      } else {
+        msg = 'Login failed. Please try again.';
+      }
       setError(msg);
     } finally {
       setLoading(false);
+      setStatusLine('');
     }
   };
 
@@ -138,13 +193,15 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          <Text style={[styles.footer, { color: colors.textSecondary }]}>Secure sign-in to your HRMS account</Text>
-          {__DEV__ ? (
-            <Text style={[styles.devApiHint, { color: colors.textSecondary }]} selectable>
-              API: {API_BASE_URL}
-              {'\n'}Set EXPO_PUBLIC_API_URL in app/.env (LAN IP or Render), then restart Expo.
-            </Text>
+          {loading && statusLine ? (
+            <Text style={[styles.statusLine, { color: colors.textSecondary }]}>{statusLine}</Text>
           ) : null}
+
+          <Text style={[styles.footer, { color: colors.textSecondary }]}>Secure sign-in to your HRMS account</Text>
+          <Text style={[styles.devApiHint, { color: colors.textSecondary }]} selectable>
+            Server: {API_BASE_URL}
+            {__DEV__ ? '\n(Local dev: change app/.env and restart Metro.)' : '\n(Baked into APK at build time from eas.json.)'}
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -234,6 +291,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '600',
+  },
+  statusLine: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    lineHeight: 18,
   },
   footer: {
     fontSize: 13,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   ScrollView,
   View,
@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors, Colors } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { downloadAndShareFromApi } from '@/lib/download';
@@ -52,16 +53,22 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const HR_ATTENDANCE_ROLES = ['HR', 'DIRECTOR', 'SUPER_ADMIN'];
 const OVERRIDE_STATUS_OPTIONS = ['FULL_DAY', 'HALF_DAY', 'ABSENT', 'ON_LEAVE'] as const;
 
-const STATUS_COLOR: Record<string, string> = {
-  FULL_DAY: AppColors.success,
-  HALF_DAY: AppColors.warning,
-  ABSENT: AppColors.danger,
-  ON_LEAVE: '#2563eb',
-  HOLIDAY: '#059669',
-  WEEKLY_OFF: AppColors.textSecondary,
-};
-
 export default function AttendanceScreen() {
+  const theme = useAppTheme();
+  const colors = useMemo(() => getAppColors(theme), [theme]);
+  const styles = useMemo(() => createAttendanceStyles(colors, theme), [theme]);
+  const statusColors = useMemo(
+    () => ({
+      FULL_DAY: colors.success,
+      HALF_DAY: colors.warning,
+      ABSENT: colors.danger,
+      ON_LEAVE: '#2563eb',
+      HOLIDAY: '#059669',
+      WEEKLY_OFF: colors.textSecondary,
+    }),
+    [colors],
+  );
+
   const router = useRouter();
   const getRole = useAuthStore((s) => s.getRole);
   const role = getRole();
@@ -248,7 +255,8 @@ export default function AttendanceScreen() {
   const statusKey = (r: AttRecord) =>
     r.status === 'WEEKLY_OFF' || r.status === 'HOLIDAY' ? r.status : (r.displayStatus ?? r.status ?? '');
   const statusLabel = (r: AttRecord) => (statusKey(r) ?? '').replace(/_/g, ' ');
-  const statusColor = (r: AttRecord) => STATUS_COLOR[statusKey(r)] ?? AppColors.text;
+  const statusColor = (r: AttRecord) =>
+    statusColors[statusKey(r) as keyof typeof statusColors] ?? colors.text;
 
   const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
 
@@ -288,11 +296,11 @@ export default function AttendanceScreen() {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeTop}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
+            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Attendance</Text>
           <View style={styles.backBtn} />
@@ -303,7 +311,7 @@ export default function AttendanceScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={AppColors.tint} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -357,7 +365,7 @@ export default function AttendanceScreen() {
           <Text style={styles.muted}>Loading…</Text>
         ) : records.length === 0 ? (
           <View style={styles.emptyCard}>
-            <MaterialIcons name="today" size={48} color={AppColors.textSecondary} />
+            <MaterialIcons name="today" size={48} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No records for this month</Text>
             <Text style={styles.emptySub}>No attendance data for {MONTHS[month - 1]} {year}. Check in from the app to record attendance.</Text>
           </View>
@@ -378,7 +386,7 @@ export default function AttendanceScreen() {
                 </View>
                 {(r.checkInTime ?? r.checkIn) && (
                   <View style={styles.metaRow}>
-                    <MaterialIcons name="login" size={14} color={AppColors.success} />
+                    <MaterialIcons name="login" size={14} color={colors.success} />
                     <Text style={styles.meta}>
                       In: {r.checkInTime ?? (r.checkIn ? new Date(r.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}
                     </Text>
@@ -386,7 +394,7 @@ export default function AttendanceScreen() {
                 )}
                 {(r.checkOutTime ?? r.checkOut) && (
                   <View style={styles.metaRow}>
-                    <MaterialIcons name="logout" size={14} color={AppColors.danger} />
+                    <MaterialIcons name="logout" size={14} color={colors.danger} />
                     <Text style={styles.meta}>
                       Out: {r.checkOutTime ?? (r.checkOut ? new Date(r.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}
                     </Text>
@@ -397,7 +405,7 @@ export default function AttendanceScreen() {
                 )}
                 {r.overriddenByName && (
                   <View style={styles.overrideRow}>
-                    <MaterialIcons name="edit" size={12} color={AppColors.warning} />
+                    <MaterialIcons name="edit" size={12} color={colors.warning} />
                     <Text style={styles.overrideText}>{r.overriddenByName}{r.notes ? ` · ${r.notes}` : ''}</Text>
                   </View>
                 )}
@@ -433,17 +441,17 @@ export default function AttendanceScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={[styles.secondaryActionBtn, exportingExcel && styles.btnDisabled]} onPress={exportExcel} disabled={exportingExcel}>
               {exportingExcel ? (
-                <ActivityIndicator size="small" color={AppColors.tint} />
+                <ActivityIndicator size="small" color={colors.tint} />
               ) : (
-                <MaterialIcons name="download" size={18} color={AppColors.tint} />
+                <MaterialIcons name="download" size={18} color={colors.tint} />
               )}
               <Text style={styles.secondaryActionBtnText}>{exportingExcel ? 'Exporting…' : 'Export Excel'}</Text>
             </TouchableOpacity>
             {loadingTeam ? (
-              <View style={styles.loadingRow}><ActivityIndicator size="small" color={AppColors.tint} /><Text style={styles.muted}>Loading…</Text></View>
+              <View style={styles.loadingRow}><ActivityIndicator size="small" color={colors.tint} /><Text style={styles.muted}>Loading…</Text></View>
             ) : teamRecords.length === 0 ? (
               <View style={styles.emptyCard}>
-                <MaterialIcons name="people-outline" size={48} color={AppColors.textSecondary} />
+                <MaterialIcons name="people-outline" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>No team records</Text>
                 <Text style={styles.emptySub}>No attendance for {MONTHS[month - 1]} {year}.</Text>
               </View>
@@ -456,15 +464,24 @@ export default function AttendanceScreen() {
                     <View key={r._id} style={[styles.row, index < teamRecords.length - 1 && styles.rowBorder]}>
                       <View style={styles.rowTop}>
                         <Text style={styles.date}>{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: `${STATUS_COLOR[sk] ?? AppColors.text}20` }]}>
-                          <Text style={[styles.statusText, { color: STATUS_COLOR[sk] ?? AppColors.text }]}>{sk.replace(/_/g, ' ')}</Text>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            {
+                              backgroundColor: `${statusColors[sk as keyof typeof statusColors] ?? colors.text}20`,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.statusText, { color: statusColors[sk as keyof typeof statusColors] ?? colors.text }]}>
+                            {sk.replace(/_/g, ' ')}
+                          </Text>
                         </View>
                       </View>
                       <Text style={styles.teamEmpName}>{empName}</Text>
                       {(r.checkInTime ?? r.checkIn) && <Text style={styles.meta}>In: {r.checkInTime ?? (r.checkIn ? new Date(r.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}</Text>}
                       {(r.checkOutTime ?? r.checkOut) && <Text style={styles.meta}>Out: {r.checkOutTime ?? (r.checkOut ? new Date(r.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}</Text>}
                       <TouchableOpacity style={styles.overrideBtn} onPress={() => { setOverrideModal(r as AttRecordWithEmployee); setOverrideStatus(sk && OVERRIDE_STATUS_OPTIONS.includes(sk as typeof OVERRIDE_STATUS_OPTIONS[number]) ? sk : 'FULL_DAY'); setOverrideNotes(''); }}>
-                        <MaterialIcons name="edit" size={16} color={AppColors.tint} />
+                        <MaterialIcons name="edit" size={16} color={colors.tint} />
                         <Text style={styles.overrideBtnText}>Override</Text>
                       </TouchableOpacity>
                     </View>
@@ -479,10 +496,10 @@ export default function AttendanceScreen() {
           <>
             <Text style={styles.pageSubtitle}>Employee requests (e.g. couldn’t mark, forgot to check in)</Text>
             {loadingRequests ? (
-              <View style={styles.loadingRow}><ActivityIndicator size="small" color={AppColors.tint} /><Text style={styles.muted}>Loading…</Text></View>
+              <View style={styles.loadingRow}><ActivityIndicator size="small" color={colors.tint} /><Text style={styles.muted}>Loading…</Text></View>
             ) : requests.length === 0 ? (
               <View style={styles.emptyCard}>
-                <MaterialIcons name="inbox" size={48} color={AppColors.textSecondary} />
+                <MaterialIcons name="inbox" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>No pending requests</Text>
                 <Text style={styles.emptySub}>When employees send a message from Check-in, they appear here.</Text>
               </View>
@@ -534,7 +551,7 @@ export default function AttendanceScreen() {
                   ))}
                 </View>
                 <Text style={styles.inputLabel}>Reason (required)</Text>
-                <TextInput style={styles.input} placeholder="Why is this being changed?" placeholderTextColor={AppColors.textSecondary} value={overrideNotes} onChangeText={setOverrideNotes} />
+                <TextInput style={styles.input} placeholder="Why is this being changed?" placeholderTextColor={colors.textSecondary} value={overrideNotes} onChangeText={setOverrideNotes} />
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => { setOverrideModal(null); setOverrideNotes(''); }}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -564,7 +581,7 @@ export default function AttendanceScreen() {
                 ))}
               </ScrollView>
               <Text style={styles.inputLabel}>Date</Text>
-              <TextInput style={styles.input} value={manualDate} onChangeText={setManualDate} placeholder="YYYY-MM-DD" placeholderTextColor={AppColors.textSecondary} />
+              <TextInput style={styles.input} value={manualDate} onChangeText={setManualDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textSecondary} />
               <Text style={styles.inputLabel}>Status</Text>
               <View style={styles.pickerRow}>
                 {OVERRIDE_STATUS_OPTIONS.map((s) => (
@@ -574,7 +591,7 @@ export default function AttendanceScreen() {
                 ))}
               </View>
               <Text style={styles.inputLabel}>Reason (required)</Text>
-              <TextInput style={[styles.input, styles.inputArea]} placeholder="e.g. WFH approved, forgot to check in" placeholderTextColor={AppColors.textSecondary} value={manualNotes} onChangeText={setManualNotes} multiline />
+              <TextInput style={[styles.input, styles.inputArea]} placeholder="e.g. WFH approved, forgot to check in" placeholderTextColor={colors.textSecondary} value={manualNotes} onChangeText={setManualNotes} multiline />
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => { setManualModal(false); setManualEmpId(''); setManualNotes(''); }}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -605,7 +622,7 @@ export default function AttendanceScreen() {
                   ))}
                 </View>
                 <Text style={styles.inputLabel}>Note (required)</Text>
-                <TextInput style={[styles.input, styles.inputArea]} placeholder="e.g. Marked full day as requested" placeholderTextColor={AppColors.textSecondary} value={resolveNote} onChangeText={setResolveNote} multiline />
+                <TextInput style={[styles.input, styles.inputArea]} placeholder="e.g. Marked full day as requested" placeholderTextColor={colors.textSecondary} value={resolveNote} onChangeText={setResolveNote} multiline />
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => { setResolveModal(null); setResolveNote(''); }}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -623,9 +640,24 @@ export default function AttendanceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createAttendanceStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
+  const cardShadow = Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
+      shadowRadius: 8,
+    },
+    android: { elevation: theme === 'dark' ? 4 : 2 },
+    default: {},
+  });
+  const sep = Colors[theme].separator;
+  const fillMuted = theme === 'dark' ? 'rgba(120,120,128,0.28)' : 'rgba(118,118,128,0.12)';
+  const borderInput = theme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(118,118,128,0.2)';
+
+  return StyleSheet.create({
   screen: { flex: 1 },
-  safeTop: { backgroundColor: AppColors.background },
+  safeTop: { backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -633,13 +665,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60,60,67,0.12)',
+    borderBottomColor: sep,
   },
   backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: AppColors.text },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   scroll: { flex: 1 },
   content: { padding: Spacing.xl, paddingBottom: Spacing.section },
-  pageSubtitle: { fontSize: 15, color: AppColors.textSecondary, marginBottom: Spacing.lg },
+  pageSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.lg },
   controls: { marginBottom: Spacing.lg },
   monthRow: { flexDirection: 'row', gap: Spacing.sm, paddingVertical: 4 },
   yearRow: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap', marginTop: Spacing.sm },
@@ -647,49 +679,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(118,118,128,0.12)',
+    backgroundColor: fillMuted,
   },
-  controlChipActive: { backgroundColor: AppColors.tint },
-  controlChipText: { fontSize: 13, fontWeight: '600', color: AppColors.text },
+  controlChipActive: { backgroundColor: colors.tint },
+  controlChipText: { fontSize: 13, fontWeight: '600', color: colors.text },
   controlChipTextActive: { color: '#fff' },
-  summary: { fontSize: 14, color: AppColors.textSecondary, marginBottom: Spacing.md, fontWeight: '500' },
-  muted: { fontSize: 15, color: AppColors.textSecondary },
+  summary: { fontSize: 14, color: colors.textSecondary, marginBottom: Spacing.md, fontWeight: '500' },
+  muted: { fontSize: 15, color: colors.textSecondary },
   emptyCard: {
     alignItems: 'center',
     paddingVertical: Spacing.xxl,
-    backgroundColor: AppColors.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
-    ...CardShadow,
+    ...cardShadow,
   },
-  emptyText: { fontSize: 17, fontWeight: '600', color: AppColors.text, marginTop: Spacing.md },
-  emptySub: { fontSize: 14, color: AppColors.textSecondary, marginTop: Spacing.sm, textAlign: 'center', paddingHorizontal: Spacing.xl },
+  emptyText: { fontSize: 17, fontWeight: '600', color: colors.text, marginTop: Spacing.md },
+  emptySub: { fontSize: 14, color: colors.textSecondary, marginTop: Spacing.sm, textAlign: 'center', paddingHorizontal: Spacing.xl },
   bottomPad: { height: Spacing.section },
   card: {
-    backgroundColor: AppColors.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
-    ...CardShadow,
+    ...cardShadow,
   },
   row: { paddingVertical: Spacing.md },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60,60,67,0.12)',
+    borderBottomColor: sep,
   },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  date: { fontSize: 16, fontWeight: '600', color: AppColors.text },
+  date: { fontSize: 16, fontWeight: '600', color: colors.text },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 12, fontWeight: '600' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  meta: { fontSize: 14, color: AppColors.textSecondary },
-  worked: { fontSize: 13, color: AppColors.textSecondary, marginTop: 2 },
+  meta: { fontSize: 14, color: colors.textSecondary },
+  worked: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   overrideRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  overrideText: { fontSize: 11, color: AppColors.textSecondary },
+  overrideText: { fontSize: 11, color: colors.textSecondary },
   tabRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
-  tab: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.md, alignItems: 'center', backgroundColor: 'rgba(118,118,128,0.12)' },
-  tabActive: { backgroundColor: AppColors.tint },
-  tabText: { fontSize: 14, fontWeight: '600', color: AppColors.textSecondary },
+  tab: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.md, alignItems: 'center', backgroundColor: fillMuted },
+  tabActive: { backgroundColor: colors.tint },
+  tabText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   tabTextActive: { color: '#fff' },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 48, borderRadius: BorderRadius.md, backgroundColor: AppColors.tint, marginBottom: Spacing.lg },
+  primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 48, borderRadius: BorderRadius.md, backgroundColor: colors.tint, marginBottom: Spacing.lg },
   primaryBtnText: { fontSize: 16, fontWeight: '600', color: '#fff' },
   secondaryActionBtn: {
     flexDirection: 'row',
@@ -699,46 +731,47 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: AppColors.tint,
+    borderColor: colors.tint,
     marginTop: -Spacing.sm,
     marginBottom: Spacing.lg,
-    backgroundColor: AppColors.card,
+    backgroundColor: colors.card,
   },
-  secondaryActionBtnText: { fontSize: 14, fontWeight: '600', color: AppColors.tint },
+  secondaryActionBtnText: { fontSize: 14, fontWeight: '600', color: colors.tint },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.lg },
-  teamEmpName: { fontSize: 15, fontWeight: '600', color: AppColors.text, marginTop: 2 },
+  teamEmpName: { fontSize: 15, fontWeight: '600', color: colors.text, marginTop: 2 },
   overrideBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.sm },
-  overrideBtnText: { fontSize: 14, fontWeight: '600', color: AppColors.tint },
-  requestRow: { paddingVertical: Spacing.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(60,60,67,0.12)' },
-  requestEmpName: { fontSize: 16, fontWeight: '600', color: AppColors.text },
-  requestDate: { fontSize: 13, color: AppColors.textSecondary, marginTop: 2 },
-  requestMessage: { fontSize: 14, color: AppColors.text, marginTop: 4 },
+  overrideBtnText: { fontSize: 14, fontWeight: '600', color: colors.tint },
+  requestRow: { paddingVertical: Spacing.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sep },
+  requestEmpName: { fontSize: 16, fontWeight: '600', color: colors.text },
+  requestDate: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  requestMessage: { fontSize: 14, color: colors.text, marginTop: 4 },
   requestActions: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
-  resolveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: BorderRadius.md, backgroundColor: AppColors.success },
+  resolveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: BorderRadius.md, backgroundColor: colors.success },
   resolveBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  dismissBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: BorderRadius.md, backgroundColor: AppColors.danger },
+  dismissBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: BorderRadius.md, backgroundColor: colors.danger },
   dismissBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: AppColors.card, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.xl },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: AppColors.text, marginBottom: Spacing.md },
-  inputLabel: { fontSize: 13, color: AppColors.textSecondary, marginBottom: 6, fontWeight: '500' },
-  input: { borderWidth: 1, borderColor: 'rgba(118,118,128,0.2)', borderRadius: BorderRadius.md, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, fontSize: 16, color: AppColors.text, marginBottom: Spacing.lg },
+  modalContent: { backgroundColor: colors.card, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.xl },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: Spacing.md },
+  inputLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 6, fontWeight: '500' },
+  input: { borderWidth: 1, borderColor: borderInput, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, fontSize: 16, color: colors.text, marginBottom: Spacing.lg },
   inputArea: { minHeight: 72, textAlignVertical: 'top' },
   pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.lg },
-  pickerChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(118,118,128,0.12)' },
-  pickerChipActive: { backgroundColor: AppColors.tint },
-  pickerChipText: { fontSize: 13, fontWeight: '500', color: AppColors.text },
+  pickerChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: fillMuted },
+  pickerChipActive: { backgroundColor: colors.tint },
+  pickerChipText: { fontSize: 13, fontWeight: '500', color: colors.text },
   pickerChipTextActive: { color: '#fff' },
   modalActions: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.sm },
   cancelBtn: { flex: 1, height: 48, borderRadius: BorderRadius.md, backgroundColor: 'rgba(118,118,128,0.12)', justifyContent: 'center', alignItems: 'center' },
-  cancelBtnText: { fontSize: 16, fontWeight: '600', color: AppColors.tint },
+  cancelBtnText: { fontSize: 16, fontWeight: '600', color: colors.tint },
   modalPrimaryBtn: { flex: 1 },
   btnDisabled: { opacity: 0.6 },
   modalScroll: { maxHeight: '80%' },
   modalScrollContent: { paddingBottom: Spacing.section },
   empScroll: { marginBottom: Spacing.lg, maxHeight: 120 },
-  empChip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(118,118,128,0.12)', marginRight: Spacing.sm },
-  empChipActive: { backgroundColor: AppColors.tint },
-  empChipText: { fontSize: 13, fontWeight: '500', color: AppColors.text, maxWidth: 140 },
+  empChip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: fillMuted, marginRight: Spacing.sm },
+  empChipActive: { backgroundColor: colors.tint },
+  empChipText: { fontSize: 13, fontWeight: '500', color: colors.text, maxWidth: 140 },
   empChipTextActive: { color: '#fff' },
-});
+  });
+}

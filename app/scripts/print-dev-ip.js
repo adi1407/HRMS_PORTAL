@@ -27,8 +27,10 @@ if (candidates.length === 0) {
   });
 }
 
+// Prefer typical home Wi‑Fi (192.168.x) over Hyper-V/WSL bridges (e.g. 172.19.x)
 const preferred =
-  candidates.find((c) => /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(c.address)) ||
+  candidates.find((c) => /^192\.168\./.test(c.address)) ||
+  candidates.find((c) => /^(10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(c.address)) ||
   candidates[0];
 
 if (preferred) {

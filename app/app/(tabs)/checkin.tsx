@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,35 +13,15 @@ import {
 import * as Location from 'expo-location';
 import * as LocalAuthentication from 'expo-local-authentication';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import api from '@/lib/api';
 import {
   getAttendanceBiometricOptions,
   getBiometricAttendanceReadinessError,
+  getLocalAuthFailureMessage,
 } from '@/lib/attendanceBiometric';
 import { useAuthStore } from '@/store/authStore';
-
-// Match splash + login: light-only, premium Apple-style
-const COLORS = {
-  background: '#F2F2F7',
-  card: '#FFFFFF',
-  text: '#1C1C1E',
-  textSecondary: '#8E8E93',
-  tint: '#6366f1',
-  success: '#059669',
-  danger: '#dc2626',
-  warning: '#d97706',
-};
-const CARD_SHADOW = Platform.select({
-  ios: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-  },
-  android: { elevation: 2 },
-  default: {},
-});
 
 type TodayRecord = {
   checkIn?: string;
@@ -54,6 +34,10 @@ type TodayRecord = {
 type Branch = { _id: string; name: string; wifiSSIDs?: string[] };
 
 export default function CheckInScreen() {
+  const theme = useAppTheme();
+  const colors = useMemo(() => getAppColors(theme), [theme]);
+  const styles = useMemo(() => createCheckinStyles(colors, theme), [theme]);
+
   const user = useAuthStore((s) => s.user);
   const [todayRecord, setTodayRecord] = useState<TodayRecord | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -176,7 +160,7 @@ export default function CheckInScreen() {
         getAttendanceBiometricOptions('Register fingerprint or Face ID for attendance')
       );
       if (!auth.success) {
-        Alert.alert('Cancelled', 'Enrollment was not completed.');
+        Alert.alert('Enrollment incomplete', getLocalAuthFailureMessage(auth));
         return;
       }
       await api.post('/auth/biometric-attendance/mobile-enroll', {});
@@ -226,7 +210,7 @@ export default function CheckInScreen() {
           )
         );
         if (!auth.success) {
-          Alert.alert('Authentication failed', 'Biometric verification was cancelled or failed.');
+          Alert.alert('Biometric check failed', getLocalAuthFailureMessage(auth));
           setSubmitting(false);
           return;
         }
@@ -278,8 +262,8 @@ export default function CheckInScreen() {
 
   if (loadingData) {
     return (
-      <View style={[styles.centered, { backgroundColor: COLORS.background }]}>
-        <ActivityIndicator size="large" color={COLORS.tint} />
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
         <Text style={[styles.muted, { marginTop: Spacing.md }]}>Loading…</Text>
       </View>
     );
@@ -287,7 +271,7 @@ export default function CheckInScreen() {
 
   return (
     <ScrollView
-      style={[styles.scroll, { backgroundColor: COLORS.background }]}
+      style={[styles.scroll, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
@@ -305,9 +289,9 @@ export default function CheckInScreen() {
           <MaterialIcons
             name={result.success ? 'check-circle' : 'warning'}
             size={20}
-            color={result.success ? COLORS.success : COLORS.danger}
+            color={result.success ? colors.success : colors.danger}
           />
-          <Text style={[styles.alertText, { color: result.success ? COLORS.success : COLORS.danger }]}>
+          <Text style={[styles.alertText, { color: result.success ? colors.success : colors.danger }]}>
             {result.message}
           </Text>
         </View>
@@ -320,13 +304,13 @@ export default function CheckInScreen() {
           </Text>
           {todayRecord.checkInTime && (
             <View style={styles.summaryRow}>
-              <MaterialIcons name="login" size={14} color={COLORS.success} />
+              <MaterialIcons name="login" size={14} color={colors.success} />
               <Text style={styles.summaryText}>In: <Text style={styles.summaryBold}>{todayRecord.checkInTime}</Text></Text>
             </View>
           )}
           {todayRecord.checkOutTime && (
             <View style={styles.summaryRow}>
-              <MaterialIcons name="logout" size={14} color={COLORS.danger} />
+              <MaterialIcons name="logout" size={14} color={colors.danger} />
               <Text style={styles.summaryText}>Out: <Text style={styles.summaryBold}>{todayRecord.checkOutTime}</Text></Text>
             </View>
           )}
@@ -348,16 +332,16 @@ export default function CheckInScreen() {
             </View>
             <Text style={styles.stepDesc}>Your location is verified to confirm you are at the office.</Text>
             <View style={[styles.statusChip, geoStatus === 'success' ? styles.statusSuccess : geoStatus === 'getting' ? styles.statusChecking : styles.statusError]}>
-              {geoStatus === 'getting' && <ActivityIndicator size="small" color={COLORS.tint} />}
-              {geoStatus === 'success' && <MaterialIcons name="location-on" size={16} color={COLORS.success} />}
-              {(geoStatus === 'denied' || geoStatus === 'error') && <MaterialIcons name="error-outline" size={16} color={COLORS.danger} />}
-              <Text style={[styles.statusChipText, geoStatus === 'success' ? { color: COLORS.success } : geoStatus === 'getting' ? { color: COLORS.tint } : { color: COLORS.danger }]}>
+              {geoStatus === 'getting' && <ActivityIndicator size="small" color={colors.tint} />}
+              {geoStatus === 'success' && <MaterialIcons name="location-on" size={16} color={colors.success} />}
+              {(geoStatus === 'denied' || geoStatus === 'error') && <MaterialIcons name="error-outline" size={16} color={colors.danger} />}
+              <Text style={[styles.statusChipText, geoStatus === 'success' ? { color: colors.success } : geoStatus === 'getting' ? { color: colors.tint } : { color: colors.danger }]}>
                 {geoMessage}
               </Text>
             </View>
             {(geoStatus === 'denied' || geoStatus === 'error') && (
               <TouchableOpacity style={styles.retryBtn} onPress={startGeoCheck}>
-                <MaterialIcons name="refresh" size={18} color={COLORS.tint} />
+                <MaterialIcons name="refresh" size={18} color={colors.tint} />
                 <Text style={styles.retryBtnText}>Retry Location</Text>
               </TouchableOpacity>
             )}
@@ -375,8 +359,8 @@ export default function CheckInScreen() {
 
             {branchSSIDs.length === 0 && (
               <View style={[styles.statusChip, styles.statusSuccess]}>
-                <MaterialIcons name="wifi" size={16} color={COLORS.success} />
-                <Text style={[styles.statusChipText, { color: COLORS.success }]}>
+                <MaterialIcons name="wifi" size={16} color={colors.success} />
+                <Text style={[styles.statusChipText, { color: colors.success }]}>
                   No WiFi restriction — you can check in from any network.
                 </Text>
               </View>
@@ -394,9 +378,9 @@ export default function CheckInScreen() {
                     <MaterialIcons
                       name="wifi"
                       size={20}
-                      color={wifiSSID === ssid ? COLORS.success : COLORS.textSecondary}
+                      color={wifiSSID === ssid ? colors.success : colors.textSecondary}
                     />
-                    <Text style={[styles.wifiItemLabel, wifiSSID === ssid && { color: COLORS.text, fontWeight: '600' }]}>
+                    <Text style={[styles.wifiItemLabel, wifiSSID === ssid && { color: colors.text, fontWeight: '600' }]}>
                       {ssid}
                     </Text>
                     {wifiSSID === ssid && (
@@ -425,18 +409,18 @@ export default function CheckInScreen() {
               <TouchableOpacity
                 style={[
                   styles.secondaryBtn,
-                  { borderColor: COLORS.tint, flexDirection: 'row', gap: 8 },
+                  { borderColor: colors.tint, flexDirection: 'row', gap: 8 },
                   enrollingBio && { opacity: 0.6 },
                 ]}
                 onPress={completeMobileBiometricEnrollment}
                 disabled={enrollingBio}
               >
                 {enrollingBio ? (
-                  <ActivityIndicator color={COLORS.tint} />
+                  <ActivityIndicator color={colors.tint} />
                 ) : (
                   <>
-                    <MaterialIcons name="fingerprint" size={20} color={COLORS.tint} />
-                    <Text style={[styles.secondaryBtnText, { color: COLORS.tint }]}>Enroll this device</Text>
+                    <MaterialIcons name="fingerprint" size={20} color={colors.tint} />
+                    <Text style={[styles.secondaryBtnText, { color: colors.tint }]}>Enroll this device</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -464,8 +448,8 @@ export default function CheckInScreen() {
             </Text>
             {wifiRequired && !wifiSSID.trim() && (
               <View style={[styles.statusChip, styles.statusError]}>
-                <MaterialIcons name="info" size={16} color={COLORS.danger} />
-                <Text style={[styles.statusChipText, { color: COLORS.danger }]}>
+                <MaterialIcons name="info" size={16} color={colors.danger} />
+                <Text style={[styles.statusChipText, { color: colors.danger }]}>
                   Select your office WiFi above before checking in.
                 </Text>
               </View>
@@ -491,7 +475,7 @@ export default function CheckInScreen() {
 
       {doneForToday && (
         <View style={styles.doneCard}>
-          <MaterialIcons name="check-circle" size={48} color={COLORS.success} />
+          <MaterialIcons name="check-circle" size={48} color={colors.success} />
           <Text style={styles.doneTitle}>Attendance complete for today</Text>
           <Text style={styles.doneSub}>
             In: {todayRecord?.checkInTime} · Out: {todayRecord?.checkOutTime}
@@ -518,7 +502,7 @@ export default function CheckInScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Describe the issue…"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={3}
                   value={requestMsg}
@@ -536,8 +520,8 @@ export default function CheckInScreen() {
           </>
         ) : (
           <View style={[styles.statusChip, styles.statusSuccess, { marginTop: Spacing.sm }]}>
-            <MaterialIcons name="check-circle" size={16} color={COLORS.success} />
-            <Text style={[styles.statusChipText, { color: COLORS.success }]}>Your message was sent to HR.</Text>
+            <MaterialIcons name="check-circle" size={16} color={colors.success} />
+            <Text style={[styles.statusChipText, { color: colors.success }]}>Your message was sent to HR.</Text>
           </View>
         )}
       </View>
@@ -547,173 +531,188 @@ export default function CheckInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { padding: Spacing.xxl, paddingBottom: Spacing.section },
-  bottomPad: { height: Spacing.section },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-  pageSubtitle: { fontSize: 15, color: COLORS.textSecondary, marginBottom: Spacing.xl },
-  alert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-  },
-  alertSuccess: { backgroundColor: `${COLORS.success}18` },
-  alertError: { backgroundColor: `${COLORS.danger}12` },
-  alertText: { fontSize: 15, fontWeight: '500', flex: 1 },
-  summaryBar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: COLORS.card,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.xl,
-    ...CARD_SHADOW,
-  },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  summaryText: { fontSize: 14, color: COLORS.textSecondary },
-  summaryBold: { fontWeight: '600', color: COLORS.text },
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.xl,
-    ...CARD_SHADOW,
-  },
-  stepHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
-  stepNum: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.tint,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  stepNumText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  stepTitle: { fontSize: 17, fontWeight: '600', color: COLORS.text },
-  stepDesc: { fontSize: 14, color: COLORS.textSecondary, lineHeight: 20, marginBottom: Spacing.md },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  statusChecking: { backgroundColor: `${COLORS.tint}18` },
-  statusSuccess: { backgroundColor: `${COLORS.success}18` },
-  statusError: { backgroundColor: `${COLORS.danger}12` },
-  statusChipText: { fontSize: 14, flex: 1 },
-  retryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  retryBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.tint },
-  wifiList: { gap: Spacing.sm },
-  wifiItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    backgroundColor: '#fff',
-  },
-  wifiItemSelected: {
-    borderColor: COLORS.success,
-    backgroundColor: `${COLORS.success}08`,
-  },
-  wifiItemLabel: { flex: 1, fontSize: 15, color: COLORS.textSecondary },
-  wifiBadge: { backgroundColor: `${COLORS.success}20`, paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: 6 },
-  wifiBadgeText: { fontSize: 12, fontWeight: '600', color: COLORS.success },
-  primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    height: 52,
-    borderRadius: BorderRadius.md,
-    backgroundColor: COLORS.tint,
-    marginTop: Spacing.sm,
-  },
-  primaryBtnDisabled: { opacity: 0.6 },
-  primaryBtnSmall: { height: 44, marginTop: Spacing.md },
-  primaryBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
-  secondaryBtn: {
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: COLORS.tint,
-  },
-  secondaryBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.tint },
-  doneCard: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    backgroundColor: COLORS.card,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.xl,
-    ...CARD_SHADOW,
-  },
-  doneTitle: { fontSize: 17, fontWeight: '600', color: COLORS.text, marginTop: Spacing.md },
-  doneSub: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  cardTitle: { fontSize: 17, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
-  muted: { fontSize: 14, color: COLORS.textSecondary, lineHeight: 20 },
-  requestForm: { marginTop: Spacing.md },
-  inputHint: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: 15,
-    color: COLORS.text,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  faceCameraBox: { marginTop: Spacing.sm, borderRadius: BorderRadius.lg, overflow: 'hidden', backgroundColor: '#000' },
-  faceCameraInner: { position: 'relative', width: '100%', height: 200 },
-  faceCamera: { width: '100%', height: 200 },
-  faceCameraLoading: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  faceCaptureBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    height: 48,
-    margin: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  faceOkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
-});
+function createCheckinStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
+  const cardShadow = Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
+      shadowRadius: 8,
+    },
+    android: { elevation: theme === 'dark' ? 4 : 2 },
+    default: {},
+  });
+  const hairlineBorder = theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const inputBorder = theme === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.1)';
+
+  return StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { padding: Spacing.xxl, paddingBottom: Spacing.section },
+    bottomPad: { height: Spacing.section },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    pageTitle: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.text,
+      letterSpacing: -0.3,
+      marginBottom: 4,
+    },
+    pageSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.xl },
+    alert: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      padding: Spacing.md,
+      borderRadius: BorderRadius.md,
+      marginBottom: Spacing.lg,
+    },
+    alertSuccess: { backgroundColor: `${colors.success}18` },
+    alertError: { backgroundColor: `${colors.danger}12` },
+    alertText: { fontSize: 15, fontWeight: '500', flex: 1 },
+    summaryBar: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: Spacing.md,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.lg,
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      marginBottom: Spacing.xl,
+      ...cardShadow,
+    },
+    summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    summaryText: { fontSize: 14, color: colors.textSecondary },
+    summaryBold: { fontWeight: '600', color: colors.text },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      padding: Spacing.xl,
+      marginBottom: Spacing.xl,
+      ...cardShadow,
+    },
+    stepHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
+    stepNum: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.tint,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: Spacing.md,
+    },
+    stepNumText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    stepTitle: { fontSize: 17, fontWeight: '600', color: colors.text },
+    stepDesc: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: Spacing.md },
+    statusChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      borderRadius: BorderRadius.md,
+    },
+    statusChecking: { backgroundColor: `${colors.tint}18` },
+    statusSuccess: { backgroundColor: `${colors.success}18` },
+    statusError: { backgroundColor: `${colors.danger}12` },
+    statusChipText: { fontSize: 14, flex: 1 },
+    retryBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      marginTop: Spacing.md,
+      paddingVertical: Spacing.sm,
+    },
+    retryBtnText: { fontSize: 15, fontWeight: '600', color: colors.tint },
+    wifiList: { gap: Spacing.sm },
+    wifiItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      padding: Spacing.md,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: hairlineBorder,
+      backgroundColor: colors.card,
+    },
+    wifiItemSelected: {
+      borderColor: colors.success,
+      backgroundColor: `${colors.success}08`,
+    },
+    wifiItemLabel: { flex: 1, fontSize: 15, color: colors.textSecondary },
+    wifiBadge: { backgroundColor: `${colors.success}20`, paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: 6 },
+    wifiBadgeText: { fontSize: 12, fontWeight: '600', color: colors.success },
+    primaryBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      height: 52,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.tint,
+      marginTop: Spacing.sm,
+    },
+    primaryBtnDisabled: { opacity: 0.6 },
+    primaryBtnSmall: { height: 44, marginTop: Spacing.md },
+    primaryBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
+    secondaryBtn: {
+      height: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: Spacing.sm,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.tint,
+    },
+    secondaryBtnText: { fontSize: 15, fontWeight: '600', color: colors.tint },
+    doneCard: {
+      alignItems: 'center',
+      paddingVertical: Spacing.xxl,
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      marginBottom: Spacing.xl,
+      ...cardShadow,
+    },
+    doneTitle: { fontSize: 17, fontWeight: '600', color: colors.text, marginTop: Spacing.md },
+    doneSub: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+    cardTitle: { fontSize: 17, fontWeight: '600', color: colors.text, marginBottom: 4 },
+    muted: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
+    requestForm: { marginTop: Spacing.md },
+    inputHint: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
+    input: {
+      borderWidth: 1,
+      borderColor: inputBorder,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.md,
+      fontSize: 15,
+      color: colors.text,
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    faceCameraBox: { marginTop: Spacing.sm, borderRadius: BorderRadius.lg, overflow: 'hidden', backgroundColor: '#000' },
+    faceCameraInner: { position: 'relative', width: '100%', height: 200 },
+    faceCamera: { width: '100%', height: 200 },
+    faceCameraLoading: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.2)',
+    },
+    faceCaptureBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      height: 48,
+      margin: Spacing.md,
+      borderRadius: BorderRadius.md,
+    },
+    faceOkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      marginTop: Spacing.sm,
+      paddingVertical: Spacing.sm,
+    },
+  });
+}

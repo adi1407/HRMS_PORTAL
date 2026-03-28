@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -11,33 +11,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors, Colors } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-
-// Match splash + login: light-only, premium Apple-style
-const COLORS = {
-  background: '#F2F2F7',
-  card: '#FFFFFF',
-  text: '#1C1C1E',
-  textSecondary: '#8E8E93',
-  tint: '#6366f1',
-  success: '#059669',
-  danger: '#dc2626',
-  warning: '#d97706',
-  blue: '#2563eb',
-  purple: '#7c3aed',
-};
-const CARD_SHADOW = Platform.select({
-  ios: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-  },
-  android: { elevation: 2 },
-  default: {},
-});
 
 type TodayAttendance = {
   displayStatus?: string;
@@ -68,21 +45,6 @@ const CELL_COLOR: Record<string, string> = {
   WEEKLY_OFF: 'weekoff',
 };
 
-const BASE_QUICK_ACTIONS = [
-  { id: 'checkin', label: 'Check In', icon: 'login' as const, route: '/(tabs)/checkin', color: COLORS.success },
-  { id: 'leave', label: 'Apply Leave', icon: 'event-note' as const, route: '/(tabs)/leave', color: COLORS.blue },
-  { id: 'salary', label: 'My Salary', icon: 'payments' as const, route: '/salary', color: COLORS.purple },
-  { id: 'attendance', label: 'Attendance', icon: 'today' as const, route: '/attendance', color: COLORS.warning },
-];
-
-const HR_QUICK_ACTIONS = [
-  { id: 'employees', label: 'Employees', icon: 'people' as const, route: '/employees', color: COLORS.purple },
-  { id: 'recruitment', label: 'Recruitment', icon: 'person-add' as const, route: '/recruitment', color: COLORS.blue },
-];
-
-// Alias so any cached or legacy reference to QUICK_ACTIONS still works
-const QUICK_ACTIONS = BASE_QUICK_ACTIONS;
-
 // Calendar cell colors (match web: green present, yellow half, red absent, blue leave, teal holiday/weekoff)
 const CAL_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   present: { bg: '#16a34a', border: '#15803d', text: '#fff' },
@@ -108,6 +70,10 @@ function AttendanceCalendar({
   year: number;
   holidays: Holiday[];
 }) {
+  const theme = useAppTheme();
+  const colors = useMemo(() => getAppColors(theme), [theme]);
+  const calStyles = useMemo(() => createCalStyles(colors, theme), [theme]);
+
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
@@ -216,53 +182,71 @@ function AttendanceCalendar({
   );
 }
 
-const calStyles = StyleSheet.create({
-  calendar: { width: '100%' },
-  weekdays: { flexDirection: 'row', marginBottom: 6 },
-  wday: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-  },
-  grid: { gap: 4 },
-  gridRow: { flexDirection: 'row', gap: 4, marginBottom: 4 },
-  cell: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cellEmpty: { flex: 1, aspectRatio: 1 },
-  cellToday: { borderWidth: 2, borderColor: COLORS.tint },
-  cellNum: { fontSize: 12, fontWeight: '600' },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(60,60,67,0.12)',
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 10, height: 10, borderRadius: 4 },
-  legendLabel: { fontSize: 11, color: COLORS.textSecondary },
-});
+function createCalStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
+  return StyleSheet.create({
+    calendar: { width: '100%' },
+    weekdays: { flexDirection: 'row', marginBottom: 6 },
+    wday: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    grid: { gap: 4 },
+    gridRow: { flexDirection: 'row', gap: 4, marginBottom: 4 },
+    cell: {
+      flex: 1,
+      aspectRatio: 1,
+      borderRadius: 8,
+      borderWidth: 1.5,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    cellEmpty: { flex: 1, aspectRatio: 1 },
+    cellToday: { borderWidth: 2, borderColor: colors.tint },
+    cellNum: { fontSize: 12, fontWeight: '600' },
+    legend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 14,
+      paddingTop: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: Colors[theme].separator,
+    },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    legendDot: { width: 10, height: 10, borderRadius: 4 },
+    legendLabel: { fontSize: 11, color: colors.textSecondary },
+  });
+}
 
 const HR_ROLES = ['HR', 'DIRECTOR', 'SUPER_ADMIN'];
 
 export default function HomeScreen() {
   const router = useRouter();
+  const theme = useAppTheme();
+  const colors = useMemo(() => getAppColors(theme), [theme]);
+  const styles = useMemo(() => createHomeStyles(colors, theme), [theme]);
+
   const user = useAuthStore((s) => s.user);
   const getRole = useAuthStore((s) => s.getRole);
   const role = getRole();
-  const quickActions = HR_ROLES.includes(role)
-    ? [...BASE_QUICK_ACTIONS, ...HR_QUICK_ACTIONS]
-    : BASE_QUICK_ACTIONS;
+  const quickActions = useMemo(() => {
+    const blue = '#2563eb';
+    const purple = '#7c3aed';
+    const base = [
+      { id: 'checkin', label: 'Check In', icon: 'login' as const, route: '/(tabs)/checkin', color: colors.success },
+      { id: 'leave', label: 'Apply Leave', icon: 'event-note' as const, route: '/(tabs)/leave', color: blue },
+      { id: 'salary', label: 'My Salary', icon: 'payments' as const, route: '/salary', color: purple },
+      { id: 'attendance', label: 'Attendance', icon: 'today' as const, route: '/attendance', color: colors.warning },
+    ];
+    const hr = [
+      { id: 'employees', label: 'Employees', icon: 'people' as const, route: '/employees', color: purple },
+      { id: 'recruitment', label: 'Recruitment', icon: 'person-add' as const, route: '/recruitment', color: blue },
+    ];
+    return HR_ROLES.includes(role) ? [...base, ...hr] : base;
+  }, [colors, role]);
   const [today, setToday] = useState<TodayAttendance | null>(null);
   const [monthRecords, setMonthRecords] = useState<MonthRecord[]>([]);
   const [leaves, setLeaves] = useState<LeaveRecord[]>([]);
@@ -385,14 +369,14 @@ export default function HomeScreen() {
   const displayStatus = today?.displayStatus ?? today?.status;
   const statusLabel = displayStatus ? displayStatus.replace(/_/g, ' ') : null;
 
-  const separator = 'rgba(60,60,67,0.12)';
+  const separator = Colors[theme].separator;
 
   return (
     <ScrollView
-      style={[styles.scroll, { backgroundColor: COLORS.background }]}
+      style={[styles.scroll, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.tint} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
       }
       showsVerticalScrollIndicator={false}
     >
@@ -420,7 +404,7 @@ export default function HomeScreen() {
                 <MaterialIcons name={qa.icon} size={22} color={qa.color} />
               </View>
               <Text style={styles.quickLabel}>{qa.label}</Text>
-              <MaterialIcons name="chevron-right" size={18} color={COLORS.textSecondary} style={styles.quickArrow} />
+              <MaterialIcons name="chevron-right" size={18} color={colors.textSecondary} style={styles.quickArrow} />
             </Pressable>
           ))}
         </View>
@@ -446,21 +430,21 @@ export default function HomeScreen() {
             <View style={styles.timeRows}>
               {today?.checkInTime && (
                 <View style={styles.timeRow}>
-                  <MaterialIcons name="login" size={16} color={COLORS.success} />
+                  <MaterialIcons name="login" size={16} color={colors.success} />
                   <Text style={styles.muted}>Check in</Text>
                   <Text style={styles.timeVal}>{today.checkInTime}</Text>
                 </View>
               )}
               {today?.checkOutTime && (
                 <View style={styles.timeRow}>
-                  <MaterialIcons name="logout" size={16} color={COLORS.danger} />
+                  <MaterialIcons name="logout" size={16} color={colors.danger} />
                   <Text style={styles.muted}>Check out</Text>
                   <Text style={styles.timeVal}>{today.checkOutTime}</Text>
                 </View>
               )}
               {today?.workingHours != null && today.workingHours > 0 && (
                 <View style={styles.timeRow}>
-                  <MaterialIcons name="schedule" size={16} color={COLORS.tint} />
+                  <MaterialIcons name="schedule" size={16} color={colors.tint} />
                   <Text style={styles.muted}>Hours</Text>
                   <Text style={styles.timeValAccent}>{today.workingHours}h</Text>
                 </View>
@@ -485,22 +469,22 @@ export default function HomeScreen() {
           <Text style={styles.cardTitle}>This month</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: COLORS.success }]} />
+              <View style={[styles.statDot, { backgroundColor: colors.success }]} />
               <Text style={styles.statNum}>{present}</Text>
               <Text style={styles.statLabel}>Present</Text>
             </View>
             <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: COLORS.warning }]} />
+              <View style={[styles.statDot, { backgroundColor: colors.warning }]} />
               <Text style={styles.statNum}>{halfDay}</Text>
               <Text style={styles.statLabel}>Half</Text>
             </View>
             <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: COLORS.danger }]} />
+              <View style={[styles.statDot, { backgroundColor: colors.danger }]} />
               <Text style={styles.statNum}>{absent}</Text>
               <Text style={styles.statLabel}>Absent</Text>
             </View>
             <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: COLORS.blue }]} />
+              <View style={[styles.statDot, { backgroundColor: '#2563eb' }]} />
               <Text style={styles.statNum}>{onLeave}</Text>
               <Text style={styles.statLabel}>Leave</Text>
             </View>
@@ -516,14 +500,14 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.calNav}>
             <TouchableOpacity style={styles.calNavBtn} onPress={handlePrevMonth}>
-              <MaterialIcons name="chevron-left" size={22} color={COLORS.text} />
+              <MaterialIcons name="chevron-left" size={22} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.calNavBtn, isCurrentMonth && styles.calNavBtnDisabled]}
               onPress={handleNextMonth}
               disabled={isCurrentMonth}
             >
-              <MaterialIcons name="chevron-right" size={22} color={isCurrentMonth ? COLORS.textSecondary : COLORS.text} />
+              <MaterialIcons name="chevron-right" size={22} color={isCurrentMonth ? colors.textSecondary : colors.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -574,7 +558,7 @@ export default function HomeScreen() {
           <Text style={styles.cardTitle}>Upcoming holidays</Text>
           {holidays.map((h) => (
             <View key={h._id} style={[styles.holidayRow, { borderTopColor: separator }]}>
-              <MaterialIcons name="event" size={18} color={COLORS.tint} />
+              <MaterialIcons name="event" size={18} color={colors.tint} />
               <View style={styles.holidayInfo}>
                 <Text style={styles.holidayName}>{h.name}</Text>
                 <Text style={styles.muted}>
@@ -611,136 +595,149 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: {
-    paddingHorizontal: Spacing.xxl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.section,
-  },
-  bottomPad: { height: Spacing.section },
-  hero: { marginBottom: 28 },
-  heroGreeting: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  heroName: { fontWeight: '700', color: COLORS.text },
-  heroDate: { fontSize: 15, color: COLORS.textSecondary },
-  quickSection: { marginBottom: 24 },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
-  quickCard: {
-    width: '47%',
-    backgroundColor: COLORS.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 64,
-    ...CARD_SHADOW,
-  },
-  quickCardPressed: { opacity: 0.88 },
-  quickIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  quickLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: COLORS.text },
-  quickArrow: { marginLeft: Spacing.xs },
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.xl,
-    ...CARD_SHADOW,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
-    letterSpacing: -0.3,
-  },
-  ringWrap: { paddingHorizontal: Spacing.sm },
-  ringText: { fontSize: 15, fontWeight: '700', color: COLORS.tint },
-  calHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  calNav: { flexDirection: 'row', gap: 4 },
-  calNavBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calNavBtnDisabled: { opacity: 0.5 },
-  todayBody: {},
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-    backgroundColor: `${COLORS.tint}18`,
-  },
-  statusBadgeText: { fontSize: 15, fontWeight: '600', color: COLORS.tint },
-  timeRows: { gap: Spacing.sm },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  timeVal: { marginLeft: 'auto', fontSize: 15, fontWeight: '500', color: COLORS.text },
-  timeValAccent: { marginLeft: 'auto', fontSize: 15, fontWeight: '600', color: COLORS.tint },
-  checkInCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    height: 52,
-    borderRadius: BorderRadius.md,
-    backgroundColor: COLORS.tint,
-  },
-  checkInCtaText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
-  muted: { fontSize: 15, color: COLORS.textSecondary },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
-  statItem: { alignItems: 'center', minWidth: 72 },
-  statDot: { width: 8, height: 8, borderRadius: 4, marginBottom: Spacing.xs },
-  statNum: { fontSize: 22, fontWeight: '700', color: COLORS.text },
-  statLabel: { fontSize: 13, color: COLORS.textSecondary },
-  detailRows: {},
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  detailRowFirst: { borderTopWidth: 0 },
-  detailVal: { fontSize: 15, fontWeight: '500', color: COLORS.text },
-  annRow: { paddingVertical: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
-  annTitle: { fontWeight: '600', marginBottom: 2, fontSize: 15, color: COLORS.text },
-  holidayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: Spacing.md,
-  },
-  holidayInfo: { flex: 1 },
-  holidayName: { fontWeight: '600', fontSize: 15, color: COLORS.text },
-  holidayType: { fontSize: 13, color: COLORS.textSecondary },
-  leaveRow: { paddingVertical: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
-  leaveType: { fontWeight: '600', marginBottom: 2, fontSize: 15, color: COLORS.text },
-});
+function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
+  const cardShadow = Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
+      shadowRadius: 8,
+    },
+    android: { elevation: theme === 'dark' ? 4 : 2 },
+    default: {},
+  });
+
+  return StyleSheet.create({
+    scroll: { flex: 1 },
+    content: {
+      paddingHorizontal: Spacing.xxl,
+      paddingTop: Spacing.lg,
+      paddingBottom: Spacing.section,
+    },
+    bottomPad: { height: Spacing.section },
+    hero: { marginBottom: 28 },
+    heroGreeting: {
+      fontSize: 28,
+      fontWeight: '700',
+      letterSpacing: -0.5,
+      color: colors.text,
+      marginBottom: 4,
+    },
+    heroName: { fontWeight: '700', color: colors.text },
+    heroDate: { fontSize: 15, color: colors.textSecondary },
+    quickSection: { marginBottom: 24 },
+    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
+    quickCard: {
+      width: '47%',
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      padding: Spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 64,
+      ...cardShadow,
+    },
+    quickCardPressed: { opacity: 0.88 },
+    quickIconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: BorderRadius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: Spacing.md,
+    },
+    quickLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
+    quickArrow: { marginLeft: Spacing.xs },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      padding: Spacing.xl,
+      marginBottom: Spacing.xl,
+      ...cardShadow,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.md,
+    },
+    cardTitle: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.text,
+      letterSpacing: -0.3,
+    },
+    ringWrap: { paddingHorizontal: Spacing.sm },
+    ringText: { fontSize: 15, fontWeight: '700', color: colors.tint },
+    calHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.md,
+    },
+    calNav: { flexDirection: 'row', gap: 4 },
+    calNavBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: BorderRadius.sm,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    calNavBtnDisabled: { opacity: 0.5 },
+    todayBody: {},
+    statusBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: BorderRadius.md,
+      marginBottom: Spacing.md,
+      backgroundColor: `${colors.tint}18`,
+    },
+    statusBadgeText: { fontSize: 15, fontWeight: '600', color: colors.tint },
+    timeRows: { gap: Spacing.sm },
+    timeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    timeVal: { marginLeft: 'auto', fontSize: 15, fontWeight: '500', color: colors.text },
+    timeValAccent: { marginLeft: 'auto', fontSize: 15, fontWeight: '600', color: colors.tint },
+    checkInCta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      height: 52,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.tint,
+    },
+    checkInCtaText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
+    muted: { fontSize: 15, color: colors.textSecondary },
+    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
+    statItem: { alignItems: 'center', minWidth: 72 },
+    statDot: { width: 8, height: 8, borderRadius: 4, marginBottom: Spacing.xs },
+    statNum: { fontSize: 22, fontWeight: '700', color: colors.text },
+    statLabel: { fontSize: 13, color: colors.textSecondary },
+    detailRows: {},
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: Spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    detailRowFirst: { borderTopWidth: 0 },
+    detailVal: { fontSize: 15, fontWeight: '500', color: colors.text },
+    annRow: { paddingVertical: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+    annTitle: { fontWeight: '600', marginBottom: 2, fontSize: 15, color: colors.text },
+    holidayRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: Spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      gap: Spacing.md,
+    },
+    holidayInfo: { flex: 1 },
+    holidayName: { fontWeight: '600', fontSize: 15, color: colors.text },
+    holidayType: { fontSize: 13, color: colors.textSecondary },
+    leaveRow: { paddingVertical: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+    leaveType: { fontWeight: '600', marginBottom: 2, fontSize: 15, color: colors.text },
+  });
+}

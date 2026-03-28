@@ -29,6 +29,7 @@ import PolicyDocumentsPage from './pages/PolicyDocumentsPage';
 import EmployeeProfilePage from './pages/EmployeeProfilePage';
 import ATSPage from './pages/ATSPage';
 import DirectoryPage from './pages/DirectoryPage';
+import AssistantPage from './pages/AssistantPage';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import Layout        from './components/shared/Layout';
 
@@ -64,7 +65,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="/*" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard"  element={<DashboardPage />} />
           <Route path="checkin"    element={<CheckInPage />} />
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="my-profile"   element={<EmployeeProfilePage />} />
           <Route path="recruitment"  element={<ProtectedRoute roles={['HR','DIRECTOR','SUPER_ADMIN']}><ATSPage /></ProtectedRoute>} />
           <Route path="directory"    element={<DirectoryPage />} />
+          <Route path="assistant"   element={<AssistantPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

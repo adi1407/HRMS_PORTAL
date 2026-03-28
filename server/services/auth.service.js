@@ -17,7 +17,8 @@ const COOKIE_OPTIONS = {
 };
 
 const login = async ({ email, password, lat, lon, req, res }) => {
-  const user = await User.findOne({ email }).select('+password +refreshToken').populate('branch', 'name latitude longitude radiusMeters').populate('department', 'name');
+  const emailNorm = typeof email === 'string' ? email.trim().toLowerCase() : email;
+  const user = await User.findOne({ email: emailNorm }).select('+password +refreshToken').populate('branch', 'name latitude longitude radiusMeters').populate('department', 'name');
   if (!user) throw new ApiError(401, 'Invalid email or password.');
   if (!user.isActive) throw new ApiError(403, 'Account deactivated. Contact HR.');
 

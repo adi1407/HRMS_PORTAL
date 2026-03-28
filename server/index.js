@@ -5,10 +5,12 @@ const { initCronJobs } = require('./cron');
 const { ensureFaceApi, getFaceModelsDebugInfo } = require('./services/faceEncoder.service');
 
 const PORT = process.env.PORT || 5000;
+/** Listen on all interfaces so phones on the same Wi‑Fi can use http://LAN_IP:PORT (Windows often needs this). */
+const HOST = process.env.BIND_HOST || '0.0.0.0';
 
 connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`\n🚀 HRMS Server running on http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`\n🚀 HRMS Server running on http://localhost:${PORT} (LAN: http://<your-ip>:${PORT})`);
     console.log(`📍 Environment: ${process.env.NODE_ENV}`);
     console.log(`🌐 Frontend URL: ${process.env.CLIENT_URL}`);
     const faceDebug = getFaceModelsDebugInfo();

@@ -17,6 +17,8 @@ const UserSchema = new Schema({
   probationEndDate:  { type: Date },
   probationMonths:   { type: Number, default: 6 },
   grossSalary:       { type: Number, default: 0 },
+  /** After true, ACCOUNTS cannot PATCH salary/bank directly — use salary-requests or Director/Super Admin. */
+  salaryBankInitialCaptureDone: { type: Boolean, default: false },
   isActive:          { type: Boolean, default: true },
   bankAccountNumber: { type: String, default: '' },
   ifscCode:          { type: String, uppercase: true, default: '' },

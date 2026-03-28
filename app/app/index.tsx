@@ -6,8 +6,8 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { SplashScreen } from '@/components/splash-screen';
 
-/** Don’t block splash on network when user isn’t logged in; wrong LAN IP can hang ~60s otherwise */
-const BOOTSTRAP_TIMEOUT_MS = 15000;
+/** Refresh + /me after cold Render can be slow; keep bounded so splash doesn’t hang forever */
+const BOOTSTRAP_TIMEOUT_MS = 45000;
 
 export default function BootstrapScreen() {
   const router = useRouter();

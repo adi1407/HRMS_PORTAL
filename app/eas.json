@@ -9,20 +9,35 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://hrms-portal-9ykq.onrender.com",
+        "EXPO_PUBLIC_CLIENT_URL": "https://hrms-portal-sable.vercel.app"
       }
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "ios": {
         "simulator": false
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://hrms-portal-9ykq.onrender.com",
+        "EXPO_PUBLIC_CLIENT_URL": "https://hrms-portal-sable.vercel.app"
+      }
     },
     "production": {
       "ios": {
         "resourceClass": "m-medium"
       },
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://hrms-portal-9ykq.onrender.com",
+        "EXPO_PUBLIC_CLIENT_URL": "https://hrms-portal-sable.vercel.app"
+      }
     }
   },
   "submit": {

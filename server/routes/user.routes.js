@@ -5,6 +5,11 @@ const User = require('../models/User.model');
 const Branch = require('../models/Branch.model');
 const { ApiError } = require('../utils/api.utils');
 const { createAuditLog } = require('../utils/auditLog.utils');
+const {
+  isSalaryBankLockedForAccounts,
+  markSalaryBankInitialCaptureIfNeeded,
+  hasSalaryBankData,
+} = require('../utils/salaryBank.utils');
 
 // Directory: all authenticated users can list (limited fields). Search by name, employeeId, department, designation.
 router.get('/directory', authenticate, async (req, res, next) => {
@@ -117,19 +122,24 @@ router.post('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOU
   try {
     const { name, email, password, role, department, branch, designation, phone, joiningDate, grossSalary, bankAccountNumber, ifscCode, isManagingHead } = req.body;
     if (role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') return next(new ApiError(403, 'Only Super Admin can create Super Admin.'));
-    // Only ACCOUNTS / SUPER_ADMIN may set bank details and managing head flag
-    const canSetBankDetails = ['ACCOUNTS', 'SUPER_ADMIN'].includes(req.user.role);
+    // ACCOUNTS (initial capture), DIRECTOR, SUPER_ADMIN may set salary/bank at creation
+    const canSetBankDetails = ['ACCOUNTS', 'DIRECTOR', 'SUPER_ADMIN'].includes(req.user.role);
     // Default to the single main branch if none provided
     const defaultBranch = branch || (await Branch.findOne())?._id;
-    const user = await User.create({
+    const gs = canSetBankDetails ? (grossSalary || 0) : 0;
+    const bank = canSetBankDetails ? (bankAccountNumber || '') : '';
+    const ifsc = canSetBankDetails ? (ifscCode || '') : '';
+    const draft = {
       name, email, password: password || 'Welcome@123',
       role: role || 'EMPLOYEE', department, branch: defaultBranch, designation, phone,
-      joiningDate: joiningDate || new Date(), grossSalary: canSetBankDetails ? (grossSalary || 0) : 0,
-      bankAccountNumber: canSetBankDetails ? (bankAccountNumber || '') : '',
-      ifscCode:          canSetBankDetails ? (ifscCode || '')          : '',
-      isManagingHead:    canSetBankDetails ? (isManagingHead === true) : false,
-      createdBy: req.user._id
-    });
+      joiningDate: joiningDate || new Date(), grossSalary: gs,
+      bankAccountNumber: bank,
+      ifscCode: ifsc,
+      isManagingHead: canSetBankDetails ? (isManagingHead === true) : false,
+      createdBy: req.user._id,
+    };
+    if (canSetBankDetails && hasSalaryBankData(draft)) draft.salaryBankInitialCaptureDone = true;
+    const user = await User.create(draft);
     await createAuditLog({ actor: req.user, action: 'EMPLOYEE_CREATED', entity: 'User', entityId: user._id, description: `${user.name} (${user.employeeId}) created`, req });
     res.status(201).json({ success: true, data: user.toSafeObject(), message: `Employee ${user.employeeId} created.` });
   } catch (err) { next(err); }
@@ -157,13 +167,39 @@ router.patch('/:id', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'A
     } = req.body;
     if (role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') return next(new ApiError(403, 'Insufficient permissions.'));
     if (role) updates.role = role;
-    // Only ACCOUNTS / SUPER_ADMIN may update salary, bank details, and managing head flag
-    const canSetSalaryDetails = ['ACCOUNTS', 'SUPER_ADMIN'].includes(req.user.role);
-    if (canSetSalaryDetails) {
+
+    const target = await User.findById(req.params.id);
+    if (!target) return next(new ApiError(404, 'Employee not found.'));
+
+    const wantsSalaryFields =
+      bankAccountNumber !== undefined ||
+      ifscCode !== undefined ||
+      grossSalary !== undefined ||
+      isManagingHead !== undefined;
+
+    const isAccounts = req.user.role === 'ACCOUNTS';
+    const isDirector = req.user.role === 'DIRECTOR';
+    const isSuperAdmin = req.user.role === 'SUPER_ADMIN';
+
+    if (wantsSalaryFields) {
+      if (isAccounts && isSalaryBankLockedForAccounts(target)) {
+        return next(new ApiError(403,
+          'Initial salary and bank details are already on file. Submit a salary update request for Director approval, or ask a Director / Super Admin to update.'));
+      }
+      const canSetSalaryDetails =
+        isSuperAdmin ||
+        isDirector ||
+        (isAccounts && !isSalaryBankLockedForAccounts(target));
+      if (!canSetSalaryDetails) {
+        return next(new ApiError(403, 'Only Accounts (first-time setup), Director, or Super Admin can set salary and bank details.'));
+      }
       if (bankAccountNumber !== undefined) updates.bankAccountNumber = bankAccountNumber;
-      if (ifscCode          !== undefined) updates.ifscCode          = ifscCode;
-      if (grossSalary       !== undefined) updates.grossSalary       = grossSalary;
-      if (isManagingHead    !== undefined) updates.isManagingHead    = isManagingHead;
+      if (ifscCode !== undefined) updates.ifscCode = ifscCode;
+      if (grossSalary !== undefined) updates.grossSalary = grossSalary;
+      if (isManagingHead !== undefined) updates.isManagingHead = isManagingHead;
+      if (isAccounts || isDirector || isSuperAdmin) {
+        Object.assign(updates, markSalaryBankInitialCaptureIfNeeded(updates, target));
+      }
     }
 
     if (biometricAttendanceEnabled !== undefined) {

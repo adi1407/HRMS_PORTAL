@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../utils/api';
 import NotificationBell from './NotificationBell';
+import AssistantPanel from '../assistant/AssistantPanel';
 import {
   LayoutDashboard, MapPinCheckInside, CalendarDays, CalendarMinus2, Wallet,
   Users, Sparkles, Settings, LogOut, Menu, X, UserMinus, FolderOpen, Receipt,
   ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert,
   Star, ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
+  Bot,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
+  { path: '/assistant',       label: 'HRMS Assistant',  Icon: Bot,             roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/dashboard',       label: 'Dashboard',       Icon: LayoutDashboard, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/my-profile',      label: 'My Profile',      Icon: UserCircle,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/checkin',         label: 'Check In/Out',    Icon: MapPinCheckInside, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
@@ -49,7 +52,9 @@ const ROLE_DISPLAY = {
 export default function Layout() {
   const { user, clearAuth } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const showFloatingAssistant = location.pathname !== '/assistant';
 
   const handleLogout = async () => {
     try { await api.post('/auth/logout'); } catch {}
@@ -129,6 +134,8 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      <AssistantPanel showFab={showFloatingAssistant} />
     </div>
   );
 }

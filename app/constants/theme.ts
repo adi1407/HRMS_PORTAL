@@ -67,32 +67,8 @@ export const BorderRadius = {
   full: 9999,
 } as const;
 
-/** Base palette for legacy screens that reference AppColors directly. */
-const baseAppColors = (() => {
-  const pref = useThemeStore.getState().theme;
-  const mode = pref === 'system'
-    ? (Appearance.getColorScheme() === 'dark' ? 'dark' : 'light')
-    : pref;
-  const c = Colors[mode];
-  return {
-    background: c.background,
-    card: c.card,
-    text: c.text,
-    textSecondary: c.textSecondary,
-    tint: c.tint,
-    success: c.success,
-    danger: c.destructive,
-    warning: c.warning,
-    destructive: c.destructive,
-  };
-})();
-
-export const AppColors = baseAppColors;
-
-export type AppColorsType = typeof AppColors;
-
 /** Theme-aware app colors. Use with useAppColors() or pass resolved 'light' | 'dark'. */
-export function getAppColors(mode: 'light' | 'dark'): AppColorsType {
+export function getAppColors(mode: 'light' | 'dark') {
   const c = Colors[mode];
   return {
     background: c.background,
@@ -106,6 +82,33 @@ export function getAppColors(mode: 'light' | 'dark'): AppColorsType {
     destructive: c.destructive,
   };
 }
+
+export type AppColorsType = ReturnType<typeof getAppColors>;
+
+/** Resolves current light/dark from user preference + system (same as useAppTheme). */
+export function resolveThemeMode(): 'light' | 'dark' {
+  const pref = useThemeStore.getState().theme;
+  if (pref === 'system') {
+    return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
+  }
+  return pref;
+}
+
+/** Always matches the current theme (unlike the old frozen AppColors snapshot). */
+export function getAppColorsSync(): AppColorsType {
+  return getAppColors(resolveThemeMode());
+}
+
+/**
+ * Legacy: reads resolve at access time via getAppColorsSync().
+ * For StyleSheet.create() at module scope, styles are still captured once when the file loads —
+ * use useMemo(() => StyleSheet.create(...), [theme]) in screens so toggling theme updates UI.
+ */
+export const AppColors = new Proxy({} as AppColorsType, {
+  get(_, prop: keyof AppColorsType) {
+    return getAppColorsSync()[prop];
+  },
+});
 
 export const CardShadow = Platform.select({
   ios: {

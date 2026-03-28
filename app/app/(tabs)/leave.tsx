@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   ScrollView,
   View,
@@ -14,31 +14,10 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
-
-// Match splash + login: light-only, premium Apple-style
-const COLORS = {
-  background: '#F2F2F7',
-  card: '#FFFFFF',
-  text: '#1C1C1E',
-  textSecondary: '#8E8E93',
-  tint: '#6366f1',
-  success: '#059669',
-  danger: '#dc2626',
-  warning: '#d97706',
-};
-const CARD_SHADOW = Platform.select({
-  ios: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-  },
-  android: { elevation: 2 },
-  default: {},
-});
 
 const LEAVE_TYPES = ['CASUAL', 'SICK', 'EARNED', 'MATERNITY', 'PATERNITY', 'UNPAID', 'COMP_OFF', 'OTHER'];
 
@@ -73,6 +52,10 @@ function leaveTypeLabel(t: string) {
 }
 
 export default function LeaveScreen() {
+  const theme = useAppTheme();
+  const colors = useMemo(() => getAppColors(theme), [theme]);
+  const styles = useMemo(() => createLeaveStyles(colors, theme), [theme]);
+
   const getRole = useAuthStore((s) => s.getRole);
   const role = getRole();
   const canApproveLeave = HR_LEAVE_ROLES.includes(role);
@@ -240,10 +223,10 @@ export default function LeaveScreen() {
   return (
     <>
       <ScrollView
-        style={[styles.scroll, { backgroundColor: COLORS.background }]}
+        style={[styles.scroll, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.tint} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -255,9 +238,9 @@ export default function LeaveScreen() {
             <MaterialIcons
               name={message.success ? 'check-circle' : 'warning'}
               size={20}
-              color={message.success ? COLORS.success : COLORS.danger}
+              color={message.success ? colors.success : colors.danger}
             />
-            <Text style={[styles.alertText, { color: message.success ? COLORS.success : COLORS.danger }]}>
+            <Text style={[styles.alertText, { color: message.success ? colors.success : colors.danger }]}>
               {message.text}
             </Text>
           </View>
@@ -303,12 +286,12 @@ export default function LeaveScreen() {
             <Text style={styles.cardTitle}>My leave applications</Text>
             {loadingHistory ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color={COLORS.tint} />
+                <ActivityIndicator size="small" color={colors.tint} />
                 <Text style={styles.muted}>Loading…</Text>
               </View>
             ) : leaves.length === 0 ? (
               <View style={styles.emptyState}>
-                <MaterialIcons name="event-busy" size={40} color={COLORS.textSecondary} />
+                <MaterialIcons name="event-busy" size={40} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>No leave applications yet</Text>
                 <Text style={styles.muted}>Apply for leave from the Apply tab.</Text>
               </View>
@@ -358,12 +341,12 @@ export default function LeaveScreen() {
             </View>
             {loadingApprovals ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color={COLORS.tint} />
+                <ActivityIndicator size="small" color={colors.tint} />
                 <Text style={styles.muted}>Loading…</Text>
               </View>
             ) : approvalLeaves.length === 0 ? (
               <View style={styles.emptyState}>
-                <MaterialIcons name="inbox" size={40} color={COLORS.textSecondary} />
+                <MaterialIcons name="inbox" size={40} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>No leave requests</Text>
                 <Text style={styles.muted}>When employees apply for leave, they will appear here.</Text>
               </View>
@@ -375,7 +358,7 @@ export default function LeaveScreen() {
                     <TextInput
                       style={styles.reviewNotesInput}
                       placeholder="e.g. Approved as requested"
-                      placeholderTextColor={COLORS.textSecondary}
+                      placeholderTextColor={colors.textSecondary}
                       value={reviewNotes}
                       onChangeText={setReviewNotes}
                     />
@@ -465,11 +448,11 @@ export default function LeaveScreen() {
               onPress={() => setShowFromPicker(true)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="calendar-today" size={20} color={COLORS.tint} />
+              <MaterialIcons name="calendar-today" size={20} color={colors.tint} />
               <Text style={[styles.dateTouchableText, !fromDate && styles.datePlaceholder]}>
                 {fromDate ? new Date(fromDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Select from date'}
               </Text>
-              <MaterialIcons name="chevron-right" size={22} color={COLORS.textSecondary} />
+              <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
             </TouchableOpacity>
 
             {showFromPicker && (
@@ -505,11 +488,11 @@ export default function LeaveScreen() {
               onPress={() => setShowToPicker(true)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="event" size={20} color={COLORS.tint} />
+              <MaterialIcons name="event" size={20} color={colors.tint} />
               <Text style={[styles.dateTouchableText, !toDate && styles.datePlaceholder]}>
                 {toDate ? new Date(toDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Select to date'}
               </Text>
-              <MaterialIcons name="chevron-right" size={22} color={COLORS.textSecondary} />
+              <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
             </TouchableOpacity>
 
             {showToPicker && (
@@ -542,7 +525,7 @@ export default function LeaveScreen() {
             <TextInput
               style={[styles.input, styles.inputArea]}
               placeholder="Briefly describe the reason for leave…"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={reason}
               onChangeText={setReason}
               multiline
@@ -568,18 +551,32 @@ export default function LeaveScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createLeaveStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
+  const cardShadow = Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
+      shadowRadius: 8,
+    },
+    android: { elevation: theme === 'dark' ? 4 : 2 },
+    default: {},
+  });
+  const fillMuted = theme === 'dark' ? 'rgba(120,120,128,0.28)' : 'rgba(118,118,128,0.12)';
+  const borderMuted = theme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(118,118,128,0.2)';
+
+  return StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: Spacing.xxl, paddingBottom: Spacing.section },
   bottomPad: { height: Spacing.section },
   pageTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.text,
+    color: colors.text,
     letterSpacing: -0.3,
     marginBottom: 4,
   },
-  pageSubtitle: { fontSize: 15, color: COLORS.textSecondary, marginBottom: Spacing.xl },
+  pageSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.xl },
   alert: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -588,8 +585,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
   },
-  alertSuccess: { backgroundColor: `${COLORS.success}18` },
-  alertError: { backgroundColor: `${COLORS.danger}12` },
+  alertSuccess: { backgroundColor: `${colors.success}18` },
+  alertError: { backgroundColor: `${colors.danger}12` },
   alertText: { fontSize: 15, fontWeight: '500', flex: 1 },
   tabRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xl },
   tab: {
@@ -597,19 +594,19 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
-    backgroundColor: 'rgba(118,118,128,0.12)',
+    backgroundColor: fillMuted,
   },
-  tabActive: { backgroundColor: COLORS.tint },
-  tabText: { fontSize: 15, fontWeight: '600', color: COLORS.textSecondary },
+  tabActive: { backgroundColor: colors.tint },
+  tabText: { fontSize: 15, fontWeight: '600', color: colors.textSecondary },
   tabTextActive: { color: '#fff' },
   card: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
-    ...CARD_SHADOW,
+    ...cardShadow,
   },
-  cardTitle: { fontSize: 17, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
-  muted: { fontSize: 14, color: COLORS.textSecondary, lineHeight: 20, marginBottom: Spacing.md },
+  cardTitle: { fontSize: 17, fontWeight: '600', color: colors.text, marginBottom: 4 },
+  muted: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: Spacing.md },
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -617,36 +614,36 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     height: 52,
     borderRadius: BorderRadius.md,
-    backgroundColor: COLORS.tint,
+    backgroundColor: colors.tint,
   },
   primaryBtnDisabled: { opacity: 0.6 },
   primaryBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.lg },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl },
-  emptyText: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginTop: Spacing.sm },
+  emptyText: { fontSize: 16, fontWeight: '600', color: colors.text, marginTop: Spacing.sm },
   leaveRow: {
     paddingVertical: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   leaveRowFirst: { borderTopWidth: 0 },
   leaveRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  leaveType: { fontSize: 16, fontWeight: '600', color: COLORS.text },
+  leaveType: { fontSize: 16, fontWeight: '600', color: colors.text },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   statusBadgeText: { fontSize: 12, fontWeight: '600' },
-  leaveDates: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 2 },
-  leaveReason: { fontSize: 14, color: COLORS.text, marginTop: 2 },
-  reviewNotes: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4, fontStyle: 'italic' },
+  leaveDates: { fontSize: 14, color: colors.textSecondary, marginBottom: 2 },
+  leaveReason: { fontSize: 14, color: colors.text, marginTop: 2 },
+  reviewNotes: { fontSize: 13, color: colors.textSecondary, marginTop: 4, fontStyle: 'italic' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     padding: Spacing.xl,
@@ -658,66 +655,66 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xl,
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text },
-  cancelText: { fontSize: 17, fontWeight: '500', color: COLORS.tint },
-  inputLabel: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 6, fontWeight: '500' },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: colors.text },
+  cancelText: { fontSize: 17, fontWeight: '500', color: colors.tint },
+  inputLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 6, fontWeight: '500' },
   typeScroll: { marginBottom: Spacing.lg },
   typeScrollContent: { flexDirection: 'row', gap: Spacing.sm, paddingVertical: 2 },
   typeChip: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(118,118,128,0.12)',
+    backgroundColor: fillMuted,
   },
-  typeChipActive: { backgroundColor: COLORS.tint },
-  typeChipText: { fontSize: 14, fontWeight: '500', color: COLORS.text },
+  typeChipActive: { backgroundColor: colors.tint },
+  typeChipText: { fontSize: 14, fontWeight: '500', color: colors.text },
   typeChipTextActive: { color: '#fff' },
   dateTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 48,
     borderWidth: 1,
-    borderColor: 'rgba(118,118,128,0.2)',
+    borderColor: borderMuted,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
   },
-  dateTouchableText: { flex: 1, fontSize: 16, color: COLORS.text },
-  datePlaceholder: { color: COLORS.textSecondary },
+  dateTouchableText: { flex: 1, fontSize: 16, color: colors.text },
+  datePlaceholder: { color: colors.textSecondary },
   pickerActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginBottom: Spacing.lg,
   },
-  pickerDoneText: { fontSize: 17, fontWeight: '600', color: COLORS.tint },
+  pickerDoneText: { fontSize: 17, fontWeight: '600', color: colors.tint },
   input: {
     height: 48,
     borderWidth: 1,
-    borderColor: 'rgba(118,118,128,0.2)',
+    borderColor: borderMuted,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
     fontSize: 16,
-    color: COLORS.text,
+    color: colors.text,
   },
   inputArea: {
     minHeight: 88,
     paddingTop: Spacing.md,
     textAlignVertical: 'top',
   },
-  durationText: { fontSize: 14, color: COLORS.textSecondary, marginBottom: Spacing.md },
-  durationBold: { fontWeight: '600', color: COLORS.text },
+  durationText: { fontSize: 14, color: colors.textSecondary, marginBottom: Spacing.md },
+  durationBold: { fontWeight: '600', color: colors.text },
   submitBtn: { marginTop: Spacing.sm },
   filterRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
   filterChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(118,118,128,0.12)',
+    backgroundColor: fillMuted,
   },
-  filterChipActive: { backgroundColor: COLORS.tint },
-  filterChipText: { fontSize: 14, fontWeight: '500', color: COLORS.textSecondary },
+  filterChipActive: { backgroundColor: colors.tint },
+  filterChipText: { fontSize: 14, fontWeight: '500', color: colors.textSecondary },
   filterChipTextActive: { color: '#fff' },
   approvalRow: {
     paddingVertical: Spacing.lg,
@@ -725,7 +722,7 @@ const styles = StyleSheet.create({
   },
   approvalRowFirst: { borderTopWidth: 0 },
   approvalRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
-  approvalEmpName: { fontSize: 16, fontWeight: '600', color: COLORS.text, flex: 1 },
+  approvalEmpName: { fontSize: 16, fontWeight: '600', color: colors.text, flex: 1 },
   approvalButtons: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
   approveBtn: {
     flex: 1,
@@ -735,7 +732,7 @@ const styles = StyleSheet.create({
     gap: 6,
     height: 44,
     borderRadius: BorderRadius.md,
-    backgroundColor: COLORS.success,
+    backgroundColor: colors.success,
   },
   rejectBtn: {
     flex: 1,
@@ -745,21 +742,21 @@ const styles = StyleSheet.create({
     gap: 6,
     height: 44,
     borderRadius: BorderRadius.md,
-    backgroundColor: COLORS.danger,
+    backgroundColor: colors.danger,
   },
   approveBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   rejectBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
   reviewNotesRow: { marginBottom: Spacing.lg },
-  inputLabel: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 6, fontWeight: '500' },
   reviewNotesInput: {
     borderWidth: 1,
-    borderColor: 'rgba(118,118,128,0.2)',
+    borderColor: borderMuted,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     fontSize: 15,
-    color: COLORS.text,
+    color: colors.text,
     minHeight: 44,
   },
-});
+  });
+}

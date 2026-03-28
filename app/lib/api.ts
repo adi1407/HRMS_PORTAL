@@ -4,8 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 
 const api = axios.create({
   baseURL: API_URL,
-  /** 60s — slow mobile networks + hosted API cold starts often exceed 30s */
-  timeout: 60000,
+  /** 120s — Render cold start + slow mobile networks */
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
     'X-Client': 'mobile',

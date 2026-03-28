@@ -5,9 +5,23 @@ import { Users } from 'lucide-react';
 
 const PAGE_SIZE = 25;
 
+/** Matches server `isSalaryBankLockedForAccounts` for UI (list payload may omit explicit false). */
+function salaryBankLockedForAccounts(emp) {
+  if (!emp) return true;
+  if (emp.salaryBankInitialCaptureDone === true) return true;
+  if (emp.salaryBankInitialCaptureDone === false) return false;
+  const hasBank =
+    String(emp.bankAccountNumber || '').trim() !== '' || String(emp.ifscCode || '').trim() !== '';
+  return (Number(emp.grossSalary) > 0 && !Number.isNaN(Number(emp.grossSalary))) || hasBank;
+}
+
 export default function EmployeesPage() {
   const { user: me } = useAuthStore();
-  const isAccounts = ['ACCOUNTS', 'SUPER_ADMIN'].includes(me?.role);
+  const isAccountsOnly = me?.role === 'ACCOUNTS';
+  const isDirectorOrSuper = ['DIRECTOR', 'SUPER_ADMIN'].includes(me?.role);
+  /** Salary/bank columns + modal: Accounts (first capture + requests), Director & Super Admin (always) */
+  const canEditSalaryBank = ['ACCOUNTS', 'SUPER_ADMIN', 'DIRECTOR'].includes(me?.role);
+  const canSetSalaryOnCreate = canEditSalaryBank;
   // canManage: HR/DIRECTOR/SUPER_ADMIN — delete employees
   const canManage  = ['HR', 'DIRECTOR', 'SUPER_ADMIN'].includes(me?.role);
   // canCreate: ACCOUNTS can also add employees (to set salary/bank from the start)
@@ -70,7 +84,7 @@ export default function EmployeesPage() {
         name: form.name, email: form.email, password: form.password,
         role: form.role, designation: form.designation, department: form.department,
       };
-      if (isAccounts) {
+      if (canSetSalaryOnCreate) {
         payload.grossSalary       = Number(form.grossSalary) || 0;
         payload.bankAccountNumber = form.bankAccountNumber;
         payload.ifscCode          = form.ifscCode.toUpperCase();
@@ -132,30 +146,33 @@ export default function EmployeesPage() {
     if (!bankModal) return;
     setBankSaving(true);
     try {
-      const isFirstTime = !bankModal.emp.grossSalary || bankModal.emp.grossSalary === 0;
+      const locked = salaryBankLockedForAccounts(bankModal.emp);
+      const patchPayload = {
+        bankAccountNumber: bankModal.accountNo,
+        ifscCode: bankModal.ifsc.toUpperCase(),
+        grossSalary: Number(bankModal.salary) || 0,
+        isManagingHead: bankModal.isManagingHead,
+      };
 
-      if (isFirstTime || !isAccounts) {
-        // First-time setup → apply directly; or non-accounts admin updating directly
-        await api.patch(`/users/${bankModal.emp._id}`, {
-          bankAccountNumber: bankModal.accountNo,
-          ifscCode:          bankModal.ifsc.toUpperCase(),
-          grossSalary:       Number(bankModal.salary) || 0,
-          isManagingHead:    bankModal.isManagingHead,
-        });
+      // Director & Super Admin: always PATCH. Accounts: first capture PATCH; later → salary-requests
+      if (isDirectorOrSuper || (isAccountsOnly && !locked)) {
+        await api.patch(`/users/${bankModal.emp._id}`, patchPayload);
         setMsg(`✅ Details updated for ${bankModal.emp.name}.`);
-      } else {
-        // Salary already set → submit update request for department head approval
+      } else if (isAccountsOnly && locked) {
         const { data } = await api.post('/salary-requests', {
-          employeeId:    bankModal.emp._id,
+          employeeId: bankModal.emp._id,
           newGrossSalary: bankModal.salary ? Number(bankModal.salary) : undefined,
           newBankAccount: bankModal.accountNo || undefined,
-          newIfscCode:    bankModal.ifsc ? bankModal.ifsc.toUpperCase() : undefined,
-          reason:         bankModal.reason || 'Salary/bank details update requested by Accounts',
+          newIfscCode: bankModal.ifsc ? bankModal.ifsc.toUpperCase() : undefined,
+          reason: bankModal.reason || 'Salary/bank details update requested by Accounts',
         });
-        setMsg(data.requiresApproval
-          ? `✅ Update request submitted for ${bankModal.emp.name}. Awaiting department head approval.`
-          : `✅ Details updated for ${bankModal.emp.name}.`
+        setMsg(
+          data.requiresApproval !== false
+            ? `✅ Update request submitted for ${bankModal.emp.name}. Awaiting Director / Super Admin approval.`
+            : `✅ Details updated for ${bankModal.emp.name}.`
         );
+      } else {
+        setMsg('❌ You do not have permission to update salary/bank for this employee.');
       }
       setBankModal(null);
       fetchEmployees();
@@ -224,11 +241,13 @@ export default function EmployeesPage() {
               </div>
             </div>
 
-            {/* Salary & bank fields — only when ACCOUNTS is creating */}
-            {isAccounts && (
+            {/* Salary & bank fields — Accounts / Director / Super Admin */}
+            {canSetSalaryOnCreate && (
               <>
                 <div style={{ padding: '10px 14px', marginBottom: 12, fontSize: '0.85rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, color: '#166534' }}>
-                  As Accounts, you can set salary and bank details now or add them later.
+                  {isAccountsOnly
+                    ? 'As Accounts, enter the initial salary and bank details now, or add them later (first capture only — later changes need Director approval).'
+                    : 'You can set salary and bank details now or update them anytime.'}
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -260,10 +279,10 @@ export default function EmployeesPage() {
               </>
             )}
 
-            {/* Info note for HR/DIRECTOR — bank details handled by Accounts */}
-            {!isAccounts && (
+            {/* Info note for HR — bank/salary via Accounts or Director */}
+            {!canSetSalaryOnCreate && (
               <div style={{ padding: '10px 14px', marginBottom: 12, fontSize: '0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, color: '#1e40af' }}>
-                Gross salary, bank account &amp; IFSC code are managed by the <strong>Accounts department</strong> after the employee is created.
+                Gross salary, bank account &amp; IFSC are set by <strong>Accounts</strong> (first time) or <strong>Director / Super Admin</strong> after the employee is created.
               </div>
             )}
 
@@ -305,8 +324,8 @@ export default function EmployeesPage() {
                   <th>Role</th>
                   <th>Designation</th>
                   <th>Department</th>
-                  {isAccounts && <th>Salary</th>}
-                  {isAccounts && <th>Bank Details</th>}
+                  {canEditSalaryBank && <th>Salary</th>}
+                  {canEditSalaryBank && <th>Bank Details</th>}
                   {canManage  && <th>Biometric</th>}
                   {canManage  && <th>Action</th>}
                 </tr>
@@ -327,12 +346,12 @@ export default function EmployeesPage() {
                     <td data-label="Role"><span className="role-badge">{emp.role}</span></td>
                     <td data-label="Designation">{emp.designation || '—'}</td>
                     <td data-label="Department">{emp.department?.name || '—'}</td>
-                    {isAccounts && (
+                    {canEditSalaryBank && (
                       <td data-label="Salary">
                         {emp.grossSalary > 0 ? `₹${emp.grossSalary?.toLocaleString('en-IN')}` : '—'}
                       </td>
                     )}
-                    {isAccounts && (
+                    {canEditSalaryBank && (
                       <td data-label="Bank">
                         <span style={{ fontSize: '0.8rem', color: emp.bankAccountNumber ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
                           {emp.bankAccountNumber ? 'Set' : 'Missing'}
@@ -393,7 +412,7 @@ export default function EmployeesPage() {
         </>
       )}
 
-      {/* Salary & Bank Details Modal — ACCOUNTS / SUPER_ADMIN */}
+      {/* Salary & Bank Details Modal — ACCOUNTS / DIRECTOR / SUPER_ADMIN */}
       {bankModal && (
         <div className="modal-overlay" onClick={() => setBankModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -404,9 +423,14 @@ export default function EmployeesPage() {
             <p style={{ fontSize: '0.82rem', color: '#6b7280', marginBottom: 8 }}>
               Employee ID: <strong>{bankModal.emp.employeeId}</strong> &nbsp;·&nbsp; Role: <strong>{bankModal.emp.role}</strong>
             </p>
-            {bankModal.emp.grossSalary > 0 && isAccounts && (
+            {salaryBankLockedForAccounts(bankModal.emp) && isAccountsOnly && (
               <div className="alert alert--error" style={{ marginBottom: 12, fontSize: '0.82rem' }}>
-                This employee already has salary set (₹{bankModal.emp.grossSalary?.toLocaleString('en-IN')}). Changes will require department head approval.
+                Initial salary/bank is already on file. Submit an update request below — a <strong>Director</strong> or <strong>Super Admin</strong> must approve.
+              </div>
+            )}
+            {isDirectorOrSuper && (
+              <div className="alert alert--success" style={{ marginBottom: 12, fontSize: '0.82rem', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>
+                As Director / Super Admin, you can update salary and bank details directly.
               </div>
             )}
             <div className="form-group">
@@ -447,7 +471,7 @@ export default function EmployeesPage() {
                 When enabled, this employee receives 100% gross salary regardless of attendance.
               </small>
             </div>
-            {bankModal.emp.grossSalary > 0 && isAccounts && (
+            {salaryBankLockedForAccounts(bankModal.emp) && isAccountsOnly && (
               <div className="form-group">
                 <label className="form-label">Reason for Update *</label>
                 <input
@@ -460,8 +484,21 @@ export default function EmployeesPage() {
             )}
             <div style={{ display:'flex', gap:8, marginTop:16, justifyContent:'flex-end' }}>
               <button className="btn btn--secondary" onClick={() => setBankModal(null)}>Cancel</button>
-              <button className="btn btn--primary" onClick={saveBankDetails} disabled={bankSaving}>
-                {bankSaving ? 'Saving…' : bankModal.emp.grossSalary > 0 && isAccounts ? 'Submit for Approval' : 'Save Details'}
+              <button
+                className="btn btn--primary"
+                onClick={saveBankDetails}
+                disabled={
+                  bankSaving ||
+                  (salaryBankLockedForAccounts(bankModal.emp) &&
+                    isAccountsOnly &&
+                    !(bankModal.reason || '').trim())
+                }
+              >
+                {bankSaving
+                  ? 'Saving…'
+                  : salaryBankLockedForAccounts(bankModal.emp) && isAccountsOnly
+                    ? 'Submit for Director approval'
+                    : 'Save Details'}
               </button>
             </div>
           </div>

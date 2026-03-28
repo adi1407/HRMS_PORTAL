@@ -39,6 +39,7 @@ const employeeProfileRoutes = require("./routes/employeeProfile.routes");
 const atsRoutes             = require("./routes/ats.routes");
 const cronRoutes            = require("./routes/cron.routes");
 const webauthnRoutes        = require("./routes/webauthn.routes");
+const assistantRoutes       = require("./routes/assistant.routes");
 const { getFaceModelsDebugInfo } = require("./services/faceEncoder.service");
 
 const { errorHandler } = require("./middleware/error.middleware");
@@ -107,6 +108,7 @@ app.use("/api", auditLogMiddleware);
 /** Routes */
 app.use("/api/auth",        authRoutes);
 app.use("/api/webauthn",    webauthnRoutes);
+app.use("/api/assistant",   assistantRoutes);
 app.use("/api/users",       userRoutes);
 app.use("/api/attendance",  attendanceRoutes);
 app.use("/api/face",        faceRoutes);
