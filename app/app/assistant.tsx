@@ -15,11 +15,14 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import api from '@/lib/api';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useAppColors, useAppTheme } from '@/hooks/use-app-theme';
 import type { AssistantChatMessage } from '@/types/assistant';
+
+const THREAD_STORAGE_KEY = '@hrms_assistant_thread_id';
 
 export default function AssistantScreen() {
   const router = useRouter();
@@ -34,6 +37,8 @@ export default function AssistantScreen() {
   const [error, setError] = useState('');
   const [suggested, setSuggested] = useState<string[]>([]);
   const [aiConfigured, setAiConfigured] = useState(true);
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [hydrating, setHydrating] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,10 +59,48 @@ export default function AssistantScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await AsyncStorage.getItem(THREAD_STORAGE_KEY);
+      if (!saved) {
+        if (!cancelled) setHydrating(false);
+        return;
+      }
+      if (!cancelled) setThreadId(saved);
+      try {
+        const { data } = await api.get<{ data?: { messages?: AssistantChatMessage[] } }>(
+          `/assistant/threads/${encodeURIComponent(saved)}/messages`
+        );
+        if (cancelled) return;
+        const list = data?.data?.messages;
+        if (Array.isArray(list) && list.length > 0) {
+          setMessages(list.map((m) => ({ role: m.role, content: m.content })));
+        }
+      } catch {
+        await AsyncStorage.removeItem(THREAD_STORAGE_KEY);
+        if (!cancelled) setThreadId(null);
+      } finally {
+        if (!cancelled) setHydrating(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const startNewChat = useCallback(async () => {
+    await AsyncStorage.removeItem(THREAD_STORAGE_KEY);
+    setThreadId(null);
+    setMessages([]);
+    setError('');
+    setInput('');
+  }, []);
+
   const send = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || loading) return;
+      if (!trimmed || loading || hydrating) return;
 
       setError('');
       const nextUser: AssistantChatMessage = { role: 'user', content: trimmed };
@@ -71,10 +114,16 @@ export default function AssistantScreen() {
       setLoading(true);
 
       try {
-        const { data } = await api.post<{ data?: { message?: string } }>('/assistant/chat', {
-          messages: historyForApi,
-        });
+        const body: { messages: typeof historyForApi; threadId?: string } = { messages: historyForApi };
+        if (threadId) body.threadId = threadId;
+
+        const { data } = await api.post<{ data?: { message?: string; threadId?: string } }>('/assistant/chat', body);
         const reply = data?.data?.message ?? '';
+        const newId = data?.data?.threadId;
+        if (typeof newId === 'string' && newId) {
+          setThreadId(newId);
+          await AsyncStorage.setItem(THREAD_STORAGE_KEY, newId);
+        }
         setMessages((prev) => [...prev, { role: 'assistant', content: reply || 'No response.' }]);
       } catch (e: unknown) {
         const ax = e as { response?: { data?: { message?: string } }; message?: string };
@@ -87,8 +136,10 @@ export default function AssistantScreen() {
         setLoading(false);
       }
     },
-    [loading, messages]
+    [loading, messages, threadId, hydrating]
   );
+
+  const showNewChat = !hydrating && (messages.length > 0 || !!threadId);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -101,7 +152,13 @@ export default function AssistantScreen() {
           <MaterialIcons name="smart-toy" size={22} color={colors.tint} />
           <Text style={[styles.headerTitle, { color: colors.text }]}>HRMS Assistant</Text>
         </View>
-        <View style={{ width: 40 }} />
+        {showNewChat ? (
+          <TouchableOpacity onPress={startNewChat} hitSlop={12} style={styles.newChatBtn}>
+            <Text style={[styles.newChatText, { color: colors.tint }]}>New</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       {!aiConfigured && (
@@ -109,6 +166,12 @@ export default function AssistantScreen() {
           <Text style={[styles.bannerText, { color: colors.textSecondary }]}>
             Server missing OPENAI_API_KEY — configure it for AI answers.
           </Text>
+        </View>
+      )}
+
+      {hydrating && (
+        <View style={[styles.banner, { backgroundColor: colors.textSecondary + '18' }]}>
+          <Text style={[styles.bannerText, { color: colors.textSecondary }]}>Loading saved conversation…</Text>
         </View>
       )}
 
@@ -122,7 +185,7 @@ export default function AssistantScreen() {
           contentContainerStyle={[styles.scrollContent, { minHeight: Math.min(winH * 0.4, 320) }]}
           keyboardShouldPersistTaps="handled"
         >
-          {suggested.length > 0 && messages.length === 0 && (
+          {suggested.length > 0 && messages.length === 0 && !hydrating && (
             <View style={styles.chips}>
               {suggested.map((s) => (
                 <TouchableOpacity
@@ -138,7 +201,7 @@ export default function AssistantScreen() {
             </View>
           )}
 
-          {messages.length === 0 && (
+          {messages.length === 0 && !hydrating && (
             <Text style={[styles.hint, { color: colors.textSecondary }]}>
               Ask about your leave, attendance, daily tasks, or profile. HR can ask for team attendance and leave
               overviews.
@@ -177,12 +240,12 @@ export default function AssistantScreen() {
             onChangeText={setInput}
             multiline
             maxLength={4000}
-            editable={!loading}
+            editable={!loading && !hydrating}
           />
           <TouchableOpacity
-            style={[styles.sendBtn, { backgroundColor: colors.tint }, (!input.trim() || loading) && styles.sendBtnDisabled]}
+            style={[styles.sendBtn, { backgroundColor: colors.tint }, (!input.trim() || loading || hydrating) && styles.sendBtnDisabled]}
             onPress={() => send(input)}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || loading || hydrating}
           >
             <MaterialIcons name="send" size={22} color="#fff" />
           </TouchableOpacity>
@@ -204,8 +267,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: { padding: Spacing.xs },
-  headerTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTitleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 8 },
   headerTitle: { fontSize: 18, fontWeight: '700' },
+  newChatBtn: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
+  newChatText: { fontSize: 12, fontWeight: '700' },
   banner: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
   bannerText: { fontSize: 12 },
   scroll: { flex: 1 },

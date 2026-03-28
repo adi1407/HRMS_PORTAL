@@ -1,7 +1,7 @@
 const OpenAI = require('openai');
 const { ApiError } = require('../utils/api.utils');
 const { getToolsForRole } = require('./assistantTools/toolDefinitions');
-const { executeTool } = require('./assistantTools/execute');
+const { executeTool, HR_ROLES, AUDIT_ROLES } = require('./assistantTools/execute');
 
 const MAX_TOOL_ROUNDS = 5;
 const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
@@ -44,14 +44,24 @@ function resolveModel() {
 }
 
 function buildSystemPrompt(user) {
-  return [
+  const lines = [
     'You are Adiverse HRMS Assistant — a concise, professional helper for an HR management system.',
     'You MUST answer only using facts returned by the tools. If a tool returns an error or access denied, explain that politely.',
     'Never invent employee counts, leave statuses, or attendance data.',
     'Use short paragraphs or bullet points when listing data.',
     `Current user: ${user.name} (${user.employeeId || '—'}), role: ${user.role}.`,
-    'Employees may only see their own data via my_* tools. HR/Director/Accounts/Super Admin may use hr_* tools for organization metrics.',
-  ].join('\n');
+    'Employees may only see their own data via my_* tools.',
+  ];
+  if (HR_ROLES.has(user.role)) {
+    lines.push('HR/Director/Accounts/Super Admin may use hr_* tools for organization metrics (no PII beyond what the tool returns).');
+  }
+  if (AUDIT_ROLES.has(user.role)) {
+    lines.push('Director and Super Admin may use admin_audit_recent_summary for audit log counts.');
+  }
+  if (user.role === 'ACCOUNTS') {
+    lines.push('Accounts may use accounts_salary_month_status for slip counts by status only (no amounts).');
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -83,6 +93,8 @@ async function runAssistantChat(user, messages) {
   }
 
   let rounds = 0;
+  /** @type {string[]} */
+  const toolsUsed = [];
   while (rounds < MAX_TOOL_ROUNDS) {
     rounds++;
     const completion = await client.chat.completions.create({
@@ -109,6 +121,7 @@ async function runAssistantChat(user, messages) {
         role: 'assistant',
         model: completion.model,
         usage: completion.usage,
+        toolsUsed: [...new Set(toolsUsed)],
       };
     }
 
@@ -126,6 +139,7 @@ async function runAssistantChat(user, messages) {
       } catch {
         args = {};
       }
+      if (name) toolsUsed.push(name);
       const result = await executeTool(user, name, args);
       openaiMessages.push({
         role: 'tool',

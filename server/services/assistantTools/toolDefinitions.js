@@ -1,4 +1,4 @@
-const { HR_ROLES } = require('./execute');
+const { HR_ROLES, AUDIT_ROLES } = require('./execute');
 
 const ALL_TOOLS = [
   {
@@ -57,6 +57,41 @@ const ALL_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'my_expense_claims_summary',
+      description:
+        'Count the employee\'s expense claims by status (pending, approved, rejected). No amounts.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'my_tickets_summary',
+      description:
+        'Summarize help desk tickets raised by the employee: counts by status and open vs closed.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'my_onboarding_status',
+      description:
+        'Read-only onboarding checklist progress for the logged-in employee (completion %, status, due date).',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'my_notifications_unread_count',
+      description: 'How many unread in-app notifications the user has.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'hr_org_attendance_dashboard',
       description:
         'Organization-wide attendance snapshot for today (IST): present, absent, on leave, half day, total employees, role breakdown, upcoming holidays. HR/Director/Accounts/Super Admin only.',
@@ -78,13 +113,80 @@ const ALL_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'hr_pending_leaves_list',
+      description:
+        'List pending leave requests (newest first) with employee name/id and dates. HR/Director/Accounts/Super Admin only.',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: { type: 'integer', description: 'Max rows to return (1-50, default 20)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'hr_recruitment_pipeline_summary',
+      description:
+        'ATS-style counts: job openings by status and job applications by status. No salary amounts.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'hr_daily_task_org_summary',
+      description:
+        'Organization-wide daily task submissions for a month: how many day-entries, how many distinct employees, task line counts by status.',
+      parameters: {
+        type: 'object',
+        properties: {
+          month: { type: 'integer', description: 'Month 1-12' },
+          year: { type: 'integer', description: 'Year' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'admin_audit_recent_summary',
+      description:
+        'Audit log entry counts in the last 24 hours and last 7 days, grouped by action. Director or Super Admin only.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'accounts_salary_month_status',
+      description:
+        'For a payroll month/year: counts of salary slips by status (DRAFT vs FINAL) only — no employee amounts. Accounts role only.',
+      parameters: {
+        type: 'object',
+        properties: {
+          month: { type: 'integer', description: 'Month 1-12' },
+          year: { type: 'integer', description: 'Year' },
+        },
+      },
+    },
+  },
 ];
 
 function getToolsForRole(role) {
   const hr = HR_ROLES.has(role);
+  const audit = AUDIT_ROLES.has(role);
+  const accounts = role === 'ACCOUNTS';
+
   return ALL_TOOLS.filter((t) => {
     const n = t.function.name;
     if (n.startsWith('hr_')) return hr;
+    if (n.startsWith('admin_')) return audit;
+    if (n.startsWith('accounts_')) return accounts;
     return true;
   });
 }

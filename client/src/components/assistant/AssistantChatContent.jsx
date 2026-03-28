@@ -13,14 +13,30 @@ export default function AssistantChatContent({
   aiConfigured,
   send,
   variant = 'panel',
+  hydrating = false,
+  threadId = null,
+  startNewChat,
 }) {
   const isPage = variant === 'page';
+  const showNewChat = typeof startNewChat === 'function' && !hydrating && (messages.length > 0 || threadId);
 
   return (
     <>
       {!aiConfigured && (
         <div className="assistant-panel__banner">
           Server missing <code>OPENAI_API_KEY</code> — configure it on Render for AI answers.
+        </div>
+      )}
+
+      {hydrating && (
+        <div className="assistant-panel__banner assistant-panel__banner--muted">Loading saved conversation…</div>
+      )}
+
+      {showNewChat && (
+        <div className={isPage ? 'assistant-page__toolbar' : 'assistant-panel__toolbar'}>
+          <button type="button" className="assistant-new-chat" onClick={startNewChat}>
+            New conversation
+          </button>
         </div>
       )}
 
@@ -71,9 +87,14 @@ export default function AssistantChatContent({
               send(input);
             }
           }}
-          disabled={loading}
+          disabled={loading || hydrating}
         />
-        <button type="button" className="assistant-send" disabled={loading || !input.trim()} onClick={() => send(input)}>
+        <button
+          type="button"
+          className="assistant-send"
+          disabled={loading || hydrating || !input.trim()}
+          onClick={() => send(input)}
+        >
           Send
         </button>
       </div>

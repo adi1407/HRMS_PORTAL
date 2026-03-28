@@ -11,4 +11,6 @@ export type AssistantChatResponse = {
   role: string;
   model?: string;
   usage?: unknown;
+  /** Persisted conversation id (returned on every successful chat). */
+  threadId?: string;
 };

@@ -8,8 +8,18 @@ const User = require('../../models/User.model');
 const Holiday = require('../../models/Holiday.model');
 const DailyTask = require('../../models/DailyTask.model');
 const EmployeeProfile = require('../../models/EmployeeProfile.model');
+const ExpenseClaim = require('../../models/ExpenseClaim.model');
+const Ticket = require('../../models/Ticket.model');
+const Onboarding = require('../../models/Onboarding.model');
+const Notification = require('../../models/Notification.model');
+const JobOpening = require('../../models/JobOpening.model');
+const Application = require('../../models/Application.model');
+const AuditLog = require('../../models/AuditLog.model');
+const Salary = require('../../models/Salary.model');
 
 const HR_ROLES = new Set(['HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS']);
+/** Same as audit log GET route: authorize('SUPER_ADMIN', 'DIRECTOR') */
+const AUDIT_ROLES = new Set(['SUPER_ADMIN', 'DIRECTOR']);
 
 function istToday() {
   const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -192,6 +202,64 @@ async function executeTool(user, toolName, args) {
       };
     }
 
+    case 'my_expense_claims_summary': {
+      const [pending, approved, rejected, total] = await Promise.all([
+        ExpenseClaim.countDocuments({ employee: user._id, status: 'PENDING' }),
+        ExpenseClaim.countDocuments({ employee: user._id, status: 'APPROVED' }),
+        ExpenseClaim.countDocuments({ employee: user._id, status: 'REJECTED' }),
+        ExpenseClaim.countDocuments({ employee: user._id }),
+      ]);
+      return {
+        success: true,
+        scope: 'self',
+        counts: { pending, approved, rejected, total },
+      };
+    }
+
+    case 'my_tickets_summary': {
+      const [open, inProgress, resolved, closed] = await Promise.all([
+        Ticket.countDocuments({ employee: user._id, status: 'OPEN' }),
+        Ticket.countDocuments({ employee: user._id, status: 'IN_PROGRESS' }),
+        Ticket.countDocuments({ employee: user._id, status: 'RESOLVED' }),
+        Ticket.countDocuments({ employee: user._id, status: 'CLOSED' }),
+      ]);
+      const activeOpen = open + inProgress;
+      const done = resolved + closed;
+      return {
+        success: true,
+        scope: 'self',
+        byStatus: { OPEN: open, IN_PROGRESS: inProgress, RESOLVED: resolved, CLOSED: closed },
+        openVsClosed: { openOrInProgress: activeOpen, resolvedOrClosed: done, total: activeOpen + done },
+      };
+    }
+
+    case 'my_onboarding_status': {
+      const ob = await Onboarding.findOne({ employee: user._id }).lean();
+      if (!ob) {
+        return { success: true, scope: 'self', hasRecord: false, message: 'No onboarding checklist assigned yet.' };
+      }
+      const items = ob.checklist || [];
+      const completedItems = items.filter((i) => i.isCompleted).length;
+      const totalItems = items.length;
+      const completionPercent = totalItems ? Math.round((completedItems / totalItems) * 100) : 0;
+      return {
+        success: true,
+        scope: 'self',
+        hasRecord: true,
+        status: ob.status,
+        dueDate: ob.dueDate,
+        completedItems,
+        totalItems,
+        completionPercent,
+        notesPresent: !!(ob.notes && String(ob.notes).trim()),
+      };
+    }
+
+    case 'my_notifications_unread_count': {
+      const unread = await Notification.countDocuments({ recipient: user._id, isRead: false });
+      return { success: true, scope: 'self', unreadCount: unread };
+    }
+
     case 'hr_org_attendance_dashboard': {
       if (!HR_ROLES.has(role)) return deny('This tool is only available for HR, Director, Accounts, or Super Admin.');
       return fetchOrgAttendanceDashboard();
@@ -239,9 +307,170 @@ async function executeTool(user, toolName, args) {
       };
     }
 
+    case 'hr_pending_leaves_list': {
+      if (!HR_ROLES.has(role)) return deny('This tool is only available for HR, Director, Accounts, or Super Admin.');
+      let limit = args.limit != null ? parseInt(String(args.limit), 10) : 20;
+      if (Number.isNaN(limit) || limit < 1) limit = 20;
+      if (limit > 50) limit = 50;
+
+      const pending = await Leave.find({ status: 'PENDING' })
+        .populate('employee', 'name employeeId designation')
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+
+      const totalPending = await Leave.countDocuments({ status: 'PENDING' });
+
+      return {
+        success: true,
+        scope: 'organization',
+        totalPending,
+        returned: pending.length,
+        items: pending.map((l) => ({
+          employeeName: l.employee?.name,
+          employeeId: l.employee?.employeeId,
+          type: l.type,
+          fromDate: l.fromDate,
+          toDate: l.toDate,
+          totalDays: l.totalDays,
+          reasonPreview: l.reason ? String(l.reason).slice(0, 120) : '',
+        })),
+      };
+    }
+
+    case 'hr_recruitment_pipeline_summary': {
+      if (!HR_ROLES.has(role)) return deny('This tool is only available for HR, Director, Accounts, or Super Admin.');
+
+      const [jobByStatus, appByStatus] = await Promise.all([
+        JobOpening.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+        Application.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      ]);
+
+      const jobs = {};
+      jobByStatus.forEach((r) => {
+        jobs[r._id || 'UNKNOWN'] = r.count;
+      });
+      const applications = {};
+      appByStatus.forEach((r) => {
+        applications[r._id || 'UNKNOWN'] = r.count;
+      });
+
+      return {
+        success: true,
+        scope: 'organization',
+        jobOpeningsByStatus: jobs,
+        applicationsByStatus: applications,
+      };
+    }
+
+    case 'hr_daily_task_org_summary': {
+      if (!HR_ROLES.has(role)) return deny('This tool is only available for HR, Director, Accounts, or Super Admin.');
+      const now = new Date();
+      let month = args.month != null ? parseInt(String(args.month), 10) : now.getMonth() + 1;
+      let year = args.year != null ? parseInt(String(args.year), 10) : now.getFullYear();
+      if (Number.isNaN(month) || month < 1 || month > 12) month = now.getMonth() + 1;
+      if (Number.isNaN(year)) year = now.getFullYear();
+
+      const from = new Date(year, month - 1, 1);
+      const to = new Date(year, month, 0, 23, 59, 59, 999);
+
+      const [totalDayEntries, distinctEmployees, taskAgg] = await Promise.all([
+        DailyTask.countDocuments({ date: { $gte: from, $lte: to } }),
+        DailyTask.distinct('employee', { date: { $gte: from, $lte: to } }),
+        DailyTask.aggregate([
+          { $match: { date: { $gte: from, $lte: to } } },
+          { $unwind: '$tasks' },
+          { $group: { _id: '$tasks.status', count: { $sum: 1 } } },
+        ]),
+      ]);
+
+      const taskLinesByStatus = {};
+      taskAgg.forEach((r) => {
+        taskLinesByStatus[r._id || 'UNKNOWN'] = r.count;
+      });
+
+      return {
+        success: true,
+        scope: 'organization',
+        month,
+        year,
+        totalDailyTaskSubmissions: totalDayEntries,
+        employeesWithAtLeastOneSubmission: distinctEmployees.length,
+        taskLinesByStatus,
+      };
+    }
+
+    case 'admin_audit_recent_summary': {
+      if (!AUDIT_ROLES.has(role)) return deny('This tool is only available for Director or Super Admin.');
+      const now = new Date();
+      const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const [byAction24h, byAction7d, total24h, total7d] = await Promise.all([
+        AuditLog.aggregate([
+          { $match: { createdAt: { $gte: since24h } } },
+          { $group: { _id: '$action', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+        AuditLog.aggregate([
+          { $match: { createdAt: { $gte: since7d } } },
+          { $group: { _id: '$action', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+        AuditLog.countDocuments({ createdAt: { $gte: since24h } }),
+        AuditLog.countDocuments({ createdAt: { $gte: since7d } }),
+      ]);
+
+      const mapAgg = (rows) => {
+        const o = {};
+        rows.forEach((r) => {
+          o[r._id || 'UNKNOWN'] = r.count;
+        });
+        return o;
+      };
+
+      return {
+        success: true,
+        scope: 'audit',
+        last24h: { totalEntries: total24h, countsByAction: mapAgg(byAction24h) },
+        last7days: { totalEntries: total7d, countsByAction: mapAgg(byAction7d) },
+      };
+    }
+
+    case 'accounts_salary_month_status': {
+      if (role !== 'ACCOUNTS') return deny('This tool is only available for Accounts.');
+      const now = new Date();
+      let month = args.month != null ? parseInt(String(args.month), 10) : now.getMonth() + 1;
+      let year = args.year != null ? parseInt(String(args.year), 10) : now.getFullYear();
+      if (Number.isNaN(month) || month < 1 || month > 12) month = now.getMonth() + 1;
+      if (Number.isNaN(year) || year < 2000 || year > 2100) year = now.getFullYear();
+
+      const byStatus = await Salary.aggregate([
+        { $match: { month, year } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]);
+      const counts = { DRAFT: 0, FINAL: 0 };
+      let totalSlips = 0;
+      byStatus.forEach((r) => {
+        const k = r._id;
+        if (k === 'DRAFT' || k === 'FINAL') counts[k] = r.count;
+        totalSlips += r.count;
+      });
+
+      return {
+        success: true,
+        scope: 'organization',
+        month,
+        year,
+        salarySlipCountsByStatus: counts,
+        totalSalaryRecords: totalSlips,
+        note: 'Counts only; no salary amounts are included.',
+      };
+    }
+
     default:
       return deny(`Unknown tool: ${toolName}`);
   }
 }
 
-module.exports = { executeTool, HR_ROLES };
+module.exports = { executeTool, HR_ROLES, AUDIT_ROLES };

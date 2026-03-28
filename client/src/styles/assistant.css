@@ -275,3 +275,34 @@
   align-items: flex-end;
   background: var(--gray-50);
 }
+
+.assistant-panel__banner--muted {
+  background: var(--gray-100);
+  color: var(--gray-600);
+  border-bottom: 1px solid var(--border);
+}
+
+.assistant-panel__toolbar,
+.assistant-page__toolbar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+.assistant-page__toolbar {
+  padding: 10px 16px;
+}
+.assistant-new-chat {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--primary);
+  cursor: pointer;
+}
+.assistant-new-chat:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
