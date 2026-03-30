@@ -88,7 +88,6 @@ export default function AuditLogScreen() {
       'Onboarding',
       'Notification',
       'Warning',
-      'Appraisal',
       'SalaryRequest',
       'Analytics',
       'Export',

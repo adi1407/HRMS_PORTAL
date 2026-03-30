@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
 import {
@@ -92,14 +93,16 @@ function AnnouncementBanner() {
   );
 }
 
-function AttendanceCalendar({ records, month, year, holidays = [] }) {
+function AttendanceCalendar({ records, month, year, holidays = [], onDayClick }) {
   const today    = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-  const holidaySet = new Set(holidays.map(h => {
+  const holidayByKey = {};
+  holidays.forEach((h) => {
     const d = new Date(h.date);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }));
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    holidayByKey[key] = h.name || 'Holiday';
+  });
 
   const statusMap = {};
   records.forEach(r => {
@@ -132,7 +135,8 @@ function AttendanceCalendar({ records, month, year, holidays = [] }) {
           const isFuture = new Date(year, month - 1, day) > today;
           const dow      = new Date(year, month - 1, day).getDay();
           const isSunday = dow === 0;
-          const isHol    = holidaySet.has(key);
+          const isHol    = holidayByKey[key] != null;
+          const holName  = holidayByKey[key];
 
           let colorCls = '';
           let titleStr = '';
@@ -142,10 +146,10 @@ function AttendanceCalendar({ records, month, year, holidays = [] }) {
             titleStr = status.replace(/_/g, ' ');
           } else if (isSunday) {
             colorCls = 'att-cal-cell--weekoff';
-            titleStr = 'Weekly Off';
+            titleStr = 'Sunday — Weekly off';
           } else if (isHol) {
             colorCls = 'att-cal-cell--holiday';
-            titleStr = 'Holiday';
+            titleStr = holName;
           } else if (isFuture) {
             colorCls = 'att-cal-cell--future';
           } else if (isToday) {
@@ -155,10 +159,19 @@ function AttendanceCalendar({ records, month, year, holidays = [] }) {
             titleStr = 'No record';
           }
 
+          const interactive = typeof onDayClick === 'function';
+          const handleClick = interactive
+            ? () => onDayClick({ key, day, month, year, isSunday, isHoliday: isHol, holidayName: holName, status })
+            : undefined;
+
           return (
             <div
               key={key}
-              className={`att-cal-cell ${colorCls}${isToday ? ' att-cal-cell--today' : ''}`}
+              role={interactive ? 'button' : undefined}
+              tabIndex={interactive ? 0 : undefined}
+              onClick={handleClick}
+              onKeyDown={interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick?.(); } } : undefined}
+              className={`att-cal-cell ${colorCls}${isToday ? ' att-cal-cell--today' : ''}${interactive ? ' att-cal-cell--interactive' : ''}`}
               title={titleStr}
             >
               <span className="att-cal-num">{day}</span>
@@ -214,6 +227,7 @@ function AdminStatCard({ icon: Icon, value, label, color, trend }) {
 }
 
 function EmployeeSection({ user }) {
+  const navigate = useNavigate();
   const nowMonth = new Date().getMonth() + 1;
   const nowYear  = new Date().getFullYear();
   const [calMonth, setCalMonth] = useState(nowMonth);
@@ -233,7 +247,7 @@ function EmployeeSection({ user }) {
       api.get('/attendance/today'),
       api.get(`/attendance/my?month=${calMonth}&year=${calYear}`),
       api.get('/leaves/my'),
-      api.get(`/holidays?year=${nowYear}`),
+      api.get(`/holidays?year=${calYear}`),
     ]).then(([todayRes, monthRes, leaveRes, holRes]) => {
       setTodayRecord(todayRes.data.data);
       setMonthRecords(monthRes.data.data || []);
@@ -253,6 +267,22 @@ function EmployeeSection({ user }) {
     if (isCurrentMonth) return;
     if (calMonth === 12) { setCalMonth(1); setCalYear(y => y + 1); }
     else setCalMonth(m => m + 1);
+  };
+
+  const handleCalendarDayClick = ({ key, isSunday, isHoliday, holidayName, status }) => {
+    if (status === 'HOLIDAY' || status === 'WEEKLY_OFF') {
+      window.alert(status === 'WEEKLY_OFF' ? 'Weekly off — no leave needed for this day.' : 'This day is marked as a holiday on your calendar.');
+      return;
+    }
+    if (isSunday) {
+      window.alert('Sunday — weekly off. Leave does not apply to this day.');
+      return;
+    }
+    if (isHoliday) {
+      window.alert(`Holiday: ${holidayName || 'Company holiday'}`);
+      return;
+    }
+    navigate(`/leaves?from=${key}&to=${key}`);
   };
 
   const present       = monthRecords.filter(r => r.displayStatus === 'FULL_DAY').length;
@@ -390,7 +420,16 @@ function EmployeeSection({ user }) {
             <button className="db-nav-btn" onClick={handleNextMonth} disabled={isCurrentMonth}><ChevronRight size={16} /></button>
           </div>
         </div>
-        <AttendanceCalendar records={monthRecords} month={calMonth} year={calYear} holidays={allHolidays} />
+        <AttendanceCalendar
+          records={monthRecords}
+          month={calMonth}
+          year={calYear}
+          holidays={allHolidays}
+          onDayClick={handleCalendarDayClick}
+        />
+        <p style={{ margin: '12px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+          Tip: Click a date to apply for leave. Sundays and company holidays are shown in green — click to see the holiday name.
+        </p>
       </div>
 
       {/* Upcoming holidays */}
@@ -422,7 +461,7 @@ export default function DashboardPage() {
   const greeting = getGreeting();
 
   const isAdminRole = ['SUPER_ADMIN', 'DIRECTOR', 'HR'].includes(user?.role);
-  const showEmployeeSection = ['HR', 'ACCOUNTS', 'EMPLOYEE'].includes(user?.role);
+  const showEmployeeSection = ['HR', 'ACCOUNTS', 'EMPLOYEE', 'DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
   const canExport = user?.isManagingHead || ['DIRECTOR', 'SUPER_ADMIN'].includes(user?.role);
 
   const [stats,     setStats]     = useState(null);

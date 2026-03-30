@@ -24,6 +24,17 @@ const dailyTaskSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  /** Set when Head of Department assigns tasks for this day */
+  assignedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  source: {
+    type: String,
+    enum: ['SELF', 'HOD'],
+    default: 'SELF',
+  },
 }, {
   timestamps: true,
 });

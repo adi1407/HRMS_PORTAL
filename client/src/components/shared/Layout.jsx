@@ -8,7 +8,7 @@ import {
   LayoutDashboard, MapPinCheckInside, CalendarDays, CalendarMinus2, Wallet,
   Users, Sparkles, Settings, LogOut, Menu, X, UserMinus, FolderOpen, Receipt,
   ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert,
-  Star, ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
+  ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
   Bot,
   MessageSquareHeart,
 } from 'lucide-react';
@@ -34,7 +34,6 @@ const NAV_ITEMS = [
   { path: '/onboarding',       label: 'Onboarding',       Icon: Rocket,          roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/tickets',          label: 'Help Desk',        Icon: LifeBuoy,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/assets',           label: 'Assets',           Icon: Package,         roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
-  { path: '/appraisals',       label: 'Appraisals',       Icon: Star,            roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/warnings',         label: 'Warnings',         Icon: ShieldAlert,     roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/policies',         label: 'Policies',          Icon: BookOpen,        roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/announcements',   label: 'Announcements',    Icon: Megaphone,       roles: ['SUPER_ADMIN','DIRECTOR','HR'] },

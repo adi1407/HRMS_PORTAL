@@ -5,6 +5,14 @@ import { Users } from 'lucide-react';
 
 const PAGE_SIZE = 25;
 
+/** True if this user is the assigned head of their department (Office Settings → Departments). */
+function isDepartmentHead(emp) {
+  const h = emp?.department?.head;
+  if (!h) return false;
+  const id = h._id || h;
+  return String(id) === String(emp._id);
+}
+
 /** Matches server `isSalaryBankLockedForAccounts` for UI (list payload may omit explicit false). */
 function salaryBankLockedForAccounts(emp) {
   if (!emp) return true;
@@ -339,6 +347,11 @@ export default function EmployeesPage() {
                       {emp.isManagingHead && (
                         <span style={{ marginLeft: 6, fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
                           Managing Head
+                        </span>
+                      )}
+                      {isDepartmentHead(emp) && (
+                        <span style={{ marginLeft: 6, fontSize: '0.7rem', background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }} title="Head of department — can assign team tasks">
+                          HOD
                         </span>
                       )}
                     </td>

@@ -1025,6 +1025,18 @@ input, select, textarea { font-family: var(--font); }
 .att-cal-cell--past-off   { background: rgba(156,163,175,.15); color: #9ca3af; border-color: rgba(156,163,175,.22); }
 /* Future days — subtle blue tint, clearly upcoming */
 .att-cal-cell--future     { background: rgba(37,99,235,.05); color: #bfdbfe; border-color: rgba(37,99,235,.1); pointer-events: none; }
+.att-cal-cell--interactive { cursor: pointer; }
+.att-cal-cell--interactive.att-cal-cell--future {
+  pointer-events: auto;
+  color: #2563eb;
+  border-color: rgba(37,99,235,.22);
+}
+.att-cal-cell--interactive:hover:not(.att-cal-cell--empty) {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-md);
+  z-index: 1;
+  position: relative;
+}
 .att-cal-cell--today   {
   border-color: var(--primary) !important;
   box-shadow: 0 0 0 3px rgba(37,99,235,.35);

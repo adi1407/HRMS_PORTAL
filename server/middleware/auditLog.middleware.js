@@ -26,7 +26,6 @@ const ENTITY_MAP = {
   '/api/onboarding':      'Onboarding',
   '/api/notifications':   'Notification',
   '/api/warnings':        'Warning',
-  '/api/appraisals':      'Appraisal',
   '/api/salary-requests': 'SalaryRequest',
   '/api/analytics':       'Analytics',
   '/api/export':          'Export',

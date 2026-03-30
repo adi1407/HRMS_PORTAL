@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import api from '../utils/api';
 import { Sun } from 'lucide-react';
@@ -24,9 +25,26 @@ function StatusBadge({ status }) {
 }
 
 export default function LeavePage() {
+  const [searchParams] = useSearchParams();
+  const fromCal = searchParams.get('from');
+  const toCal = searchParams.get('to');
   const { user } = useAuthStore();
   const isAdmin = ['SUPER_ADMIN', 'DIRECTOR', 'HR'].includes(user?.role);
   const isHR    = user?.role === 'HR';
+
+  const dateOk = (s) => s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  if (dateOk(fromCal)) {
+    const toSafe = dateOk(toCal) ? toCal : fromCal;
+    return (
+      <div className="page">
+        <div className="page-header">
+          <h1 className="page-title">Apply for leave</h1>
+          <p className="page-subtitle">Dates are pre-filled from your dashboard calendar</p>
+        </div>
+        <EmployeeLeaveContent initialFrom={fromCal} initialTo={toSafe} />
+      </div>
+    );
+  }
 
   if (isHR)    return <HRLeaveView />;
   if (isAdmin) return <AdminLeaveView />;
@@ -86,13 +104,21 @@ function EmployeeLeaveView() {
 }
 
 /* ─── Employee leave form + history (reused in HRLeaveView) ─────── */
-function EmployeeLeaveContent() {
+function EmployeeLeaveContent({ initialFrom, initialTo }) {
   const [tab, setTab]     = useState('apply');
   const [form, setForm]   = useState({ type: 'CASUAL', fromDate: '', toDate: '', reason: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg]     = useState(null);
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialFrom) {
+      const end = initialTo || initialFrom;
+      setForm((f) => ({ ...f, fromDate: initialFrom, toDate: end }));
+      setTab('apply');
+    }
+  }, [initialFrom, initialTo]);
 
   useEffect(() => {
     if (tab === 'history') fetchLeaves();

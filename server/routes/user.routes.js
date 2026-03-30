@@ -112,7 +112,10 @@ router.get('/', authenticate, authorize('HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUN
       { employeeId: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } }
     ];
-    const users = await User.find(filter).populate('department', 'name').populate('branch', 'name').sort({ createdAt: -1 });
+    const users = await User.find(filter)
+      .populate({ path: 'department', select: 'name head code', populate: { path: 'head', select: 'name employeeId' } })
+      .populate('branch', 'name')
+      .sort({ createdAt: -1 });
     res.json({ success: true, data: users, count: users.length });
   } catch (err) { next(err); }
 });

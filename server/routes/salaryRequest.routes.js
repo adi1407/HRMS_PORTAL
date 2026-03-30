@@ -23,11 +23,14 @@ router.post('/', authenticate, authorize('ACCOUNTS'), async (req, res, next) => 
     const isFirstTime = !isSalaryBankLockedForAccounts(employee);
 
     if (isFirstTime) {
-      // Apply directly — no approval needed for first-time salary setup
+      // Apply directly — no approval needed for first-time salary setup (one-time capture by Accounts)
       let updates = {};
       if (newGrossSalary !== undefined) updates.grossSalary = Number(newGrossSalary);
       if (newBankAccount !== undefined) updates.bankAccountNumber = newBankAccount;
       if (newIfscCode !== undefined) updates.ifscCode = newIfscCode;
+      if (Object.keys(updates).length === 0) {
+        return next(new ApiError(400, 'Provide at least gross salary, bank account, or IFSC for initial setup.'));
+      }
       updates = markSalaryBankInitialCaptureIfNeeded(updates, employee);
       await User.findByIdAndUpdate(employeeId, updates);
       return res.status(200).json({ success: true, message: 'Salary and bank details set successfully.', requiresApproval: false });
@@ -49,7 +52,7 @@ router.post('/', authenticate, authorize('ACCOUNTS'), async (req, res, next) => 
       reason:              reason || '',
     });
 
-    res.status(201).json({ success: true, message: 'Update request submitted. Awaiting department head approval.', requiresApproval: true, data: request });
+    res.status(201).json({ success: true, message: 'Update request submitted. Awaiting Director or Super Admin approval.', requiresApproval: true, data: request });
   } catch (err) { next(err); }
 });
 

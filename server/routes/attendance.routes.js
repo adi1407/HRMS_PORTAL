@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { processCheckIn, processCheckOut, getTodayAttendance, overrideAttendance } = require('../services/attendance.service');
+const { getAttendanceSettingsDTO, updateAttendanceSettings } = require('../services/attendanceSettings.service');
 const Attendance        = require('../models/Attendance.model');
 const AttendanceRequest = require('../models/AttendanceRequest.model');
 const Salary            = require('../models/Salary.model');
@@ -36,6 +37,29 @@ router.get('/today', authenticate, authorize('EMPLOYEE', 'ACCOUNTS', 'HR', 'DIRE
   try {
     const result = await getTodayAttendance(req.user._id);
     res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+});
+
+/** Super Admin & Director: org-wide IST attendance clocks (check-in grace, half-day, checkout, full-day hours). */
+router.get('/timing-config', authenticate, authorize('SUPER_ADMIN', 'DIRECTOR'), async (req, res, next) => {
+  try {
+    const data = await getAttendanceSettingsDTO();
+    res.status(200).json({ success: true, data });
+  } catch (err) { next(err); }
+});
+
+router.patch('/timing-config', authenticate, authorize('SUPER_ADMIN', 'DIRECTOR'), async (req, res, next) => {
+  try {
+    const { dto } = await updateAttendanceSettings(req.body || {});
+    await createAuditLog({
+      actor: req.user,
+      action: 'ATTENDANCE_TIMING_UPDATE',
+      entity: 'Attendance',
+      severity: 'WARNING',
+      description: `Attendance timing config updated (IST): on-time ${dto.onTimeCheckInMinutes}m, grace ${dto.gracePeriodMinutes}m, half-after ${dto.halfDayCheckInAfterMinutes}m, early-out ${dto.earlyCheckoutBeforeMinutes}m, full-day ${dto.fullDayHours}h`,
+      req,
+    });
+    res.status(200).json({ success: true, data: dto, message: 'Attendance timing rules saved.' });
   } catch (err) { next(err); }
 });
 

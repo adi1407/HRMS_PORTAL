@@ -4,6 +4,7 @@ const Attendance  = require('../models/Attendance.model');
 const Holiday     = require('../models/Holiday.model');
 const Resignation = require('../models/Resignation.model');
 const { generateAllSalaries } = require('../services/salary.service');
+const { getResolvedRules } = require('../services/attendanceSettings.service');
 const { runAllAlerts } = require('../services/emailAlerts.service');
 
 function istToday() {
@@ -72,9 +73,7 @@ async function runEodEvaluation() {
     markedBy: { $nin: ['HR', 'DIRECTOR', 'SUPER_ADMIN'] },
   });
 
-  const FULLDAY_H = 8;
-  const HALFDAY_CHECKIN_MIN = 13 * 60;
-  const EARLY_CHECKOUT_MIN  = 16 * 60;
+  const { FULLDAY_HOURS: FULLDAY_H, HALFDAY_CHECKIN: HALFDAY_CHECKIN_MIN, EARLY_CHECKOUT: EARLY_CHECKOUT_MIN } = await getResolvedRules();
 
   for (const r of withBoth) {
     const hours = r.workingHours || parseFloat(((new Date(r.checkOut) - new Date(r.checkIn)) / (1000 * 60 * 60)).toFixed(2));

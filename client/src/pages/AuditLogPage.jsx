@@ -15,7 +15,7 @@ const METHOD_STYLE = {
   DELETE: { bg: '#fee2e2', color: '#b91c1c' },
   OTHER:  { bg: '#f3f4f6', color: '#6b7280' },
 };
-const ENTITIES = ['Auth','User','Attendance','Salary','Leave','Branch','Department','Holiday','Resignation','Document','ExpenseClaim','DailyTask','Announcement','Ticket','Asset','Onboarding','Notification','Warning','Appraisal','SalaryRequest','Analytics','Export','Face','System'];
+const ENTITIES = ['Auth','User','Attendance','Salary','Leave','Branch','Department','Holiday','Resignation','Document','ExpenseClaim','DailyTask','Announcement','Ticket','Asset','Onboarding','Notification','Warning','SalaryRequest','Analytics','Export','Face','System'];
 const ACTIONS = ['CREATE','UPDATE','DELETE','LOGIN','LOGOUT','PAYSLIP_VIEW','PAYSLIP_DOWNLOAD','PAYSLIP_PIN_SET','PAYSLIP_PIN_CHANGED','PAYSLIP_PIN_REMOVED'];
 const SEVERITIES = ['INFO','WARNING','ERROR','CRITICAL'];
 const METHODS = ['POST','PATCH','PUT','DELETE'];

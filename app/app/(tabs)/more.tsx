@@ -54,7 +54,6 @@ const MENU_ITEMS: MenuItem[] = [
   { route: '/directory', label: 'Directory', icon: 'contacts', section: 'Company', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/resignation', label: 'Resignation', icon: 'person-remove', section: 'Company', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/warnings', label: 'Warnings', icon: 'warning', section: 'Company', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
-  { route: '/appraisals', label: 'Appraisals', icon: 'star', section: 'Company', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/employees', label: 'Employees', icon: 'people', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS'] },
   { route: '/recruitment', label: 'Recruitment', icon: 'person-add', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR'] },
   { route: '/task-reports', label: 'Task Reports', icon: 'assessment', section: 'HR', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR'] },

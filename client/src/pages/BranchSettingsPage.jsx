@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, Building2, MapPin, Save, Loader2, Trash2, Plus, Zap, MapPinned, Globe, Shield } from 'lucide-react';
+import { Wifi, Building2, MapPin, Save, Loader2, Trash2, Plus, Zap, MapPinned, Globe, Shield, Clock } from 'lucide-react';
 import api from '../utils/api';
 import useAuthStore from '../store/authStore';
 
@@ -14,6 +14,8 @@ const DEFAULT_DEPARTMENTS = [
 export default function BranchSettingsPage() {
   const { user } = useAuthStore();
   const canEdit = ['SUPER_ADMIN', 'DIRECTOR', 'HR'].includes(user?.role);
+  const canEditTiming = ['SUPER_ADMIN', 'DIRECTOR'].includes(user?.role);
+  const canManageDepartments = ['SUPER_ADMIN', 'DIRECTOR'].includes(user?.role);
   const [tab, setTab] = useState('network');
 
   return (
@@ -21,7 +23,7 @@ export default function BranchSettingsPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Office Settings</h1>
-          <p className="page-subtitle">Main Branch · A-62, Sector 2, First Floor — network &amp; department configuration</p>
+          <p className="page-subtitle">Main Branch · A-62, Sector 2, First Floor — network, departments &amp; attendance rules</p>
         </div>
       </div>
 
@@ -32,11 +34,139 @@ export default function BranchSettingsPage() {
         <button className={`btn ${tab === 'departments' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('departments')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Building2 size={15} strokeWidth={2} /> Departments
         </button>
+        {canEditTiming && (
+          <button className={`btn ${tab === 'attendance' ? 'btn--primary' : 'btn--secondary'}`} onClick={() => setTab('attendance')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Clock size={15} strokeWidth={2} /> Attendance rules
+          </button>
+        )}
       </div>
 
       {tab === 'network'     && <NetworkTab canEdit={canEdit} />}
-      {tab === 'departments' && <DepartmentsTab canEdit={canEdit} />}
+      {tab === 'departments' && <DepartmentsTab canEdit={canEdit} canManageDepartments={canManageDepartments} />}
+      {tab === 'attendance'  && canEditTiming && <AttendanceTimingTab />}
     </div>
+  );
+}
+
+function minsToTimeStr(m) {
+  const h = Math.floor(m / 60) % 24;
+  const mi = Math.floor(m % 60);
+  return `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
+}
+
+function timeStrToMins(s) {
+  if (!s || typeof s !== 'string') return 0;
+  const p = s.split(':');
+  const h = parseInt(p[0], 10);
+  const mi = parseInt(p[1], 10);
+  if (Number.isNaN(h) || Number.isNaN(mi)) return 0;
+  return Math.min(1439, Math.max(0, h * 60 + mi));
+}
+
+function AttendanceTimingTab() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [onTime, setOnTime] = useState('10:00');
+  const [graceMin, setGraceMin] = useState(10);
+  const [halfAfter, setHalfAfter] = useState('13:00');
+  const [earlyOut, setEarlyOut] = useState('16:00');
+  const [fullH, setFullH] = useState(8);
+
+  const load = async () => {
+    setLoading(true);
+    setMsg('');
+    try {
+      const { data } = await api.get('/attendance/timing-config');
+      const d = data.data;
+      setOnTime(minsToTimeStr(d.onTimeCheckInMinutes));
+      setGraceMin(d.gracePeriodMinutes);
+      setHalfAfter(minsToTimeStr(d.halfDayCheckInAfterMinutes));
+      setEarlyOut(minsToTimeStr(d.earlyCheckoutBeforeMinutes));
+      setFullH(d.fullDayHours);
+    } catch {
+      setMsg('❌ Failed to load attendance timing.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMsg('');
+    try {
+      await api.patch('/attendance/timing-config', {
+        onTimeCheckInMinutes: timeStrToMins(onTime),
+        gracePeriodMinutes: Number(graceMin),
+        halfDayCheckInAfterMinutes: timeStrToMins(halfAfter),
+        earlyCheckoutBeforeMinutes: timeStrToMins(earlyOut),
+        fullDayHours: Number(fullH),
+      });
+      setMsg('✅ Attendance timing saved. Applies to new check-ins and end-of-day evaluation.');
+      load();
+    } catch (err) {
+      setMsg('❌ ' + (err.response?.data?.message || 'Could not save.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const graceEnd = timeStrToMins(onTime) + Number(graceMin) || 0;
+
+  return (
+    <>
+      {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`}>{msg}</div>}
+
+      <div className="card" style={{ marginBottom: 20, padding: '16px 20px', background: '#fffbeb', border: '1px solid #fde68a' }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e', lineHeight: 1.6 }}>
+          <strong><Clock size={14} strokeWidth={2} style={{ verticalAlign: 'middle', marginRight: 4 }} /> IST only (Asia/Kolkata)</strong>
+          — Full day is always at least <strong>{fullH} hours</strong> worked between check-in and check-out. Check-in after the half-day threshold marks a tentative half day unless those hours are met. Checkout before the early threshold with fewer hours counts as half day.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="page-loading">Loading attendance rules…</div>
+      ) : (
+        <form className="card" style={{ padding: '22px 24px' }} onSubmit={save}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700 }}>Clock thresholds</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 16 }}>
+            <div className="form-group">
+              <label className="form-label">On-time check-in (by)</label>
+              <input className="form-input" type="time" required value={onTime} onChange={(e) => setOnTime(e.target.value)} />
+              <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>At or before this = on time.</p>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Grace period (minutes)</label>
+              <input className="form-input" type="number" min={0} max={180} required value={graceMin} onChange={(e) => setGraceMin(e.target.value)} />
+              <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>After on-time through {minsToTimeStr(graceEnd)} → still counted as grace (not late).</p>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Half-day if check-in after</label>
+              <input className="form-input" type="time" required value={halfAfter} onChange={(e) => setHalfAfter(e.target.value)} />
+              <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>Strictly after this minute = tentative half day (unless hours met).</p>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Early checkout (before)</label>
+              <input className="form-input" type="time" required value={earlyOut} onChange={(e) => setEarlyOut(e.target.value)} />
+              <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>Leaving before this with &lt; full hours → half day.</p>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Full day (hours worked)</label>
+              <input className="form-input" type="number" min={0.5} max={16} step={0.25} required value={fullH} onChange={(e) => setFullH(parseFloat(e.target.value) || 8)} />
+              <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>Minimum hours for full day regardless of clock times.</p>
+            </div>
+          </div>
+          <div style={{ marginTop: 20 }}>
+            <button type="submit" className="btn btn--primary" disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {saving ? <><Loader2 size={16} className="spin" /> Saving…</> : <><Save size={16} strokeWidth={2} /> Save attendance rules</>}
+            </button>
+          </div>
+        </form>
+      )}
+    </>
   );
 }
 
@@ -215,16 +345,23 @@ function NetworkTab({ canEdit }) {
 }
 
 /* ─── Departments Tab ───────────────────────────────────────── */
-function DepartmentsTab({ canEdit }) {
+function DepartmentsTab({ canEdit, canManageDepartments }) {
   const [depts,    setDepts]    = useState([]);
+  const [staff,    setStaff]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [msg,      setMsg]      = useState('');
   const [showForm, setShowForm] = useState(false);
   const [newName,  setNewName]  = useState('');
+  const [newCode,  setNewCode]  = useState('');
   const [saving,   setSaving]   = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [headSaving, setHeadSaving] = useState(null);
 
   useEffect(() => { fetchDepts(); }, []);
+  useEffect(() => {
+    if (!canManageDepartments) return;
+    api.get('/users').then(({ data }) => setStaff(data.data || [])).catch(() => setStaff([]));
+  }, [canManageDepartments]);
 
   const fetchDepts = async () => {
     setLoading(true);
@@ -254,9 +391,12 @@ function DepartmentsTab({ canEdit }) {
     if (!newName.trim()) return;
     setSaving(true); setMsg('');
     try {
-      await api.post('/departments', { name: newName.trim() });
+      await api.post('/departments', {
+        name: newName.trim(),
+        ...(newCode.trim() ? { code: newCode.trim().toUpperCase() } : {}),
+      });
       setMsg(`✅ Department "${newName.trim()}" created.`);
-      setNewName(''); setShowForm(false);
+      setNewName(''); setNewCode(''); setShowForm(false);
       fetchDepts();
     } catch (err) {
       setMsg('❌ ' + (err.response?.data?.message || 'Failed to create department.'));
@@ -277,9 +417,34 @@ function DepartmentsTab({ canEdit }) {
 
   const missingDefaults = DEFAULT_DEPARTMENTS.filter(d => !depts.find(x => x.name.toLowerCase() === d.name.toLowerCase()));
 
+  const saveHead = async (dept, headId) => {
+    setHeadSaving(dept._id);
+    setMsg('');
+    try {
+      await api.patch(`/departments/${dept._id}`, { head: headId || null });
+      setMsg('✅ Head of department updated. They can assign daily tasks to their team.');
+      fetchDepts();
+    } catch (err) {
+      setMsg('❌ ' + (err.response?.data?.message || 'Failed to set head.'));
+    } finally {
+      setHeadSaving(null);
+    }
+  };
+
+  const membersForDept = (deptId) => staff.filter((u) => {
+    const did = u.department?._id || u.department;
+    return did && String(did) === String(deptId);
+  });
+
   return (
     <>
       {msg && <div className={`alert ${msg.startsWith('✅') ? 'alert--success' : 'alert--error'}`}>{msg}</div>}
+
+      {!canManageDepartments && canEdit && (
+        <div className="card" style={{ marginBottom: 16, padding: '12px 16px', background: '#fffbeb', border: '1px solid #fde68a', fontSize: '0.85rem', color: '#92400e' }}>
+          Only <strong>Director</strong> and <strong>Super Admin</strong> can create departments and assign heads. HR can use WiFi &amp; Location here.
+        </div>
+      )}
 
       {/* Role mapping info */}
       <div className="card" style={{ marginBottom: 20, padding: '16px 20px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
@@ -295,9 +460,12 @@ function DepartmentsTab({ canEdit }) {
         <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#166534' }}>
           <strong>Manager Head</strong> employees use the <code>DIRECTOR</code> role — salary auto-calculated as full-present every month (no attendance required).
         </p>
+        <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: '#166534' }}>
+          Set a <strong>Head of department</strong> below (must be an employee already assigned to that department). Heads assign daily tasks and view team progress under <strong>Daily Tasks</strong>.
+        </p>
       </div>
 
-      {canEdit && (
+      {canManageDepartments && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <button className="btn btn--primary" onClick={() => { setShowForm(!showForm); setMsg(''); }}>
             {showForm ? '✕ Cancel' : '+ Add Department'}
@@ -310,13 +478,17 @@ function DepartmentsTab({ canEdit }) {
         </div>
       )}
 
-      {showForm && canEdit && (
+      {showForm && canManageDepartments && (
         <div className="card" style={{ marginBottom: 20, padding: '18px 20px' }}>
           <h3 style={{ margin: '0 0 14px', fontSize: '0.95rem', fontWeight: 700 }}>New Department</h3>
           <form onSubmit={createDept} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
               <label className="form-label">Department Name *</label>
               <input className="form-input" required placeholder="e.g. Operations" value={newName} onChange={e => setNewName(e.target.value)} />
+            </div>
+            <div className="form-group" style={{ flex: '0 1 140px', minWidth: 100 }}>
+              <label className="form-label">Code (optional)</label>
+              <input className="form-input" placeholder="e.g. OPS" maxLength={12} value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} />
             </div>
             <button type="submit" className="btn btn--primary" disabled={saving || !newName.trim()}>
               {saving ? 'Creating…' : 'Create'}
@@ -332,7 +504,7 @@ function DepartmentsTab({ canEdit }) {
           <div className="empty-state-icon"><Building2 size={40} strokeWidth={1.5} color="#9ca3af" /></div>
           <h3>No departments yet</h3>
           <p>Click below to set up IT, HR, Accounts, Pharmacy &amp; Manager Head departments.</p>
-          {canEdit && (
+          {canManageDepartments && (
             <button className="btn btn--primary" onClick={seedDefaults} disabled={saving}>
               {saving ? 'Creating…' : '⚡ Create Default Departments'}
             </button>
@@ -347,15 +519,40 @@ function DepartmentsTab({ canEdit }) {
             return (
               <div key={dept._id} className="card" style={{ padding: '16px 18px', marginBottom: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'var(--gray-900)' }}>{dept.name}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'var(--gray-900)' }}>
+                      {dept.name}
+                      {dept.code && (
+                        <span style={{ marginLeft: 8, fontSize: '0.7rem', fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: 6 }}>{dept.code}</span>
+                      )}
+                    </p>
                     <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--gray-500)' }}>
                       {meta?.note || 'Custom department'}
                     </p>
+                    {canManageDepartments && (
+                      <div className="form-group" style={{ marginTop: 12, marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Head of department</label>
+                        <select
+                          className="form-input"
+                          style={{ fontSize: '0.88rem' }}
+                          disabled={headSaving === dept._id}
+                          value={dept.head?._id || ''}
+                          onChange={(e) => saveHead(dept, e.target.value)}
+                        >
+                          <option value="">— None —</option>
+                          {membersForDept(dept._id).map((u) => (
+                            <option key={u._id} value={u._id}>{u.name} ({u.employeeId})</option>
+                          ))}
+                        </select>
+                        {membersForDept(dept._id).length === 0 && (
+                          <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#b45309' }}>Assign employees to this department in Employees first.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {meta
                     ? <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: 6, fontWeight: 600, whiteSpace: 'nowrap' }}>Default</span>
-                    : canEdit && (
+                    : canManageDepartments && (
                       <button className="btn-tiny btn-tiny--red" disabled={deleting === dept._id} onClick={() => deleteDept(dept)}>
                         {deleting === dept._id ? '…' : 'Remove'}
                       </button>
