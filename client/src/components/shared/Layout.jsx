@@ -10,10 +10,12 @@ import {
   ClipboardList, BarChart3, Megaphone, LifeBuoy, Package, Rocket, ShieldAlert,
   Star, ScrollText, Mail, BookOpen, UserCircle, UserPlus, UsersRound,
   Bot,
+  MessageSquareHeart,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/assistant',       label: 'HRMS Assistant',  Icon: Bot,             roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
+  { path: '/feedback-ratings', label: 'Weekly feedback', Icon: MessageSquareHeart, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/dashboard',       label: 'Dashboard',       Icon: LayoutDashboard, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/my-profile',      label: 'My Profile',      Icon: UserCircle,      roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },
   { path: '/checkin',         label: 'Check In/Out',    Icon: MapPinCheckInside, roles: ['SUPER_ADMIN','DIRECTOR','HR','ACCOUNTS','EMPLOYEE'] },

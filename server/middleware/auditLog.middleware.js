@@ -34,6 +34,7 @@ const ENTITY_MAP = {
   '/api/policies':        'PolicyDocument',
   '/api/employee-profile': 'EmployeeProfile',
   '/api/ats':             'ATS',
+  '/api/feedback-ratings': 'FeedbackRating',
 };
 
 const ACTION_MAP = {

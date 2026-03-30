@@ -47,6 +47,7 @@ export default function RootLayout() {
         {/* Screen uses its own header + back; avoids double nav bar */}
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="assistant" options={{ headerShown: false }} />
+        <Stack.Screen name="feedback-ratings" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />

@@ -38,6 +38,7 @@ type MenuItem = {
 // Aligned with website Layout.jsx NAV_ITEMS roles
 const MENU_ITEMS: MenuItem[] = [
   { route: '/assistant', label: 'HRMS Assistant', icon: 'smart-toy', section: 'Me', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
+  { route: '/feedback-ratings', label: 'Weekly feedback', icon: 'forum', section: 'Me', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/profile', label: 'My Profile', icon: 'person', section: 'Me', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/salary', label: 'Salary & Payslips', icon: 'payments', section: 'Me', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },
   { route: '/attendance', label: 'Attendance', icon: 'today', section: 'Me', roles: ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'ACCOUNTS', 'EMPLOYEE'] },

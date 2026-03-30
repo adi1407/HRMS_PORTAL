@@ -163,6 +163,24 @@ const ALL_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'my_feedback_received_summary',
+      description:
+        'Summary of anonymous weekly feedback received by the user: count and average score in the last ~8 weeks. No rater identities.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'hr_feedback_org_summary',
+      description:
+        'Organization-wide weekly feedback in the last ~90 days: total count, average score, counts by direction (leadership→staff vs employee→leadership). HR+ only.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'accounts_salary_month_status',
       description:
         'For a payroll month/year: counts of salary slips by status (DRAFT vs FINAL) only — no employee amounts. Accounts role only.',

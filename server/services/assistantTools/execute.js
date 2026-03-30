@@ -16,6 +16,7 @@ const JobOpening = require('../../models/JobOpening.model');
 const Application = require('../../models/Application.model');
 const AuditLog = require('../../models/AuditLog.model');
 const Salary = require('../../models/Salary.model');
+const FeedbackRating = require('../../models/FeedbackRating.model');
 
 const HR_ROLES = new Set(['HR', 'DIRECTOR', 'SUPER_ADMIN', 'ACCOUNTS']);
 /** Same as audit log GET route: authorize('SUPER_ADMIN', 'DIRECTOR') */
@@ -434,6 +435,46 @@ async function executeTool(user, toolName, args) {
         scope: 'audit',
         last24h: { totalEntries: total24h, countsByAction: mapAgg(byAction24h) },
         last7days: { totalEntries: total7d, countsByAction: mapAgg(byAction7d) },
+      };
+    }
+
+    case 'my_feedback_received_summary': {
+      const since = new Date(Date.now() - 56 * 24 * 60 * 60 * 1000);
+      const rows = await FeedbackRating.find({
+        ratee: user._id,
+        weekStart: { $gte: since },
+      })
+        .select('score weekStart')
+        .lean();
+      const n = rows.length;
+      const avg = n ? Math.round((rows.reduce((s, r) => s + r.score, 0) / n) * 100) / 100 : null;
+      return {
+        success: true,
+        scope: 'self',
+        note: 'Anonymous weekly feedback; rater identities are never exposed.',
+        ratingsReceivedInLast8Weeks: n,
+        averageScore: avg,
+      };
+    }
+
+    case 'hr_feedback_org_summary': {
+      if (!HR_ROLES.has(role)) return deny('This tool is only for HR, Director, Accounts, or Super Admin.');
+      const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const rows = await FeedbackRating.find({ weekStart: { $gte: since } })
+        .select('score direction')
+        .lean();
+      const n = rows.length;
+      const avg = n ? Math.round((rows.reduce((s, r) => s + r.score, 0) / n) * 100) / 100 : null;
+      const byDir = { LEADERSHIP_TO_EMPLOYEE: 0, EMPLOYEE_TO_LEADERSHIP: 0 };
+      rows.forEach((r) => {
+        if (byDir[r.direction] != null) byDir[r.direction] += 1;
+      });
+      return {
+        success: true,
+        scope: 'organization',
+        ratingsInLast90Days: n,
+        averageScore: avg,
+        countByDirection: byDir,
       };
     }
 

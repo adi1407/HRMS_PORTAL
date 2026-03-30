@@ -26,6 +26,7 @@ function suggestedPromptsForRole(role) {
     'Do I have open help desk tickets?',
     'What is my onboarding checklist progress?',
     'How many unread notifications do I have?',
+    'Summarize anonymous weekly feedback I received (average and count).',
   ];
 
   const hrOps = [
@@ -35,6 +36,7 @@ function suggestedPromptsForRole(role) {
     'List pending leave requests (sample).',
     'Summarize recruitment: job openings and applications by status.',
     'How is the organization doing on daily task submissions this month?',
+    'What is the org-wide weekly feedback summary for the last 90 days?',
   ];
 
   if (role === 'EMPLOYEE') return selfService;
