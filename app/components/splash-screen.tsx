@@ -11,7 +11,7 @@ import Animated, {
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
-import { AdiverseLogo } from '@/components/adiverse-logo';
+import { AdiverseLogoHorizontal } from '@/components/adiverse-logo';
 
 const DURATION_EXIT = 480;
 /** Min time custom splash is visible after boot is ready (UX polish; keep modest to avoid feeling slow) */
@@ -27,8 +27,6 @@ export function SplashScreen({ onFinish, ready }: Props) {
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const logoScale = useSharedValue(0.72);
   const logoOpacity = useSharedValue(0);
-  const titleOpacity = useSharedValue(0);
-  const titleY = useSharedValue(12);
   const taglineOpacity = useSharedValue(0);
   const taglineY = useSharedValue(8);
   const containerOpacity = useSharedValue(1);
@@ -43,11 +41,8 @@ export function SplashScreen({ onFinish, ready }: Props) {
     logoScale.value = withSpring(1, SPRING_CONFIG);
     logoOpacity.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) });
 
-    // Title and tagline stagger
-    titleOpacity.value = withDelay(280, withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) }));
-    titleY.value = withDelay(280, withSpring(0, SPRING_CONFIG));
-    taglineOpacity.value = withDelay(420, withTiming(0.88, { duration: 380, easing: Easing.out(Easing.cubic) }));
-    taglineY.value = withDelay(420, withSpring(0, SPRING_CONFIG));
+    taglineOpacity.value = withDelay(280, withTiming(0.88, { duration: 380, easing: Easing.out(Easing.cubic) }));
+    taglineY.value = withDelay(280, withSpring(0, SPRING_CONFIG));
 
     const t = setTimeout(() => setMinTimeElapsed(true), MIN_VISIBLE_MS);
     return () => {
@@ -72,11 +67,6 @@ export function SplashScreen({ onFinish, ready }: Props) {
     opacity: logoOpacity.value,
   }));
 
-  const titleAnimated = useAnimatedStyle(() => ({
-    opacity: titleOpacity.value,
-    transform: [{ translateY: titleY.value }],
-  }));
-
   const taglineAnimated = useAnimatedStyle(() => ({
     opacity: taglineOpacity.value,
     transform: [{ translateY: taglineY.value }],
@@ -91,12 +81,9 @@ export function SplashScreen({ onFinish, ready }: Props) {
       <StatusBar style="light" />
       <View style={styles.inner}>
         <Animated.View style={logoAnimated}>
-          <AdiverseLogo size={Platform.OS === 'web' ? 112 : 120} />
+          <AdiverseLogoHorizontal height={Platform.OS === 'web' ? 44 : 48} style={{ tintColor: '#ffffff' }} />
         </Animated.View>
-        <Animated.View style={[styles.textBlock, titleAnimated]}>
-          <Text style={styles.title}>Adiverse</Text>
-        </Animated.View>
-        <Animated.View style={taglineAnimated}>
+        <Animated.View style={[styles.textBlock, taglineAnimated]}>
           <Text style={styles.tagline}>Human Resource Management System</Text>
         </Animated.View>
       </View>
@@ -118,12 +105,6 @@ const styles = StyleSheet.create({
   textBlock: {
     marginTop: 20,
     alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    color: '#ffffff',
   },
   tagline: {
     marginTop: 6,

@@ -1,46 +1,38 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Image, ImageStyle, StyleProp } from 'react-native';
 
-/**
- * Adiverse logo — same brand as website (rounded square + "A").
- * Pure RN (no react-native-svg) to avoid native module issues.
- */
-export function AdiverseLogo({ size = 120 }: { size?: number }) {
+const LOGO_MARK = require('@/assets/images/logo.png');
+const LOGO_HORIZONTAL = require('@/assets/images/logo-horizontal.png');
+
+type Props = {
+  size?: number;
+  style?: StyleProp<ImageStyle>;
+};
+
+/** Normal / mark logo (Asset 9) — use everywhere as the brand icon. */
+export function AdiverseLogo({ size = 120, style }: Props) {
   return (
-    <View style={[styles.box, { width: size, height: size, borderRadius: size * (14 / 64) }]}>
-      <Text style={[styles.letter, { fontSize: size * 0.5 }]}>A</Text>
-      <View style={[styles.dots, { bottom: size * (6/64) }]}>
-        <View style={styles.dot} />
-        <View style={styles.dot} />
-        <View style={styles.dot} />
-      </View>
-    </View>
+    <Image
+      source={LOGO_MARK}
+      accessibilityLabel="Adiverse"
+      style={[{ width: size, height: size, resizeMode: 'contain' }, style]}
+    />
   );
 }
 
-const styles = StyleSheet.create({
-  box: {
-    backgroundColor: '#6366f1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  letter: {
-    color: '#ffffff',
-    fontWeight: '700',
-    marginBottom: -4,
-  },
-  dots: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-  },
-});
+/** Horizontal wordmark (Untitled-1) — use wherever the “Adiverse” name was shown. */
+export function AdiverseLogoHorizontal({
+  height = 36,
+  style,
+}: {
+  height?: number;
+  style?: StyleProp<ImageStyle>;
+}) {
+  return (
+    <Image
+      source={LOGO_HORIZONTAL}
+      accessibilityLabel="Adiverse"
+      style={[{ height, width: height * 4.2, maxWidth: 240, resizeMode: 'contain' }, style]}
+    />
+  );
+}

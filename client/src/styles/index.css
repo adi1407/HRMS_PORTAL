@@ -151,6 +151,15 @@ input, select, textarea { font-family: var(--font); }
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
+.sidebar-logo-horizontal {
+  height: 28px;
+  width: auto;
+  max-width: 148px;
+  object-fit: contain;
+  flex-shrink: 0;
+  /* Navy mark → light on dark sidebar */
+  filter: brightness(0) invert(1);
+}
 .sidebar-logo-icon { font-size: 24px; flex-shrink: 0; }
 .sidebar-logo-texts { display: flex; flex-direction: column; min-width: 0; }
 .sidebar-logo-text {
@@ -282,6 +291,13 @@ input, select, textarea { font-family: var(--font); }
 .topbar-menu-btn:hover { background: var(--gray-100); }
 .topbar-brand { display: flex; align-items: center; gap: 10px; }
 .topbar-logo-img { width: 28px; height: 28px; object-fit: contain; }
+.topbar-logo-horizontal {
+  height: 26px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+}
 .topbar-title {
   font-size: 15px; font-weight: 700;
   color: var(--gray-900); white-space: nowrap;
@@ -368,6 +384,15 @@ input, select, textarea { font-family: var(--font); }
   background: rgba(255,255,255,.12);
   padding: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.15);
+}
+.login-brand-horizontal {
+  height: 42px;
+  width: auto;
+  max-width: 240px;
+  object-fit: contain;
+  margin-bottom: 16px;
+  display: block;
+  filter: brightness(0) invert(1);
 }
 .login-brand-icon { font-size: 64px; margin-bottom: 16px; display: block; }
 .login-brand-name {
@@ -1428,6 +1453,7 @@ input, select, textarea { font-family: var(--font); }
   html { font-size: 15px; }
   .topbar { height: 52px; }
   .topbar-logo-img { width: 22px; height: 22px; }
+  .topbar-logo-horizontal { height: 22px; max-width: 110px; }
   .topbar-title { font-size: 14px; }
   .topbar-user { display: none; }
   .main-content { padding: 12px 10px; }
@@ -1435,6 +1461,7 @@ input, select, textarea { font-family: var(--font); }
   /* Login — single column, compact */
   .login-left { padding: 24px 20px 20px; }
   .login-brand-logo { width: 56px; height: 56px; padding: 8px; margin-bottom: 14px; }
+  .login-brand-horizontal { height: 32px; max-width: 180px; margin-bottom: 12px; }
   .login-brand-name { font-size: 22px; }
   .login-right { padding: 20px 16px; }
   .login-title { font-size: 22px; }

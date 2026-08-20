@@ -13,7 +13,7 @@ import {
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { AdiverseLogo } from '@/components/adiverse-logo';
+import { AdiverseLogoHorizontal } from '@/components/adiverse-logo';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -139,9 +139,8 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <AdiverseLogo size={72} />
+            <AdiverseLogoHorizontal height={40} />
             <View style={styles.brandText}>
-              <Text style={[styles.brandName, { color: colors.text }]}>Adiverse</Text>
               <Text style={[styles.tagline, { color: colors.textSecondary }]}>Human Resource Management System</Text>
             </View>
           </View>

@@ -74,9 +74,8 @@ export default function Layout() {
       <aside className={`sidebar${sidebarOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src="/logo.svg" alt="Adiverse" className="sidebar-logo-img" />
+            <img src="/logo-horizontal.png" alt="Adiverse" className="sidebar-logo-horizontal" />
             <div className="sidebar-logo-texts">
-              <span className="sidebar-logo-text">Adiverse</span>
               <span className="sidebar-logo-sub">HRMS Portal</span>
             </div>
           </div>
@@ -122,8 +121,7 @@ export default function Layout() {
             <Menu size={22} strokeWidth={2} />
           </button>
           <div className="topbar-brand">
-            <img src="/logo.svg" alt="Adiverse" className="topbar-logo-img" />
-            <span className="topbar-title">Adiverse</span>
+            <img src="/logo-horizontal.png" alt="Adiverse" className="topbar-logo-horizontal" />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <NotificationBell />
