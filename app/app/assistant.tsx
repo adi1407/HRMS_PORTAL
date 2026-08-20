@@ -130,7 +130,7 @@ export default function AssistantScreen() {
         const msg =
           ax?.response?.data?.message ||
           ax?.message ||
-          'Could not reach the assistant. Ensure OPENAI_API_KEY is set on the server.';
+          'Could not reach the assistant. Check that the server is running and try again.';
         setError(msg);
       } finally {
         setLoading(false);
@@ -164,7 +164,7 @@ export default function AssistantScreen() {
       {!aiConfigured && (
         <View style={[styles.banner, { backgroundColor: colors.textSecondary + '25' }]}>
           <Text style={[styles.bannerText, { color: colors.textSecondary }]}>
-            Server missing OPENAI_API_KEY — configure it for AI answers.
+            Assistant is temporarily unavailable. Refresh or contact your admin.
           </Text>
         </View>
       )}

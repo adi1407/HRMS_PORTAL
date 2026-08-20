@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { authenticate } = require('../middleware/auth.middleware');
-const { runAssistantChat } = require('../services/assistant.service');
+const { runAssistantChat, isAiConfigured, resolveModel } = require('../services/assistant.service');
 const {
   getThreadForUser,
   persistTranscript,
@@ -128,16 +128,16 @@ router.delete('/threads/:threadId', authenticate, async (req, res, next) => {
 });
 
 /**
- * GET /api/assistant/meta — suggested prompts and whether AI keys are configured.
+ * GET /api/assistant/meta — suggested prompts (local rules engine; no API key).
  */
 router.get('/meta', authenticate, (req, res) => {
-  const hasOpenAi = !!process.env.OPENAI_API_KEY?.trim();
-  const hasGroq = !!process.env.GROQ_API_KEY?.trim();
   res.json({
     success: true,
     data: {
       suggestedPrompts: suggestedPromptsForRole(req.user.role),
-      aiConfigured: hasOpenAi || hasGroq,
+      aiConfigured: isAiConfigured(),
+      provider: 'local',
+      model: resolveModel(),
     },
   });
 });

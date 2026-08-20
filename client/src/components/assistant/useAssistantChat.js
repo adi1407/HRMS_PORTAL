@@ -112,7 +112,7 @@ export function useAssistantChat() {
         const msg =
           e?.response?.data?.message ||
           e?.message ||
-          'Could not reach the assistant. Check that OPENAI_API_KEY is set on the server.';
+          'Could not reach the assistant. Check that the server is running and try again.';
         setError(msg);
       } finally {
         setLoading(false);

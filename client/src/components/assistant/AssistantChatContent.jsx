@@ -24,7 +24,7 @@ export default function AssistantChatContent({
     <>
       {!aiConfigured && (
         <div className="assistant-panel__banner">
-          Server missing <code>OPENAI_API_KEY</code> — configure it on Render for AI answers.
+          Assistant is temporarily unavailable. Refresh the page or contact your admin.
         </div>
       )}
 
