@@ -11,12 +11,13 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
-  SafeAreaView,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -142,7 +143,7 @@ function TicketDetailModal({
   return (
     <Modal visible animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <SafeAreaView style={styles.detailSafe}>
+        <SafeAreaView edges={["top"]} style={styles.detailSafe}>
           <View style={styles.detailHeader}>
             <TouchableOpacity onPress={onClose} style={styles.detailBack}>
               <MaterialIcons name="arrow-back" size={24} color={AppColors.text} />
@@ -243,7 +244,7 @@ function TicketDetailModal({
 
 // ─── Employee view: my tickets, create, detail ───────────────────────────
 function EmployeeTicketsView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -303,16 +304,16 @@ function EmployeeTicketsView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help Desk</Text>
-          <TouchableOpacity style={styles.headerAction} onPress={() => setCreateVisible(true)}>
-            <MaterialIcons name="add-circle-outline" size={26} color={AppColors.tint} />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title="Help Desk"
+          colors={colors}
+          right={
+            <TouchableOpacity style={styles.headerAction} onPress={() => setCreateVisible(true)}>
+              <MaterialIcons name="add-circle-outline" size={26} color={AppColors.tint} />
+            </TouchableOpacity>
+          }
+        />
       </SafeAreaView>
       <ScrollView
         style={styles.scroll}
@@ -437,7 +438,7 @@ function EmployeeTicketsView() {
 
 // ─── HR/Admin view: all tickets, stats, filters, detail with status update ──
 function AdminTicketsView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [stats, setStats] = useState<{ open?: number; inProgress?: number; resolved?: number; closed?: number; breached?: number }>({});
   const [loading, setLoading] = useState(true);
@@ -480,14 +481,8 @@ function AdminTicketsView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help Desk</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Help Desk" colors={colors} />
       </SafeAreaView>
       <ScrollView
         style={styles.scroll}

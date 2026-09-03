@@ -6,16 +6,17 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   Modal,
   TextInput,
   KeyboardAvoidingView,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 
 type TaskItem = { _id?: string; title: string; description?: string; status?: string };
@@ -35,7 +36,7 @@ function fmtDate(dateStr: string) {
 }
 
 export default function DailyTasksScreen() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [tab, setTab] = useState<'submit' | 'history'>('submit');
   const [todaySubmitted, setTodaySubmitted] = useState(false);
   const [entries, setEntries] = useState<DailyEntry[]>([]);
@@ -130,20 +131,18 @@ export default function DailyTasksScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Daily Tasks</Text>
-          {!todaySubmitted ? (
-            <TouchableOpacity style={styles.headerAction} onPress={() => setShowSubmit(true)}>
-              <MaterialIcons name="add-circle-outline" size={26} color={AppColors.tint} />
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.headerAction} />
-          )}
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title="Daily Tasks"
+          colors={colors}
+          right={
+            !todaySubmitted ? (
+              <TouchableOpacity style={styles.headerAction} onPress={() => setShowSubmit(true)}>
+                <MaterialIcons name="add-circle-outline" size={26} color={AppColors.tint} />
+              </TouchableOpacity>
+            ) : undefined
+          }
+        />
       </SafeAreaView>
 
       <Modal visible={showSubmit} transparent animationType="slide">

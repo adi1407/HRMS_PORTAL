@@ -9,15 +9,15 @@ import {
   Alert,
   RefreshControl,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, CardShadow } from '@/constants/theme';
 import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 
@@ -43,7 +43,6 @@ type Branch = {
 type Department = { _id: string; name: string };
 
 export default function BranchSettingsScreen() {
-  const router = useRouter();
   const colors = useAppColors();
   const getRole = useAuthStore((s) => s.getRole);
   const role = getRole();
@@ -52,14 +51,8 @@ export default function BranchSettingsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={[styles.header, { borderBottomColor: colors.textSecondary + '30' }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Office Settings</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Office Settings" colors={colors} />
       </SafeAreaView>
 
       <View style={[styles.tabRow, { borderBottomColor: colors.textSecondary + '20' }]}>

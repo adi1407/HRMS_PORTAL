@@ -4,15 +4,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  Platform,
-  ScrollView,
+  ScrollView
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, CardShadow } from '@/constants/theme';
 import { useThemeStore, type AppThemeMode } from '@/store/themeStore';
 import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 
 const APPEARANCE_OPTIONS: { value: AppThemeMode; label: string }[] = [
   { value: 'light', label: 'Light' },
@@ -21,29 +20,14 @@ const APPEARANCE_OPTIONS: { value: AppThemeMode; label: string }[] = [
 ];
 
 export default function AppPreferencesScreen() {
-  const router = useRouter();
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const colors = useAppColors();
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <SafeAreaView style={[styles.safeTop, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: colors.textSecondary + '30' }]}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <MaterialIcons
-              name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'}
-              size={Platform.OS === 'ios' ? 22 : 24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>App preferences</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={[styles.safeTop, { backgroundColor: colors.background }]}>
+        <ScreenHeader title="App preferences" colors={colors} />
       </SafeAreaView>
 
       <ScrollView

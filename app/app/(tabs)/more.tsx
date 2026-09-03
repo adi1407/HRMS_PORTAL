@@ -6,26 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, CardShadow } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useAppColors } from '@/hooks/use-app-theme';
 import { MoreMenuItem } from '@/components/more-menu-item';
 import api from '@/lib/api';
-
-const CARD_SHADOW = Platform.select({
-  ios: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-  },
-  android: { elevation: 2 },
-  default: {},
-});
 
 type MenuItem = {
   route: string;
@@ -80,7 +68,7 @@ export default function MoreScreen() {
     })).filter((g) => g.items.length > 0);
   }, [role]);
 
-  const borderMuted = colors.textSecondary + '40';
+  const borderMuted = colors.separator ?? colors.textSecondary + '40';
 
   const handleLogout = useCallback(() => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -106,25 +94,25 @@ export default function MoreScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={[styles.pageTitle, { color: colors.text }]}>More</Text>
-      <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Settings and shortcuts</Text>
+      <Text style={[styles.pageTitle, { color: colors.text }]}>Menu</Text>
+      <Text style={[styles.pageSubtitle, { color: colors.textTertiary }]}>Settings and shortcuts</Text>
 
       {/* App preferences — tap to open Light / System / Dark */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>App preferences</Text>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>App preferences</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <TouchableOpacity
             style={styles.menuRow}
             onPress={() => {
               router.push('/app-preferences');
             }}
-            activeOpacity={0.7}
+            activeOpacity={0.65}
           >
-            <View style={[styles.menuIconWrap, { backgroundColor: colors.tint + '20' }]}>
-              <MaterialIcons name="settings" size={22} color={colors.tint} />
+            <View style={[styles.menuIconWrap, { backgroundColor: colors.tint + '12' }]}>
+              <MaterialIcons name="settings" size={20} color={colors.tint} />
             </View>
             <Text style={[styles.menuLabel, { color: colors.text }]}>App preferences</Text>
-            <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
+            <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -132,8 +120,8 @@ export default function MoreScreen() {
       {/* Menu sections */}
       {bySection.map(({ section, items }) => (
         <View key={section} style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{section}</Text>
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>{section}</Text>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {items.map((item, index) => (
               <MoreMenuItem
                 key={item.route}
@@ -148,11 +136,11 @@ export default function MoreScreen() {
       ))}
 
       <TouchableOpacity
-        style={[styles.logoutBtn, { borderColor: colors.destructive }]}
+        style={[styles.logoutBtn, { borderColor: `${colors.destructive}55`, backgroundColor: `${colors.destructive}0A` }]}
         onPress={handleLogout}
         activeOpacity={0.8}
       >
-        <MaterialIcons name="logout" size={22} color={colors.destructive} />
+        <MaterialIcons name="logout" size={20} color={colors.destructive} />
         <Text style={[styles.logoutLabel, { color: colors.destructive }]}>Sign out</Text>
       </TouchableOpacity>
 
@@ -166,53 +154,51 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.xxl, paddingBottom: Spacing.section },
   bottomPad: { height: Spacing.section },
   pageTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
     marginBottom: 4,
   },
-  pageSubtitle: { fontSize: 15, marginBottom: Spacing.xl },
+  pageSubtitle: { fontSize: 14, marginBottom: Spacing.xl, fontWeight: '500' },
   section: { marginBottom: Spacing.xl },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: Spacing.sm,
     marginLeft: Spacing.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   card: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    ...CARD_SHADOW,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...CardShadow,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.md + 2,
     paddingHorizontal: Spacing.lg,
   },
-  menuRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
   menuIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
+    width: 34,
+    height: 34,
+    borderRadius: BorderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.md,
   },
-  menuLabel: { flex: 1, fontSize: 17, fontWeight: '500' },
+  menuLabel: { flex: 1, fontSize: 16, fontWeight: '500', letterSpacing: -0.2 },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    height: 52,
+    height: 50,
     borderRadius: BorderRadius.md,
-    borderWidth: 2,
+    borderWidth: StyleSheet.hairlineWidth,
     marginTop: Spacing.sm,
   },
-  logoutLabel: { fontSize: 17, fontWeight: '600' },
+  logoutLabel: { fontSize: 16, fontWeight: '600' },
 });

@@ -6,19 +6,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  Platform,
-  SafeAreaView,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 
 const TYPE_CONFIG: Record<string, { icon: string; label: string; bg: string; color: string }> = {
   BIRTHDAY: { icon: 'cake', label: 'Birthday', bg: '#fce7f3', color: '#be185d' },
   WORK_ANNIVERSARY: { icon: 'celebration', label: 'Anniversary', bg: '#fef3c7', color: '#b45309' },
-  PROBATION_REMINDER: { icon: 'schedule', label: 'Probation', bg: '#dbeafe', color: '#2563eb' },
+  PROBATION_REMINDER: { icon: 'schedule', label: 'Probation', bg: '#eff6ff', color: '#2563eb' },
   LEAVE_BALANCE: { icon: 'today', label: 'Leave Balance', bg: '#dcfce7', color: '#15803d' },
   SLA_BREACH: { icon: 'warning', label: 'SLA Breach', bg: '#fee2e2', color: '#b91c1c' },
 };
@@ -38,7 +38,7 @@ type Stats = {
 };
 
 export default function EmailAlertsScreen() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [stats, setStats] = useState<Stats>({});
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,14 +87,8 @@ export default function EmailAlertsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Email Alerts</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Email Alerts" colors={colors} />
       </SafeAreaView>
 
       <ScrollView
@@ -123,13 +117,13 @@ export default function EmailAlertsScreen() {
 
         {!loading && (
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: '#dbeafe' }]}>
-              <Text style={[styles.statValue, { color: '#2563eb' }]}>{stats.total ?? '—'}</Text>
-              <Text style={[styles.statLabel, { color: '#2563eb' }]}>Total</Text>
+            <View style={[styles.statCard, { backgroundColor: `${colors.tint}14` }]}>
+              <Text style={[styles.statValue, { color: colors.tint }]}>{stats.total ?? '—'}</Text>
+              <Text style={[styles.statLabel, { color: colors.tint }]}>Total</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: '#dcfce7' }]}>
-              <Text style={[styles.statValue, { color: '#15803d' }]}>{stats.sentToday ?? '—'}</Text>
-              <Text style={[styles.statLabel, { color: '#15803d' }]}>Today</Text>
+            <View style={[styles.statCard, { backgroundColor: `${colors.success}14` }]}>
+              <Text style={[styles.statValue, { color: colors.success }]}>{stats.sentToday ?? '—'}</Text>
+              <Text style={[styles.statLabel, { color: colors.success }]}>Today</Text>
             </View>
           </View>
         )}

@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,12 +19,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '@/lib/api';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useAppColors, useAppTheme } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import type { AssistantChatMessage } from '@/types/assistant';
 
 const THREAD_STORAGE_KEY = '@hrms_assistant_thread_id';
 
 export default function AssistantScreen() {
-  const router = useRouter();
   const colors = useAppColors();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -144,25 +143,20 @@ export default function AssistantScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      <View style={[styles.header, { borderBottomColor: colors.textSecondary + '30' }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <MaterialIcons name="smart-toy" size={22} color={colors.tint} />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>HRMS Assistant</Text>
-        </View>
-        {showNewChat ? (
-          <TouchableOpacity onPress={startNewChat} hitSlop={12} style={styles.newChatBtn}>
-            <Text style={[styles.newChatText, { color: colors.tint }]}>New</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
-      </View>
+      <ScreenHeader
+        title="HRMS Assistant"
+        colors={colors}
+        right={
+          showNewChat ? (
+            <TouchableOpacity onPress={startNewChat} hitSlop={12} style={styles.newChatBtn}>
+              <Text style={[styles.newChatText, { color: colors.tint }]}>New</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
       {!aiConfigured && (
-        <View style={[styles.banner, { backgroundColor: colors.textSecondary + '25' }]}>
+        <View style={[styles.banner, { backgroundColor: colors.surfaceMuted }]}>
           <Text style={[styles.bannerText, { color: colors.textSecondary }]}>
             Assistant is temporarily unavailable. Refresh or contact your admin.
           </Text>
@@ -170,7 +164,7 @@ export default function AssistantScreen() {
       )}
 
       {hydrating && (
-        <View style={[styles.banner, { backgroundColor: colors.textSecondary + '18' }]}>
+        <View style={[styles.banner, { backgroundColor: colors.surfaceMuted }]}>
           <Text style={[styles.bannerText, { color: colors.textSecondary }]}>Loading saved conversation…</Text>
         </View>
       )}

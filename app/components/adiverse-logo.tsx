@@ -9,8 +9,8 @@ type Props = {
   style?: StyleProp<ImageStyle>;
 };
 
-/** Normal / mark logo (Asset 9) — use everywhere as the brand icon. */
-export function AdiverseLogo({ size = 120, style }: Props) {
+/** Mark logo — compact chrome sizes: 22 / 28 / 36; larger for splash/login. */
+export function AdiverseLogo({ size = 28, style }: Props) {
   return (
     <Image
       source={LOGO_MARK}

@@ -7,18 +7,19 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   Modal,
   Alert,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, getAppColors, Colors } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { downloadAndShareFromApi } from '@/lib/download';
 
 type AttRecord = {
@@ -62,7 +63,7 @@ export default function AttendanceScreen() {
       FULL_DAY: colors.success,
       HALF_DAY: colors.warning,
       ABSENT: colors.danger,
-      ON_LEAVE: '#2563eb',
+      ON_LEAVE: colors.tint,
       HOLIDAY: '#059669',
       WEEKLY_OFF: colors.textSecondary,
     }),
@@ -297,14 +298,8 @@ export default function AttendanceScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Attendance</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Attendance" colors={colors} />
       </SafeAreaView>
 
       <ScrollView

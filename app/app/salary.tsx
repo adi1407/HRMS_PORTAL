@@ -10,15 +10,16 @@ import {
   Alert,
   RefreshControl,
   Platform,
-  ActivityIndicator,
-  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, getAppColors, Colors } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useRouter } from 'expo-router';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { downloadAndShareFromApi } from '@/lib/download';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -286,26 +287,8 @@ export default function SalaryScreen() {
     const msgText = statusMsg.replace(/^(success|error):/, '');
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <SafeAreaView style={styles.safeTop}>
-          <View style={styles.topNav}>
-            <TouchableOpacity
-              style={styles.topBackBtn}
-              onPress={() => router.back()}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <MaterialIcons
-                name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'}
-                size={Platform.OS === 'ios' ? 22 : 24}
-                color={colors.text}
-              />
-            </TouchableOpacity>
-            <Text style={styles.topNavTitle} numberOfLines={1}>
-              Salary &amp; payslips
-            </Text>
-            <View style={styles.topBackBtn} />
-          </View>
+        <SafeAreaView edges={["top"]} style={styles.safeTop}>
+          <ScreenHeader title="Salary & payslips" colors={colors} />
         </SafeAreaView>
         <ScrollView
           style={styles.scroll}
@@ -509,26 +492,8 @@ export default function SalaryScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.topNav}>
-          <TouchableOpacity
-            style={styles.topBackBtn}
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <MaterialIcons
-              name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'}
-              size={Platform.OS === 'ios' ? 22 : 24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-          <Text style={styles.topNavTitle} numberOfLines={1}>
-            Salary &amp; payslips
-          </Text>
-          <View style={styles.topBackBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Salary & payslips" colors={colors} />
       </SafeAreaView>
 
       <ScrollView

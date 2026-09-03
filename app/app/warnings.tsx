@@ -8,15 +8,16 @@ import {
   StyleSheet,
   RefreshControl,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
-  Alert,
+  Alert
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -172,7 +173,7 @@ function IssueWarningModal({
 
 // ─── Employee View (My Warnings) ─────────────────────────────────────────
 function EmployeeWarningsView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [list, setList] = useState<Warning[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -215,14 +216,8 @@ function EmployeeWarningsView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Warnings</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="My Warnings" colors={colors} />
       </SafeAreaView>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={80}>
         <ScrollView
@@ -341,7 +336,7 @@ function EmployeeWarningsView() {
 
 // ─── Admin View (Warnings & Disciplinary) ─────────────────────────────────
 function AdminWarningsView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -421,16 +416,16 @@ function AdminWarningsView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Warnings & Disciplinary</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowIssueModal(true)}>
-            <MaterialIcons name="add" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title="Warnings & Disciplinary"
+          colors={colors}
+          right={
+            <TouchableOpacity style={styles.addBtn} onPress={() => setShowIssueModal(true)}>
+              <MaterialIcons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+          }
+        />
       </SafeAreaView>
       <ScrollView
         style={styles.scroll}

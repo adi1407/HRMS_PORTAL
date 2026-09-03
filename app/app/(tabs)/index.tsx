@@ -7,11 +7,10 @@ import {
   RefreshControl,
   TouchableOpacity,
   Pressable,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius, getAppColors, Colors } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors, Colors, CardShadow } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
@@ -233,16 +232,16 @@ export default function HomeScreen() {
   const getRole = useAuthStore((s) => s.getRole);
   const role = getRole();
   const quickActions = useMemo(() => {
-    const blue = '#2563eb';
-    const purple = '#7c3aed';
+    const blue = colors.tint;
+    const navy = colors.navy;
     const base = [
       { id: 'checkin', label: 'Check In', icon: 'login' as const, route: '/(tabs)/checkin', color: colors.success },
       { id: 'leave', label: 'Apply Leave', icon: 'event-note' as const, route: '/(tabs)/leave', color: blue },
-      { id: 'salary', label: 'My Salary', icon: 'payments' as const, route: '/salary', color: purple },
+      { id: 'salary', label: 'My Salary', icon: 'payments' as const, route: '/salary', color: navy },
       { id: 'attendance', label: 'Attendance', icon: 'today' as const, route: '/attendance', color: colors.warning },
     ];
     const hr = [
-      { id: 'employees', label: 'Employees', icon: 'people' as const, route: '/employees', color: purple },
+      { id: 'employees', label: 'Employees', icon: 'people' as const, route: '/employees', color: navy },
       { id: 'recruitment', label: 'Recruitment', icon: 'person-add' as const, route: '/recruitment', color: blue },
     ];
     return HR_ROLES.includes(role) ? [...base, ...hr] : base;
@@ -596,17 +595,6 @@ export default function HomeScreen() {
 }
 
 function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
-  const cardShadow = Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
-      shadowRadius: 8,
-    },
-    android: { elevation: theme === 'dark' ? 4 : 2 },
-    default: {},
-  });
-
   return StyleSheet.create({
     scroll: { flex: 1 },
     content: {
@@ -615,45 +603,49 @@ function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light
       paddingBottom: Spacing.section,
     },
     bottomPad: { height: Spacing.section },
-    hero: { marginBottom: 28 },
+    hero: { marginBottom: 24 },
     heroGreeting: {
-      fontSize: 28,
+      fontSize: 26,
       fontWeight: '700',
       letterSpacing: -0.5,
       color: colors.text,
       marginBottom: 4,
     },
-    heroName: { fontWeight: '700', color: colors.text },
-    heroDate: { fontSize: 15, color: colors.textSecondary },
-    quickSection: { marginBottom: 24 },
+    heroName: { fontWeight: '700', color: colors.tint },
+    heroDate: { fontSize: 14, color: colors.textTertiary, fontWeight: '500' },
+    quickSection: { marginBottom: 20 },
     quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
     quickCard: {
       width: '47%',
       backgroundColor: colors.card,
-      borderRadius: BorderRadius.xl,
+      borderRadius: BorderRadius.lg,
       padding: Spacing.lg,
       flexDirection: 'row',
       alignItems: 'center',
       minHeight: 64,
-      ...cardShadow,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      ...CardShadow,
     },
     quickCardPressed: { opacity: 0.88 },
     quickIconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: BorderRadius.md,
+      width: 40,
+      height: 40,
+      borderRadius: BorderRadius.sm,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: Spacing.md,
     },
-    quickLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
+    quickLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text, letterSpacing: -0.2 },
     quickArrow: { marginLeft: Spacing.xs },
     card: {
       backgroundColor: colors.card,
-      borderRadius: BorderRadius.xl,
+      borderRadius: BorderRadius.lg,
       padding: Spacing.xl,
       marginBottom: Spacing.xl,
-      ...cardShadow,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      ...CardShadow,
     },
     cardHeader: {
       flexDirection: 'row',
@@ -662,7 +654,7 @@ function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light
       marginBottom: Spacing.md,
     },
     cardTitle: {
-      fontSize: 22,
+      fontSize: 17,
       fontWeight: '700',
       color: colors.text,
       letterSpacing: -0.3,
@@ -680,7 +672,7 @@ function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light
       width: 36,
       height: 36,
       borderRadius: BorderRadius.sm,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surfaceMuted,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -692,9 +684,9 @@ function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light
       paddingVertical: Spacing.sm,
       borderRadius: BorderRadius.md,
       marginBottom: Spacing.md,
-      backgroundColor: `${colors.tint}18`,
+      backgroundColor: `${colors.tint}14`,
     },
-    statusBadgeText: { fontSize: 15, fontWeight: '600', color: colors.tint },
+    statusBadgeText: { fontSize: 14, fontWeight: '600', color: colors.tint },
     timeRows: { gap: Spacing.sm },
     timeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     timeVal: { marginLeft: 'auto', fontSize: 15, fontWeight: '500', color: colors.text },
@@ -704,17 +696,17 @@ function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light
       alignItems: 'center',
       justifyContent: 'center',
       gap: Spacing.sm,
-      height: 52,
+      height: 50,
       borderRadius: BorderRadius.md,
       backgroundColor: colors.tint,
     },
-    checkInCtaText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
-    muted: { fontSize: 15, color: colors.textSecondary },
+    checkInCtaText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+    muted: { fontSize: 14, color: colors.textSecondary },
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
     statItem: { alignItems: 'center', minWidth: 72 },
     statDot: { width: 8, height: 8, borderRadius: 4, marginBottom: Spacing.xs },
-    statNum: { fontSize: 22, fontWeight: '700', color: colors.text },
-    statLabel: { fontSize: 13, color: colors.textSecondary },
+    statNum: { fontSize: 20, fontWeight: '700', color: colors.text, letterSpacing: -0.3 },
+    statLabel: { fontSize: 12, color: colors.textTertiary, fontWeight: '500' },
     detailRows: {},
     detailRow: {
       flexDirection: 'row',
@@ -736,7 +728,7 @@ function createHomeStyles(colors: ReturnType<typeof getAppColors>, theme: 'light
     },
     holidayInfo: { flex: 1 },
     holidayName: { fontWeight: '600', fontSize: 15, color: colors.text },
-    holidayType: { fontSize: 13, color: colors.textSecondary },
+    holidayType: { fontSize: 12, color: colors.textTertiary, fontWeight: '500' },
     leaveRow: { paddingVertical: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
     leaveType: { fontWeight: '600', marginBottom: 2, fontSize: 15, color: colors.text },
   });

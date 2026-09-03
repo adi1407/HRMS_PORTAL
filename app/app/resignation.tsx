@@ -9,13 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  SafeAreaView,
   Modal,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { downloadAndShareFromApi } from '@/lib/download';
@@ -381,7 +382,7 @@ function HRPanel({ onRefresh }: { onRefresh: () => void }) {
 
 // ─── Head View: Pending / All tabs, approve/reject, download ──────────────
 function HeadView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [pendingList, setPendingList] = useState<Resignation[]>([]);
   const [allList, setAllList] = useState<Resignation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -440,14 +441,8 @@ function HeadView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Resignation Management</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Resignation Management" colors={colors} />
       </SafeAreaView>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageSubtitle}>Final approval authority</Text>
@@ -555,20 +550,14 @@ function HeadView() {
 
 // ─── HR Combined: HR panel + My Resignation (collapsible) ───────────────
 function HRCombinedView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [myOpen, setMyOpen] = useState(false);
   const [msg, setMsg] = useState('');
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Resignation</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Resignation" colors={colors} />
       </SafeAreaView>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageSubtitle}>Review employee resignations and manage your own</Text>
@@ -596,17 +585,11 @@ function HRCombinedView() {
 
 // ─── Employee View ──────────────────────────────────────────────────────
 function EmployeeView() {
-  const router = useRouter();
+  const colors = useAppColors();
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Resignation</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Resignation" colors={colors} />
       </SafeAreaView>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageSubtitle}>Submit and track your resignation request</Text>

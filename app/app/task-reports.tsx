@@ -7,14 +7,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  Platform,
-  SafeAreaView,
   ActivityIndicator,
-  Alert,
+  Alert
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import { downloadAndShareFromApi } from '@/lib/download';
 
@@ -71,7 +71,7 @@ function fmt(dateStr: string) {
 }
 
 export default function TaskReportsScreen() {
-  const router = useRouter();
+  const colors = useAppColors();
   const now = new Date();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [departments, setDepartments] = useState<{ _id: string; name: string }[]>([]);
@@ -150,18 +150,12 @@ export default function TaskReportsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => (viewData ? setViewEmployee(null) : router.back())}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{viewData ? 'Employee Tasks' : 'Task Reports'}</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title={viewData ? 'Employee Tasks' : 'Task Reports'}
+          colors={colors}
+          onBack={viewData ? () => setViewEmployee(null) : undefined}
+        />
       </SafeAreaView>
 
       <ScrollView

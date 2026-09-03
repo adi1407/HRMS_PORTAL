@@ -7,17 +7,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  SafeAreaView,
   Platform,
   ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
   Alert,
-  Switch,
+  Switch
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -50,7 +51,7 @@ type OnboardingRecord = {
 
 const CATEGORIES: Record<string, { label: string; color: string; icon: keyof typeof MaterialIcons.glyphMap }> = {
   DOCUMENTS: { label: 'Documents', color: '#2563eb', icon: 'description' },
-  IT_SETUP: { label: 'IT Setup', color: '#7c3aed', icon: 'computer' },
+  IT_SETUP: { label: 'IT Setup', color: '#1d4ed8', icon: 'computer' },
   HR_FORMALITIES: { label: 'HR Formalities', color: '#b45309', icon: 'assignment' },
   TRAINING: { label: 'Training', color: '#15803d', icon: 'school' },
   OTHER: { label: 'Other', color: '#6b7280', icon: 'label' },
@@ -386,7 +387,7 @@ function OnboardingDetailView({
 
 // ─── HR Admin View ────────────────────────────────────────────────────────
 function AdminOnboardingView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [records, setRecords] = useState<OnboardingRecord[]>([]);
   const [stats, setStats] = useState<{ total?: number; inProgress?: number; completed?: number; overdue?: number }>({});
   const [loading, setLoading] = useState(true);
@@ -448,14 +449,12 @@ function AdminOnboardingView() {
     const fresh = records.find((r) => r._id === selected._id) ?? selected;
     return (
       <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-        <SafeAreaView style={styles.safeTop}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => { setSelected(null); fetchAll(); }} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Onboarding Detail</Text>
-            <View style={styles.backBtn} />
-          </View>
+        <SafeAreaView edges={["top"]} style={styles.safeTop}>
+          <ScreenHeader
+            title="Onboarding Detail"
+            colors={colors}
+            onBack={() => { setSelected(null); fetchAll(); }}
+          />
         </SafeAreaView>
         <OnboardingDetailView record={fresh} onBack={() => { setSelected(null); fetchAll(); }} onUpdated={fetchAll} />
       </View>
@@ -464,14 +463,8 @@ function AdminOnboardingView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Employee Onboarding</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Employee Onboarding" colors={colors} />
       </SafeAreaView>
 
       <ScrollView
@@ -606,7 +599,7 @@ function AdminOnboardingView() {
 
 // ─── Employee: My Onboarding ──────────────────────────────────────────────
 function MyOnboardingView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [record, setRecord] = useState<OnboardingRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -654,14 +647,8 @@ function MyOnboardingView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Onboarding</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Onboarding" colors={colors} />
       </SafeAreaView>
 
       <ScrollView

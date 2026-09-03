@@ -25,6 +25,10 @@ const STATS = [
   { Icon: Clock,  value: '24/7',  label: 'Support' },
 ];
 
+const DEMO_ACCOUNTS = [
+  { role: 'Super Admin', email: 'admin@hrms.com', password: 'Admin@123' },
+];
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
@@ -41,7 +45,13 @@ export default function LoginPage() {
     }
   }, []);
 
-  const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({ resolver: zodResolver(schema) });
+
+  const fillDemo = (account) => {
+    setValue('email', account.email, { shouldValidate: true });
+    setValue('password', account.password, { shouldValidate: true });
+    setServerError('');
+  };
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -133,6 +143,23 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <div className="login-demo">
+            <p className="login-demo-title">Demo credentials</p>
+            {DEMO_ACCOUNTS.map((account) => (
+              <button
+                key={account.email}
+                type="button"
+                className="login-demo-card"
+                onClick={() => fillDemo(account)}
+                disabled={loading}
+              >
+                <span className="login-demo-role">{account.role}</span>
+                <span className="login-demo-line"><strong>Email:</strong> {account.email}</span>
+                <span className="login-demo-line"><strong>Password:</strong> {account.password}</span>
+                <span className="login-demo-hint">Tap to autofill</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ import {
 import * as Location from 'expo-location';
 import * as LocalAuthentication from 'expo-local-authentication';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius, getAppColors } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors, CardShadow } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import api from '@/lib/api';
 import {
@@ -532,18 +532,8 @@ export default function CheckInScreen() {
 }
 
 function createCheckinStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
-  const cardShadow = Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
-      shadowRadius: 8,
-    },
-    android: { elevation: theme === 'dark' ? 4 : 2 },
-    default: {},
-  });
-  const hairlineBorder = theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
-  const inputBorder = theme === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.1)';
+  const hairlineBorder = colors.border;
+  const inputBorder = colors.border;
 
   return StyleSheet.create({
     scroll: { flex: 1 },
@@ -551,13 +541,13 @@ function createCheckinStyles(colors: ReturnType<typeof getAppColors>, theme: 'li
     bottomPad: { height: Spacing.section },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     pageTitle: {
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: '700',
       color: colors.text,
-      letterSpacing: -0.3,
+      letterSpacing: -0.4,
       marginBottom: 4,
     },
-    pageSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.xl },
+    pageSubtitle: { fontSize: 14, color: colors.textTertiary, marginBottom: Spacing.xl, fontWeight: '500' },
     alert: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -579,17 +569,21 @@ function createCheckinStyles(colors: ReturnType<typeof getAppColors>, theme: 'li
       backgroundColor: colors.card,
       borderRadius: BorderRadius.lg,
       marginBottom: Spacing.xl,
-      ...cardShadow,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      ...CardShadow,
     },
     summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     summaryText: { fontSize: 14, color: colors.textSecondary },
     summaryBold: { fontWeight: '600', color: colors.text },
     card: {
       backgroundColor: colors.card,
-      borderRadius: BorderRadius.xl,
+      borderRadius: BorderRadius.lg,
       padding: Spacing.xl,
       marginBottom: Spacing.xl,
-      ...cardShadow,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      ...CardShadow,
     },
     stepHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
     stepNum: {

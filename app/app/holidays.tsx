@@ -5,20 +5,20 @@ import {
   Text,
   StyleSheet,
   RefreshControl,
-  TouchableOpacity,
-  SafeAreaView,
-  Platform,
+  TouchableOpacity
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 
 type Holiday = { _id: string; name: string; date: string; type?: string };
 
 const TYPE_COLORS: Record<string, string> = {
   NATIONAL: '#2563eb',
-  REGIONAL: '#7c3aed',
+  REGIONAL: '#1d4ed8',
   COMPANY: '#059669',
   OPTIONAL: '#d97706',
 };
@@ -44,7 +44,7 @@ function isUpcoming(dateStr: string) {
 }
 
 export default function HolidaysScreen() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [year, setYear] = useState(currentYear);
   const [loading, setLoading] = useState(true);
@@ -71,14 +71,8 @@ export default function HolidaysScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Holidays</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Holidays" colors={colors} />
       </SafeAreaView>
 
       <ScrollView

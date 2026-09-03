@@ -1,9 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, RefreshControl, TouchableOpacity, Linking, Alert, SafeAreaView, Platform, Modal, TextInput, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  RefreshControl,
+  TouchableOpacity,
+  Linking,
+  Alert,
+  Platform,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  ActivityIndicator
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 
 const DOC_TYPES = [
@@ -19,7 +35,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   OFFER_LETTER: { bg: '#dbeafe', text: '#2563eb' },
   ID_PROOF: { bg: '#fef3c7', text: '#d97706' },
   CERTIFICATE: { bg: '#dcfce7', text: '#16a34a' },
-  CONTRACT: { bg: '#f3e8ff', text: '#7c3aed' },
+  CONTRACT: { bg: '#eff6ff', text: '#1d4ed8' },
   PAYSLIP: { bg: '#ffedd5', text: '#ea580c' },
   OTHER: { bg: '#f3f4f6', text: '#374151' },
 };
@@ -45,7 +61,7 @@ type Doc = {
 const DOC_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
 export default function DocumentsScreen() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -158,16 +174,16 @@ export default function DocumentsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Documents</Text>
-          <TouchableOpacity style={styles.headerAction} onPress={() => setShowUpload(true)}>
-            <MaterialIcons name="upload-file" size={24} color={AppColors.tint} />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title="Documents"
+          colors={colors}
+          right={
+            <TouchableOpacity style={styles.headerAction} onPress={() => setShowUpload(true)}>
+              <MaterialIcons name="upload-file" size={24} color={AppColors.tint} />
+            </TouchableOpacity>
+          }
+        />
       </SafeAreaView>
 
       <Modal visible={showUpload} transparent animationType="slide">

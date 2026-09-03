@@ -35,12 +35,12 @@ export const MoreMenuItem = memo(function MoreMenuItem({
     : undefined;
 
   return (
-    <TouchableOpacity style={[styles.menuRow, borderStyle]} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.menuIconWrap, { backgroundColor: colors.tint + '20' }]}>
-        <MaterialIcons name={item.icon} size={22} color={colors.tint} />
+    <TouchableOpacity style={[styles.menuRow, borderStyle]} onPress={onPress} activeOpacity={0.65}>
+      <View style={[styles.menuIconWrap, { backgroundColor: `${colors.tint}12` }]}>
+        <MaterialIcons name={item.icon} size={20} color={colors.tint} />
       </View>
       <Text style={[styles.menuLabel, { color: colors.text }]}>{item.label}</Text>
-      <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
+      <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary ?? colors.textSecondary} />
     </TouchableOpacity>
   );
 });
@@ -49,19 +49,19 @@ const styles = StyleSheet.create({
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.md + 2,
     paddingHorizontal: Spacing.lg,
   },
   menuRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   menuIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
+    width: 34,
+    height: 34,
+    borderRadius: BorderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.md,
   },
-  menuLabel: { flex: 1, fontSize: 17, fontWeight: '500' },
+  menuLabel: { flex: 1, fontSize: 16, fontWeight: '500', letterSpacing: -0.2 },
 });

@@ -10,16 +10,17 @@ import {
   RefreshControl,
   Linking,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
-  Switch,
+  Switch
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -77,7 +78,7 @@ function formatBytes(b: number | undefined): string {
 }
 
 function EmployeePoliciesView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const { user } = useAuthStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,14 +145,8 @@ function EmployeePoliciesView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Policies</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Policies" colors={colors} />
       </SafeAreaView>
 
       <ScrollView
@@ -315,7 +310,7 @@ type PolicyStats = { totalPolicies?: number; activePolicies?: number; mandatoryP
 type PendingEmployee = { _id: string; name?: string; employeeId?: string; designation?: string };
 
 function AdminPoliciesView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [stats, setStats] = useState<PolicyStats>({});
   const [loading, setLoading] = useState(true);
@@ -472,16 +467,16 @@ function AdminPoliciesView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Policies (Admin)</Text>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => setShowUpload(true)}>
-            <MaterialIcons name="upload-file" size={24} color={AppColors.tint} />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title="Policies (Admin)"
+          colors={colors}
+          right={
+            <TouchableOpacity style={styles.headerBtn} onPress={() => setShowUpload(true)}>
+              <MaterialIcons name="upload-file" size={24} color={AppColors.tint} />
+            </TouchableOpacity>
+          }
+        />
       </SafeAreaView>
 
       <ScrollView

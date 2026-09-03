@@ -14,17 +14,20 @@ import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AdiverseLogoHorizontal } from '@/components/adiverse-logo';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, CardShadow, Brand } from '@/constants/theme';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
-import { useAppColors } from '@/hooks/use-app-theme';
+import { useAppColors, useAppTheme } from '@/hooks/use-app-theme';
 import { API_BASE_URL } from '@/config/env';
 
-/** Wake Render / slow LAN before login; same timeout as a single slow cold start */
 const WAKE_MS = 120000;
 const LOGIN_MS = 120000;
 const LOGIN_ATTEMPTS = 3;
 const RETRY_GAP_MS = 2500;
+
+const DEMO_ACCOUNTS = [
+  { role: 'Super Admin', email: 'admin@hrms.com', password: 'Admin@123' },
+];
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -34,6 +37,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
   const colors = useAppColors();
+  const theme = useAppTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,7 +55,6 @@ export default function LoginScreen() {
     setStatusLine('');
     setLoading(true);
     try {
-      // 1) Warm up cold Render / verify LAN path (ignore failure — some stacks block GET)
       setStatusLine('Connecting to server…');
       try {
         await api.get('/health', { timeout: WAKE_MS });
@@ -128,7 +131,8 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      <View style={[styles.heroBand, { backgroundColor: Brand.navy }]} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboard}
@@ -140,33 +144,67 @@ export default function LoginScreen() {
         >
           <View style={styles.header}>
             <AdiverseLogoHorizontal height={40} />
-            <View style={styles.brandText}>
-              <Text style={[styles.tagline, { color: colors.textSecondary }]}>Human Resource Management System</Text>
-            </View>
+            <Text style={[styles.tagline, { color: colors.textSecondary }]}>
+              Human Resource Management System
+            </Text>
           </View>
 
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+              CardShadow,
+            ]}
+          >
             <Text style={[styles.cardTitle, { color: colors.text }]}>Sign in</Text>
-            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>Use your work email and password</Text>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+              Use your work email and password
+            </Text>
 
+            <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>Email</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: `${colors.textSecondary}20`, color: colors.text }]}
-              placeholder="Email"
-              placeholderTextColor={colors.textSecondary}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder="name@company.com"
+              placeholderTextColor={colors.textTertiary}
               value={email}
-              onChangeText={(t: string) => { setEmail(t); setError(''); }}
+              onChangeText={(t: string) => {
+                setEmail(t);
+                setError('');
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
               textContentType="emailAddress"
               editable={!loading}
             />
+            <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>Password</Text>
             <TextInput
-              style={[styles.input, styles.inputLast, { backgroundColor: `${colors.textSecondary}20`, color: colors.text }]}
-              placeholder="Password"
-              placeholderTextColor={colors.textSecondary}
+              style={[
+                styles.input,
+                styles.inputLast,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textTertiary}
               value={password}
-              onChangeText={(t: string) => { setPassword(t); setError(''); }}
+              onChangeText={(t: string) => {
+                setPassword(t);
+                setError('');
+              }}
               secureTextEntry
               textContentType="password"
               editable={!loading}
@@ -174,7 +212,7 @@ export default function LoginScreen() {
           </View>
 
           {error ? (
-            <View style={[styles.errorBox, { backgroundColor: `${colors.destructive}1F` }]}>
+            <View style={[styles.errorBox, { backgroundColor: `${colors.destructive}14` }]}>
               <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
             </View>
           ) : null}
@@ -183,7 +221,7 @@ export default function LoginScreen() {
             style={[styles.button, { backgroundColor: colors.tint }, loading && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={loading}
-            activeOpacity={0.82}
+            activeOpacity={0.85}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -196,10 +234,38 @@ export default function LoginScreen() {
             <Text style={[styles.statusLine, { color: colors.textSecondary }]}>{statusLine}</Text>
           ) : null}
 
-          <Text style={[styles.footer, { color: colors.textSecondary }]}>Secure sign-in to your HRMS account</Text>
-          <Text style={[styles.devApiHint, { color: colors.textSecondary }]} selectable>
+          <View style={[styles.demoBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <Text style={[styles.demoTitle, { color: colors.textTertiary }]}>Demo credentials</Text>
+            {DEMO_ACCOUNTS.map((account) => (
+              <TouchableOpacity
+                key={account.email}
+                style={[styles.demoCard, { borderColor: colors.border }]}
+                onPress={() => {
+                  setEmail(account.email);
+                  setPassword(account.password);
+                  setError('');
+                }}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.demoRole, { color: colors.tint }]}>{account.role}</Text>
+                <Text style={[styles.demoLine, { color: colors.text }]}>
+                  Email: {account.email}
+                </Text>
+                <Text style={[styles.demoLine, { color: colors.text }]}>
+                  Password: {account.password}
+                </Text>
+                <Text style={[styles.demoHint, { color: colors.textSecondary }]}>Tap to autofill</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={[styles.footer, { color: colors.textTertiary }]}>Secure sign-in to your HRMS account</Text>
+          <Text style={[styles.devApiHint, { color: colors.textTertiary }]} selectable>
             Server: {API_BASE_URL}
-            {__DEV__ ? '\n(Local dev: change app/.env and restart Metro.)' : '\n(Baked into APK at build time from eas.json.)'}
+            {__DEV__
+              ? '\n(Local dev: change app/.env and restart Metro.)'
+              : '\n(Baked into APK at build time from eas.json.)'}
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -211,58 +277,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  heroBand: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 160,
+    opacity: 0.06,
+  },
   keyboard: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.xxl,
-    paddingTop: 56,
+    paddingTop: 48,
     paddingBottom: Spacing.section,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
-  },
-  brandText: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  brandName: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    marginBottom: 36,
   },
   tagline: {
-    fontSize: 15,
-    marginTop: 4,
+    fontSize: 14,
+    marginTop: 14,
     textAlign: 'center',
+    fontWeight: '500',
+    letterSpacing: 0.1,
   },
   card: {
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
-    ...(Platform.OS === 'android' ? { elevation: 2 } : {}),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   cardTitle: {
     fontSize: 22,
     fontWeight: '700',
+    letterSpacing: -0.4,
     marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     marginBottom: Spacing.xl,
+    lineHeight: 20,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   input: {
-    height: 52,
+    height: 50,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
-    fontSize: 17,
-    marginBottom: Spacing.md,
+    fontSize: 16,
+    marginBottom: Spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   inputLast: {
     marginBottom: 0,
@@ -274,8 +347,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   errorText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
+    lineHeight: 20,
   },
   button: {
     height: 52,
@@ -288,14 +362,48 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   statusLine: {
     fontSize: 13,
     textAlign: 'center',
     marginTop: Spacing.md,
     lineHeight: 18,
+  },
+  demoBox: {
+    marginTop: Spacing.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+  },
+  demoTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.sm,
+  },
+  demoCard: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+  },
+  demoRole: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  demoLine: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  demoHint: {
+    fontSize: 11,
+    marginTop: 6,
   },
   footer: {
     fontSize: 13,
@@ -307,7 +415,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.md,
     lineHeight: 16,
-    opacity: 0.85,
+    opacity: 0.9,
   },
 });
-

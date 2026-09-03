@@ -8,15 +8,16 @@ import {
   StyleSheet,
   RefreshControl,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
-  Alert,
+  Alert
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -312,7 +313,7 @@ function ReturnModal({ asset, onClose, onDone, showMsg }: { asset: Asset | null;
 
 // ─── Employee View (My Assets) ───────────────────────────────────────────
 function EmployeeAssetsView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -339,14 +340,8 @@ function EmployeeAssetsView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Assets</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="My Assets" colors={colors} />
       </SafeAreaView>
       <ScrollView
         style={styles.scroll}
@@ -407,7 +402,7 @@ function EmployeeAssetsView() {
 
 // ─── Admin View (Asset Management) ───────────────────────────────────────
 function AdminAssetsView() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -483,16 +478,16 @@ function AdminAssetsView() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Asset Management</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
-            <MaterialIcons name="add" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title="Asset Management"
+          colors={colors}
+          right={
+            <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
+              <MaterialIcons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+          }
+        />
       </SafeAreaView>
       <ScrollView
         style={styles.scroll}

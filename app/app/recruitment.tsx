@@ -7,17 +7,18 @@ import {
   StyleSheet,
   RefreshControl,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
   Modal,
   TextInput,
   Alert,
   Linking,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -909,7 +910,7 @@ function JobCard({
 
 // ─── Main screen ────────────────────────────────────────────────────────
 export default function RecruitmentScreen() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [stats, setStats] = useState<Stats>({});
   const [loading, setLoading] = useState(true);
@@ -982,14 +983,8 @@ export default function RecruitmentScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Recruitment</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Recruitment" colors={colors} />
       </SafeAreaView>
 
       <ScrollView

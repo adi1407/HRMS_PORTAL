@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Spacing, BorderRadius, getAppColors } from '@/constants/theme';
+import { Spacing, BorderRadius, getAppColors, CardShadow } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -552,31 +552,21 @@ export default function LeaveScreen() {
 }
 
 function createLeaveStyles(colors: ReturnType<typeof getAppColors>, theme: 'light' | 'dark') {
-  const cardShadow = Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: theme === 'dark' ? 0.35 : 0.06,
-      shadowRadius: 8,
-    },
-    android: { elevation: theme === 'dark' ? 4 : 2 },
-    default: {},
-  });
-  const fillMuted = theme === 'dark' ? 'rgba(120,120,128,0.28)' : 'rgba(118,118,128,0.12)';
-  const borderMuted = theme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(118,118,128,0.2)';
+  const fillMuted = colors.surfaceMuted;
+  const borderMuted = colors.border;
 
   return StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: Spacing.xxl, paddingBottom: Spacing.section },
   bottomPad: { height: Spacing.section },
   pageTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     color: colors.text,
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
     marginBottom: 4,
   },
-  pageSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.xl },
+  pageSubtitle: { fontSize: 14, color: colors.textTertiary, marginBottom: Spacing.xl, fontWeight: '500' },
   alert: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -601,9 +591,11 @@ function createLeaveStyles(colors: ReturnType<typeof getAppColors>, theme: 'ligh
   tabTextActive: { color: '#fff' },
   card: {
     backgroundColor: colors.card,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
-    ...cardShadow,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    ...CardShadow,
   },
   cardTitle: { fontSize: 17, fontWeight: '600', color: colors.text, marginBottom: 4 },
   muted: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: Spacing.md },
@@ -612,12 +604,12 @@ function createLeaveStyles(colors: ReturnType<typeof getAppColors>, theme: 'ligh
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    height: 52,
+    height: 50,
     borderRadius: BorderRadius.md,
     backgroundColor: colors.tint,
   },
   primaryBtnDisabled: { opacity: 0.6 },
-  primaryBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
+  primaryBtnText: { fontSize: 16, fontWeight: '600', color: '#fff' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.lg },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl },
   emptyText: { fontSize: 16, fontWeight: '600', color: colors.text, marginTop: Spacing.sm },

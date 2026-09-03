@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +16,7 @@ import api from '@/lib/api';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useAppColors, useAppTheme } from '@/hooks/use-app-theme';
 import { useAuthStore } from '@/store/authStore';
+import { ScreenHeader } from '@/components/ui/screen-header';
 
 type Ratee = { _id: string; name: string; employeeId: string; role: string };
 type RatingRow = {
@@ -45,7 +45,6 @@ function isAdmin(role: string) {
 }
 
 export default function FeedbackRatingsScreen() {
-  const router = useRouter();
   const colors = useAppColors();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -206,13 +205,7 @@ export default function FeedbackRatingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      <View style={[styles.header, { borderBottomColor: colors.textSecondary + '30' }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Weekly feedback</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <ScreenHeader title="Weekly feedback" colors={colors} />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
         {canSubmit(role) && <Tab id="submit" label="Submit" />}

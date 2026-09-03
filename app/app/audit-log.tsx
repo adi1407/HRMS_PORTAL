@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(118,118,128,0.0)',
   },
-  chipActive: { backgroundColor: '#6366f1' },
+  chipActive: { backgroundColor: '#2563eb' },
   chipText: { fontSize: 13, fontWeight: '800', color: '#3C3C43' },
   chipTextActive: { color: '#fff' },
 

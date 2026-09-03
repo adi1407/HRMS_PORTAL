@@ -6,24 +6,25 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  Platform,
-  SafeAreaView,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 
 const TYPE_CFG: Record<string, { icon: string; color: string }> = {
   LEAVE_APPROVED:      { icon: 'check-circle',      color: '#16a34a' },
   LEAVE_REJECTED:     { icon: 'cancel',            color: '#dc2626' },
   LEAVE_REQUEST:      { icon: 'list',              color: '#2563eb' },
-  TICKET_UPDATE:      { icon: 'confirmation-number', color: '#7c3aed' },
+  TICKET_UPDATE:      { icon: 'confirmation-number', color: '#1d4ed8' },
   TICKET_ASSIGNED:    { icon: 'confirmation-number', color: '#ea580c' },
   TICKET_NEW:         { icon: 'add-circle',        color: '#0891b2' },
   ANNOUNCEMENT:       { icon: 'campaign',          color: '#2563eb' },
-  ONBOARDING_ASSIGNED: { icon: 'school',           color: '#7c3aed' },
+  ONBOARDING_ASSIGNED: { icon: 'school',           color: '#1d4ed8' },
   ONBOARDING_COMPLETE: { icon: 'celebration',       color: '#16a34a' },
   ASSET_ASSIGNED:     { icon: 'laptop',            color: '#0891b2' },
   ASSET_RETURNED:     { icon: 'inventory',         color: '#6b7280' },
@@ -61,6 +62,7 @@ function timeAgo(dateStr: string): string {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const colors = useAppColors();
   const [list, setList] = useState<Notif[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -122,19 +124,11 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            Notifications
-            {unreadCount > 0 ? (
-              <Text style={styles.headerBadge}> ({unreadCount})</Text>
-            ) : null}
-          </Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title={unreadCount > 0 ? `Notifications (${unreadCount})` : 'Notifications'}
+          colors={colors}
+        />
       </SafeAreaView>
 
       <ScrollView

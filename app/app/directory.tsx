@@ -8,13 +8,13 @@ import {
   RefreshControl,
   TouchableOpacity,
   Linking,
-  Platform,
-  SafeAreaView,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, AppColors, CardShadow } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-theme';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -46,7 +46,7 @@ function getInitials(name: string): string {
 }
 
 export default function DirectoryScreen() {
-  const router = useRouter();
+  const colors = useAppColors();
   const [users, setUsers] = useState<DirUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [search, setSearch] = useState('');
@@ -97,14 +97,8 @@ export default function DirectoryScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: AppColors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={AppColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Directory</Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader title="Directory" colors={colors} />
       </SafeAreaView>
 
       <ScrollView

@@ -7,18 +7,19 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   Linking,
   Alert,
   Modal,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing, BorderRadius, getAppColors, Colors } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useAuthStore } from '@/store/authStore';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import api from '@/lib/api';
 
 type UserShape = {
@@ -186,16 +187,11 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <SafeAreaView style={styles.safeTop}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <MaterialIcons name={Platform.OS === 'ios' ? 'arrow-back-ios' : 'arrow-back'} size={Platform.OS === 'ios' ? 22 : 24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {isViewingOwn ? 'My Profile' : (displayUser?.name ?? 'Profile')}
-          </Text>
-          <View style={styles.backBtn} />
-        </View>
+      <SafeAreaView edges={["top"]} style={styles.safeTop}>
+        <ScreenHeader
+          title={isViewingOwn ? 'My Profile' : (displayUser?.name ?? 'Profile')}
+          colors={colors}
+        />
       </SafeAreaView>
 
       <ScrollView

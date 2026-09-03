@@ -1,51 +1,65 @@
 /**
- * Apple-inspired design system: SF-style typography, system colors, generous spacing.
- * Light/Dark aligned with iOS semantics.
+ * Official Adiverse HRMS design system — navy + blue, slate neutrals.
+ * Aligned with the web portal tokens (primary #2563eb, navy #0f172a).
  */
 
 import { Appearance, Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 
-// Brand purple (matches app logo)
-const tintLight = '#6366f1';
-const tintDark = '#6366f1';
+const tintLight = '#2563eb';
+const tintDark = '#3b82f6';
+const navy = '#0f172a';
+
+export const Brand = {
+  primary: tintLight,
+  primaryMid: '#3b82f6',
+  primaryDark: '#1d4ed8',
+  navy,
+  primaryLight: '#eff6ff',
+} as const;
 
 export const Colors = {
   light: {
-    text: '#1C1C1E',
-    textSecondary: '#3C3C43',
-    textTertiary: '#8E8E93',
-    background: '#F2F2F7',
+    text: '#0f172a',
+    textSecondary: '#475569',
+    textTertiary: '#94a3b8',
+    background: '#f8fafc',
     backgroundElevated: '#FFFFFF',
+    surfaceMuted: '#f1f5f9',
     tint: tintLight,
-    icon: '#8E8E93',
-    tabIconDefault: '#8E8E93',
+    navy,
+    icon: '#64748b',
+    tabIconDefault: '#94a3b8',
     tabIconSelected: tintLight,
-    separator: 'rgba(60,60,67,0.12)',
+    separator: 'rgba(15,23,42,0.08)',
+    border: '#e2e8f0',
     card: '#FFFFFF',
-    label: '#3C3C43',
-    fill: 'rgba(120,120,128,0.2)',
-    destructive: '#FF3B30',
-    success: '#34C759',
-    warning: '#FF9500',
+    label: '#475569',
+    fill: 'rgba(100,116,139,0.14)',
+    destructive: '#dc2626',
+    success: '#059669',
+    warning: '#d97706',
   },
   dark: {
-    text: '#FFFFFF',
-    textSecondary: '#EBEBF5',
-    textTertiary: '#8E8E93',
-    background: '#000000',
-    backgroundElevated: '#1C1C1E',
+    text: '#f8fafc',
+    textSecondary: '#cbd5e1',
+    textTertiary: '#64748b',
+    background: '#020617',
+    backgroundElevated: '#0f172a',
+    surfaceMuted: '#1e293b',
     tint: tintDark,
-    icon: '#8E8E93',
-    tabIconDefault: '#8E8E93',
+    navy: '#020617',
+    icon: '#94a3b8',
+    tabIconDefault: '#64748b',
     tabIconSelected: tintDark,
-    separator: 'rgba(84,84,88,0.65)',
-    card: '#1C1C1E',
-    label: '#EBEBF5',
-    fill: 'rgba(120,120,128,0.36)',
-    destructive: '#FF453A',
-    success: '#32D74B',
-    warning: '#FF9F0A',
+    separator: 'rgba(148,163,184,0.18)',
+    border: 'rgba(148,163,184,0.22)',
+    card: '#0f172a',
+    label: '#cbd5e1',
+    fill: 'rgba(148,163,184,0.16)',
+    destructive: '#f87171',
+    success: '#34d399',
+    warning: '#fbbf24',
   },
 };
 
@@ -62,8 +76,8 @@ export const Spacing = {
 export const BorderRadius = {
   sm: 8,
   md: 12,
-  lg: 16,
-  xl: 20,
+  lg: 14,
+  xl: 18,
   full: 9999,
 } as const;
 
@@ -72,10 +86,17 @@ export function getAppColors(mode: 'light' | 'dark') {
   const c = Colors[mode];
   return {
     background: c.background,
+    backgroundElevated: c.backgroundElevated,
+    surfaceMuted: c.surfaceMuted,
     card: c.card,
     text: c.text,
     textSecondary: c.textSecondary,
+    textTertiary: c.textTertiary,
     tint: c.tint,
+    navy: c.navy,
+    border: c.border,
+    separator: c.separator,
+    fill: c.fill,
     success: c.success,
     danger: c.destructive,
     warning: c.warning,
@@ -112,12 +133,12 @@ export const AppColors = new Proxy({} as AppColorsType, {
 
 export const CardShadow = Platform.select({
   ios: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: navy,
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowRadius: 6,
   },
-  android: { elevation: 2 },
+  android: { elevation: 1 },
   default: {},
 });
 
